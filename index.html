@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Ball Fight — 1v1 Auto Battle</title>
+  <title>한남볼파이트</title>
   <style>
     :root {
       color-scheme: dark;
       font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      background: #222;
+      background: #1c1c1c;
     }
 
     * { box-sizing: border-box; }
@@ -17,7 +17,7 @@
       margin: 0;
       min-height: 100%;
       overflow: hidden;
-      background: #222;
+      background: #1c1c1c;
       color: #f8f8f8;
     }
 
@@ -38,7 +38,7 @@
       display: block;
       width: 100%;
       height: 100%;
-      background: #222;
+      background: #1c1c1c;
       border-radius: 18px;
     }
 
@@ -50,11 +50,15 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 18px;
+      gap: 16px;
       padding: 28px;
       border-radius: 18px;
-      background: radial-gradient(circle at 50% 8%, rgba(255,255,255,.12), rgba(0,0,0,.82) 54%, rgba(0,0,0,.92));
-      backdrop-filter: blur(4px);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02)),
+        radial-gradient(circle at 50% 6%, rgba(255,230,109,.13), rgba(0,0,0,.84) 52%, rgba(0,0,0,.93));
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 22px 80px rgba(0,0,0,.55);
+      backdrop-filter: blur(5px);
       text-align: center;
       z-index: 2;
     }
@@ -64,8 +68,9 @@
     h1, h2, p { margin: 0; }
 
     h1 {
-      font-size: clamp(34px, 6vw, 72px);
-      letter-spacing: 0.08em;
+      font-size: clamp(38px, 6vw, 76px);
+      letter-spacing: -0.04em;
+      line-height: .92;
       text-shadow: 0 8px 24px rgba(0,0,0,.7);
     }
 
@@ -73,28 +78,30 @@
       color: #d7d7d7;
       line-height: 1.5;
       max-width: 780px;
+      font-size: 15px;
     }
 
     #selectionStep {
       min-height: 28px;
-      color: #fff;
-      font-size: 20px;
-      font-weight: 800;
+      color: #ffe66d;
+      font-size: 17px;
+      font-weight: 900;
+      letter-spacing: .08em;
     }
 
     #cards {
-      width: min(100%, 900px);
+      width: min(100%, 940px);
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
       gap: 16px;
     }
 
     .card {
       appearance: none;
-      border: 3px solid rgba(255,255,255,.14);
-      border-radius: 20px;
-      padding: 18px 16px;
-      background: linear-gradient(145deg, rgba(255,255,255,.13), rgba(255,255,255,.04));
+      border: 2px solid rgba(255,255,255,.14);
+      border-radius: 18px;
+      padding: 16px 14px;
+      background: linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.035));
       color: white;
       cursor: pointer;
       transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
@@ -110,8 +117,23 @@
       outline: none;
     }
 
-    .card.selected-left { box-shadow: 0 0 0 4px rgba(155,89,182,.9), 0 18px 42px rgba(0,0,0,.45); }
-    .card.selected-right { box-shadow: 0 0 0 4px rgba(52,152,219,.9), 0 18px 42px rgba(0,0,0,.45); }
+    .card.selected {
+      border-color: var(--ring);
+      box-shadow: 0 0 0 3px var(--ring), 0 18px 42px rgba(0,0,0,.45);
+    }
+
+    .pickCount {
+      display: inline-grid;
+      place-items: center;
+      min-width: 28px;
+      height: 28px;
+      margin-left: 8px;
+      border-radius: 999px;
+      background: var(--ring);
+      color: white;
+      font-size: 13px;
+      font-weight: 1000;
+    }
 
     .avatar {
       width: 92px;
@@ -158,12 +180,22 @@
     .pill {
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(255,255,255,.11);
-      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.09);
+      border: 1px solid rgba(255,255,255,.14);
       font-weight: 800;
+      max-width: min(92vw, 760px);
+      line-height: 1.45;
     }
 
-    button.primary {
+    .actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button.primary,
+    button.secondary {
       appearance: none;
       border: 0;
       border-radius: 999px;
@@ -174,6 +206,12 @@
       letter-spacing: .1em;
       cursor: pointer;
       box-shadow: 0 12px 26px rgba(0,0,0,.35);
+    }
+
+    button.secondary {
+      color: #f4f4f4;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.16);
     }
 
     button.primary:disabled {
@@ -189,24 +227,27 @@
   </style>
 </head>
 <body>
-  <main id="gameShell" aria-label="Ball Fight Game">
+  <main id="gameShell" aria-label="한남볼파이트">
     <canvas id="gameCanvas"></canvas>
 
     <section id="selectionOverlay" aria-label="캐릭터 선택 화면">
-      <h1>BALL FIGHT</h1>
-      <p class="hint">왼쪽 캐릭터를 먼저 선택한 뒤 오른쪽 캐릭터를 선택하세요. 같은 캐릭터도 양쪽에 선택할 수 있습니다.</p>
-      <div id="selectionStep">LEFT FIGHTER SELECT</div>
+      <h1>한남볼파이트</h1>
+      <p class="hint">카드를 누르는 만큼 참가자가 추가됩니다. 같은 캐릭터를 여러 번 넣어도 되고, 2명 이상이면 바로 난투 시작.</p>
+      <div id="selectionStep">ROSTER SELECT</div>
       <div id="cards"></div>
       <div class="selectionStatus">
-        <span id="leftPick" class="pill">LEFT: -</span>
-        <span id="rightPick" class="pill">RIGHT: -</span>
+        <span id="leftPick" class="pill">참가자: -</span>
+        <span id="rightPick" class="pill">규칙: 전원 자동 난투 · 마지막 1명 승리</span>
       </div>
-      <button id="startButton" class="primary" disabled>START BATTLE</button>
+      <div class="actions">
+        <button id="startButton" class="primary" disabled>START BATTLE</button>
+        <button id="clearButton" class="secondary">RESET PICKS</button>
+      </div>
     </section>
 
     <section id="resultOverlay" class="hidden" aria-label="전투 결과 화면">
       <h2 id="winnerText">WINNER</h2>
-      <button id="againButton" class="primary">BACK TO SELECT</button>
+      <button id="againButton" class="primary">SELECT AGAIN</button>
     </section>
   </main>
 
@@ -314,6 +355,7 @@
     const selectionStepEl = document.getElementById('selectionStep');
     const leftPickEl = document.getElementById('leftPick');
     const rightPickEl = document.getElementById('rightPick');
+    const clearButton = document.getElementById('clearButton');
     const startButton = document.getElementById('startButton');
     const againButton = document.getElementById('againButton');
     const winnerText = document.getElementById('winnerText');
@@ -321,13 +363,12 @@
     const BASE_WIDTH = 1100;
     const BASE_HEIGHT = 760;
     const ARENA = { x: 70, y: 40, w: 960, h: 530 };
-    const PANEL_Y = 596;
+    const PANEL_Y = 604;
     const BALL_RADIUS = 38;
 
     let scale = 1;
-    let selectedLeft = null;
-    let selectedRight = null;
-    let pickingSide = 'left';
+    const selectedRoster = [];
+    const MAX_FIGHTERS = 8;
     let fighters = [];
     let projectiles = [];
     let particles = [];
@@ -371,25 +412,27 @@
       loadedImages.set(character.id + character.imageSrc, img);
     }
 
-    function makeFighter(character, side) {
+    function makeFighter(character, index, total) {
       const stats = character.stats;
-      const suffix = side === 'left' ? '_L' : '_R';
+      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / total;
+      const spawnRadiusX = Math.min(ARENA.w * 0.36, 330);
+      const spawnRadiusY = Math.min(ARENA.h * 0.32, 180);
       return {
         ...character,
-        id: character.id + suffix,
+        id: `${character.id}_${index}_${Math.random().toString(36).slice(2, 7)}`,
         baseId: character.id,
-        side,
-        x: side === 'left' ? ARENA.x + 165 : ARENA.x + ARENA.w - 165,
-        y: ARENA.y + ARENA.h / 2 + (side === 'left' ? -35 : 35),
-        vx: 0,
-        vy: 0,
+        side: index % 2 === 0 ? 'left' : 'right',
+        x: ARENA.x + ARENA.w / 2 + Math.cos(angle) * spawnRadiusX,
+        y: ARENA.y + ARENA.h / 2 + Math.sin(angle) * spawnRadiusY,
+        vx: Math.cos(angle) * rand(120, 230),
+        vy: Math.sin(angle) * rand(120, 230),
         radius: BALL_RADIUS,
         hp: stats.hp,
         maxHp: stats.hp,
         skillGauge: 0,
         attackTimer: rand(0, 0.2),
         wanderTimer: 0,
-        wanderAngle: side === 'left' ? 0 : Math.PI,
+        wanderAngle: angle + Math.PI,
         alive: true,
         alpha: 1,
         skillCasting: 0,
@@ -413,7 +456,7 @@
         const imageHtml = character.imageSrc ? `<img alt="${character.name}" src="${character.imageSrc}">` : characterInitial(character.name);
         button.innerHTML = `
           <div class="avatar">${imageHtml}</div>
-          <div class="cardName">${character.name}</div>
+          <div class="cardName">${character.name}<span class="pickCount">×0</span></div>
           <div class="stats">
             HP ${character.stats.hp}<br>
             SPEED ${Math.round(character.stats.speed)}<br>
@@ -428,29 +471,43 @@
     }
 
     function selectCharacter(character) {
-      if (pickingSide === 'left') {
-        selectedLeft = character;
-        pickingSide = 'right';
-      } else {
-        selectedRight = character;
+      if (selectedRoster.length >= MAX_FIGHTERS) {
+        selectedRoster.shift();
       }
+      selectedRoster.push(character);
+      updateSelectionUI();
+    }
+
+    function clearRoster() {
+      selectedRoster.length = 0;
       updateSelectionUI();
     }
 
     function updateSelectionUI() {
-      selectionStepEl.textContent = pickingSide === 'left' ? 'LEFT FIGHTER SELECT' : 'RIGHT FIGHTER SELECT';
-      leftPickEl.textContent = `LEFT: ${selectedLeft ? selectedLeft.name : '-'}`;
-      rightPickEl.textContent = `RIGHT: ${selectedRight ? selectedRight.name : '-'}`;
-      startButton.disabled = !(selectedLeft && selectedRight);
+      const counts = new Map();
+      selectedRoster.forEach((character) => counts.set(character.id, (counts.get(character.id) || 0) + 1));
+      selectionStepEl.textContent = `${selectedRoster.length}/${MAX_FIGHTERS} PARTICIPANTS`;
+      leftPickEl.textContent = selectedRoster.length
+        ? `참가자: ${selectedRoster.map((character, i) => `${i + 1}.${character.name}`).join(' · ')}`
+        : '참가자: -';
+      rightPickEl.textContent = selectedRoster.length < 2
+        ? '2명 이상 선택하면 시작 가능'
+        : '벽 충돌 + 볼 충돌 난투 준비 완료';
+      startButton.disabled = selectedRoster.length < 2;
       [...cardsEl.children].forEach((card, i) => {
         const character = CHARACTERS[i];
-        card.classList.toggle('selected-left', selectedLeft === character);
-        card.classList.toggle('selected-right', selectedRight === character);
+        const count = counts.get(character.id) || 0;
+        card.classList.toggle('selected', count > 0);
+        const badge = card.querySelector('.pickCount');
+        if (badge) {
+          badge.textContent = `×${count}`;
+          badge.style.display = count > 0 ? 'inline-grid' : 'none';
+        }
       });
     }
 
     function startBattle() {
-      fighters = [makeFighter(selectedLeft, 'left'), makeFighter(selectedRight, 'right')];
+      fighters = selectedRoster.map((character, index) => makeFighter(character, index, selectedRoster.length));
       projectiles = [];
       particles = [];
       shockwaves = [];
@@ -470,9 +527,7 @@
       state = 'select';
       resultOverlay.classList.add('hidden');
       selectionOverlay.classList.remove('hidden');
-      selectedLeft = null;
-      selectedRight = null;
-      pickingSide = 'left';
+      selectedRoster.length = 0;
       updateSelectionUI();
     }
 
@@ -502,9 +557,9 @@
       },
       applyAreaDamage(x, y, radius, damage, ownerId, effectFn) {
         fighters.forEach((target) => {
-          if (!target.alive || target.id === ownerId || target.baseId === ownerId) return;
+          if (!target.alive || target.id === ownerId) return;
           if (Math.hypot(target.x - x, target.y - y) <= radius + target.radius) {
-            const owner = fighters.find((f) => f.id === ownerId || f.baseId === ownerId) || null;
+            const owner = fighters.find((f) => f.id === ownerId) || null;
             this.damage(target, owner, damage, true, '#ffb703');
             if (effectFn) effectFn(target);
           }
@@ -532,8 +587,7 @@
         return normalize(b.x - a.x, b.y - a.y);
       },
       clampToArena(fighter) {
-        fighter.x = clamp(fighter.x, ARENA.x + fighter.radius, ARENA.x + ARENA.w - fighter.radius);
-        fighter.y = clamp(fighter.y, ARENA.y + fighter.radius, ARENA.y + ARENA.h - fighter.radius);
+        bounceOffWalls(fighter);
       },
       damage(target, source, amount, isSkill = false, color = '#fff') {
         if (!target.alive) return;
@@ -579,36 +633,36 @@
     }
 
     function updateFighters(dt) {
-      const [a, b] = fighters;
       fighters.forEach((fighter) => {
         if (!fighter.alive) {
           fighter.alpha = Math.max(0, fighter.alpha - dt * 0.9);
           return;
         }
-        const enemy = fighter === a ? b : a;
+        const enemy = findNearestEnemy(fighter);
         fighter.attackTimer = Math.max(0, fighter.attackTimer - dt);
         fighter.skillCasting = Math.max(0, fighter.skillCasting - dt);
         fighter.skillGauge = Math.min(fighter.stats.skillGaugeMax, fighter.skillGauge + fighter.stats.skillGaugeRate * dt);
         fighter.wanderTimer -= dt;
         if (fighter.wanderTimer <= 0) {
-          fighter.wanderTimer = rand(0.35, 0.9);
+          fighter.wanderTimer = rand(0.25, 0.75);
           fighter.wanderAngle = rand(0, Math.PI * 2);
         }
 
-        if (enemy.alive && fighter.skillCasting <= 0) {
+        if (enemy && enemy.alive && fighter.skillCasting <= 0) {
           const toEnemy = normalize(enemy.x - fighter.x, enemy.y - fighter.y);
           const distance = dist(fighter, enemy);
-          const desiredDistance = fighter.stats.attackRange * 0.78;
-          const approach = distance > desiredDistance ? 1 : -0.25;
-          const wander = { x: Math.cos(fighter.wanderAngle) * 0.32, y: Math.sin(fighter.wanderAngle) * 0.32 };
+          const desiredDistance = fighter.stats.attackRange * 0.7;
+          const approach = distance > desiredDistance ? 1 : -0.18;
+          const wander = { x: Math.cos(fighter.wanderAngle) * 0.42, y: Math.sin(fighter.wanderAngle) * 0.42 };
           const move = normalize(toEnemy.x * approach + wander.x, toEnemy.y * approach + wander.y);
-          fighter.vx += move.x * fighter.stats.speed * 7.2 * dt;
-          fighter.vy += move.y * fighter.stats.speed * 7.2 * dt;
+          fighter.vx += move.x * fighter.stats.speed * 5.4 * dt;
+          fighter.vy += move.y * fighter.stats.speed * 5.4 * dt;
 
           if (distance <= fighter.stats.attackRange && fighter.attackTimer <= 0) {
             fighter.attackTimer = fighter.stats.attackCooldown;
             world.damage(enemy, fighter, fighter.stats.attackDamage, false);
-            world.applyKnockback(enemy, toEnemy.x, toEnemy.y, 105);
+            world.applyKnockback(enemy, toEnemy.x, toEnemy.y, 190);
+            world.applyKnockback(fighter, -toEnemy.x, -toEnemy.y, 55);
           }
 
           if (fighter.skillGauge >= fighter.stats.skillGaugeMax) {
@@ -618,34 +672,94 @@
           }
         }
 
-        fighter.vx *= Math.pow(0.08, dt);
-        fighter.vy *= Math.pow(0.08, dt);
+        fighter.vx *= Math.pow(0.52, dt);
+        fighter.vy *= Math.pow(0.52, dt);
         fighter.x += fighter.vx * dt;
         fighter.y += fighter.vy * dt;
         world.clampToArena(fighter);
       });
-      resolveCollision(a, b);
+      resolveAllCollisions();
+    }
+
+    function findNearestEnemy(fighter) {
+      let best = null;
+      let bestDistance = Infinity;
+      fighters.forEach((candidate) => {
+        if (candidate === fighter || !candidate.alive) return;
+        const candidateDistance = dist(fighter, candidate);
+        if (candidateDistance < bestDistance) {
+          best = candidate;
+          bestDistance = candidateDistance;
+        }
+      });
+      return best;
+    }
+
+    function resolveAllCollisions() {
+      for (let i = 0; i < fighters.length; i += 1) {
+        for (let j = i + 1; j < fighters.length; j += 1) {
+          resolveCollision(fighters[i], fighters[j]);
+        }
+      }
     }
 
     function resolveCollision(a, b) {
+      if (!a || !b || (!a.alive && !b.alive)) return;
       const dx = b.x - a.x;
       const dy = b.y - a.y;
       const distance = Math.hypot(dx, dy) || 1;
-      const minDistance = a.radius + b.radius + 1;
+      const minDistance = a.radius + b.radius + 2;
       if (distance < minDistance) {
         const overlap = minDistance - distance;
         const nx = dx / distance;
         const ny = dy / distance;
+        const aShare = a.alive ? 0.5 : 0;
+        const bShare = b.alive ? 0.5 : 0;
         if (a.alive) {
-          a.x -= nx * overlap * 0.5;
-          a.y -= ny * overlap * 0.5;
+          a.x -= nx * overlap * (b.alive ? aShare : 1);
+          a.y -= ny * overlap * (b.alive ? aShare : 1);
         }
         if (b.alive) {
-          b.x += nx * overlap * 0.5;
-          b.y += ny * overlap * 0.5;
+          b.x += nx * overlap * (a.alive ? bShare : 1);
+          b.y += ny * overlap * (a.alive ? bShare : 1);
         }
+
+        const relativeVelocity = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+        const impulse = Math.max(260, Math.abs(relativeVelocity) * 0.82);
+        if (a.alive) {
+          a.vx -= nx * impulse;
+          a.vy -= ny * impulse;
+        }
+        if (b.alive) {
+          b.vx += nx * impulse;
+          b.vy += ny * impulse;
+        }
+        world.spawnParticles((a.x + b.x) / 2, (a.y + b.y) / 2, '#ffffff', 10, 70, 210, 1.5, 4, 0.14, 0.35);
         world.clampToArena(a);
         world.clampToArena(b);
+      }
+    }
+
+    function bounceOffWalls(fighter) {
+      const restitution = 0.92;
+      const kick = 120;
+      if (fighter.x < ARENA.x + fighter.radius) {
+        fighter.x = ARENA.x + fighter.radius;
+        fighter.vx = Math.abs(fighter.vx) * restitution + kick;
+        world.spawnParticles(fighter.x - fighter.radius, fighter.y, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
+      } else if (fighter.x > ARENA.x + ARENA.w - fighter.radius) {
+        fighter.x = ARENA.x + ARENA.w - fighter.radius;
+        fighter.vx = -Math.abs(fighter.vx) * restitution - kick;
+        world.spawnParticles(fighter.x + fighter.radius, fighter.y, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
+      }
+      if (fighter.y < ARENA.y + fighter.radius) {
+        fighter.y = ARENA.y + fighter.radius;
+        fighter.vy = Math.abs(fighter.vy) * restitution + kick;
+        world.spawnParticles(fighter.x, fighter.y - fighter.radius, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
+      } else if (fighter.y > ARENA.y + ARENA.h - fighter.radius) {
+        fighter.y = ARENA.y + ARENA.h - fighter.radius;
+        fighter.vy = -Math.abs(fighter.vy) * restitution - kick;
+        world.spawnParticles(fighter.x, fighter.y + fighter.radius, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
       }
     }
 
@@ -659,9 +773,9 @@
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         fighters.forEach((target) => {
-          if (!target.alive || target.id === p.owner || target.baseId === p.owner) return;
+          if (!target.alive || target.id === p.owner) return;
           if (Math.hypot(target.x - p.x, target.y - p.y) <= target.radius + p.radius) {
-            const owner = fighters.find((f) => f.id === p.owner || f.baseId === p.owner) || null;
+            const owner = fighters.find((f) => f.id === p.owner) || null;
             world.damage(target, owner, p.damage, true, p.color);
             if (p.onHit) p.onHit(target, p);
             p.life = 0;
@@ -732,7 +846,7 @@
     function render() {
       ctx.save();
       ctx.clearRect(-1000, -1000, BASE_WIDTH + 2000, BASE_HEIGHT + 2000);
-      ctx.fillStyle = '#222';
+      ctx.fillStyle = '#1c1c1c';
       ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
       const shakePower = shake.time > 0 ? shake.magnitude * (shake.time / shake.duration) : 0;
       ctx.translate(rand(-shakePower, shakePower), rand(-shakePower, shakePower));
@@ -809,13 +923,21 @@
       ctx.restore();
     }
 
-    function lighten(hex, amount) {
+    function shiftHex(hex, amount) {
       const value = hex.replace('#', '');
       const num = parseInt(value.length === 3 ? value.split('').map((c) => c + c).join('') : value, 16);
       const r = clamp((num >> 16) + amount, 0, 255);
       const g = clamp(((num >> 8) & 255) + amount, 0, 255);
       const b = clamp((num & 255) + amount, 0, 255);
       return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function lighten(hex, amount) {
+      return shiftHex(hex, amount);
+    }
+
+    function darken(hex, amount) {
+      return shiftHex(hex, -amount);
     }
 
     function drawEffectsBehind() {
@@ -923,27 +1045,46 @@
 
     function drawPanels() {
       if (!fighters.length) return;
-      drawStatusPanel(fighters[0], 70, PANEL_Y, 455, false);
-      drawStatusPanel(fighters[1], 575, PANEL_Y, 455, true);
+      const aliveCount = fighters.filter((fighter) => fighter.alive).length;
+      ctx.save();
+      ctx.fillStyle = '#f4f4f4';
+      ctx.font = '900 20px Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(`한남볼파이트 · ALIVE ${aliveCount}/${fighters.length}`, 72, 592);
+      ctx.restore();
+
+      const cols = Math.min(4, fighters.length);
+      const rows = Math.ceil(fighters.length / cols);
+      const gap = 10;
+      const panelW = (960 - gap * (cols - 1)) / cols;
+      const panelH = rows > 1 ? 68 : 92;
+      fighters.forEach((fighter, index) => {
+        const col = index % cols;
+        const row = Math.floor(index / cols);
+        drawStatusPanel(fighter, 70 + col * (panelW + gap), PANEL_Y + row * (panelH + 8), panelW, panelH, col >= cols / 2);
+      });
     }
 
-    function drawStatusPanel(fighter, x, y, w, mirror) {
+    function drawStatusPanel(fighter, x, y, w, h, mirror) {
       ctx.save();
-      ctx.fillStyle = 'rgba(10,10,10,.9)';
-      ctx.strokeStyle = 'rgba(255,255,255,.22)';
-      ctx.lineWidth = 2;
-      roundedRect(x, y, w, 120, 18);
+      ctx.globalAlpha = fighter.alive ? 1 : 0.52;
+      ctx.fillStyle = 'rgba(12,12,12,.86)';
+      ctx.strokeStyle = fighter.ringColor;
+      ctx.lineWidth = 1.5;
+      roundedRect(x, y, w, h, 15);
       ctx.fill();
       ctx.stroke();
 
       ctx.fillStyle = fighter.nameColor;
-      ctx.font = '900 25px Arial, sans-serif';
+      ctx.font = `900 ${h < 80 ? 15 : 20}px Arial, sans-serif`;
       ctx.textAlign = mirror ? 'right' : 'left';
       ctx.textBaseline = 'top';
-      ctx.fillText(fighter.name, mirror ? x + w - 22 : x + 22, y + 16);
+      ctx.fillText(fighter.name, mirror ? x + w - 14 : x + 14, y + 10);
 
-      drawBar(x + 22, y + 54, w - 44, 28, fighter.hp / fighter.maxHp, hpGradient(fighter.hp / fighter.maxHp), `${Math.ceil(fighter.hp)} / ${fighter.maxHp}`, mirror);
-      drawBar(x + 22, y + 89, w - 44, 13, fighter.skillGauge / fighter.stats.skillGaugeMax, skillGradient(fighter), '', mirror);
+      const barX = x + 14;
+      const barW = w - 28;
+      drawBar(barX, y + (h < 80 ? 32 : 39), barW, h < 80 ? 16 : 23, fighter.hp / fighter.maxHp, hpGradient(fighter.hp / fighter.maxHp, barX, barW), `${Math.ceil(fighter.hp)} / ${fighter.maxHp}`, mirror);
+      drawBar(barX, y + (h < 80 ? 53 : 68), barW, 8, fighter.skillGauge / fighter.stats.skillGaugeMax, skillGradient(fighter, barX, barW), '', mirror);
       ctx.restore();
     }
 
@@ -974,8 +1115,8 @@
       }
     }
 
-    function hpGradient(ratio) {
-      const g = ctx.createLinearGradient(0, 0, 380, 0);
+    function hpGradient(ratio, x, w) {
+      const g = ctx.createLinearGradient(x, 0, x + w, 0);
       if (ratio > 0.5) {
         g.addColorStop(0, '#27ae60');
         g.addColorStop(1, '#8ee65d');
@@ -989,11 +1130,11 @@
       return g;
     }
 
-    function skillGradient(fighter) {
-      const g = ctx.createLinearGradient(0, 0, 380, 0);
-      g.addColorStop(0, '#7c3aed');
-      g.addColorStop(0.55, fighter.ringColor);
-      g.addColorStop(1, '#f0abfc');
+    function skillGradient(fighter, x, w) {
+      const g = ctx.createLinearGradient(x, 0, x + w, 0);
+      g.addColorStop(0, darken(fighter.ringColor, 46));
+      g.addColorStop(0.58, fighter.ringColor);
+      g.addColorStop(1, lighten(fighter.ringColor, 46));
       return g;
     }
 
@@ -1016,6 +1157,7 @@
     }
 
     startButton.addEventListener('click', startBattle);
+    clearButton.addEventListener('click', clearRoster);
     againButton.addEventListener('click', backToSelect);
     window.addEventListener('resize', resizeCanvas);
     renderCards();
