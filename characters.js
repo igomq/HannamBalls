@@ -35,7 +35,8 @@
             },
             cooldownOnBasicHit: 0,
             cooldownOnDamageTaken: 0,
-            immuneToBasic: false
+            immuneToBasic: false,
+            avatarSrc: 'images/geonuk.png'
         },
         {
             id: "yoo-seungchan",
@@ -63,7 +64,8 @@
             },
             cooldownOnBasicHit: 1,
             cooldownOnDamageTaken: 0.5,
-            immuneToBasic: false
+            immuneToBasic: false,
+            avatarSrc: 'images/seungchan.png'
         },
         {
             id: "han-yejun",
@@ -90,7 +92,8 @@
             },
             cooldownOnBasicHit: 0,
             cooldownOnDamageTaken: 0.5,
-            immuneToBasic: false
+            immuneToBasic: false,
+            avatarSrc: 'images/yejun.png'
         },
         {
             id: "lee-woochan",
@@ -120,7 +123,8 @@
             },
             cooldownOnBasicHit: 0.35,
             cooldownOnDamageTaken: 0,
-            immuneToBasic: true
+            immuneToBasic: true,
+            avatarSrc: 'images/woochan.png'
         },
         {
             id: "lee-seunghyun",
@@ -167,7 +171,8 @@
             immuneToKnockback: true,
             contactAttackDisabled: true,
             noPushCollision: true,
-            movementPattern: "corners"
+            movementPattern: "corners",
+            avatarSrc: 'images/seunghyun.png'
         }
     ];
 
