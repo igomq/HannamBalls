@@ -144,6 +144,7 @@
                     puddleDuration: 2,
                     puddleTickInterval: 0.55,
                     puddleRadius: 62,
+                    puddleRadiusRatio: 0.105,
                     healRatio: 1,
                     dropInterval: 0.42,
                     maxActivePuddles: 5

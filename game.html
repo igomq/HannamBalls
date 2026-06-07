@@ -916,7 +916,8 @@
             }
 
             const puddle = document.createElement("div");
-            const size = effects.puddleRadius * 2;
+            const radius = Math.max(28, Math.min(effects.puddleRadius, battle.arenaSize * (effects.puddleRadiusRatio || 0.105)));
+            const size = radius * 2;
             puddle.className = "puddle-zone";
             puddle.style.left = `${fighter.x}px`;
             puddle.style.top = `${fighter.y}px`;
@@ -928,7 +929,7 @@
                 source: fighter,
                 x: fighter.x,
                 y: fighter.y,
-                radius: effects.puddleRadius,
+                radius,
                 damage: effects.puddleDamage,
                 healRatio: effects.healRatio,
                 tickInterval: effects.puddleTickInterval,
