@@ -4,7 +4,10 @@
         yuseung: "YS",
         hanye: "YJ",
         woochan: "WC",
-        seunghyun: "SH"
+        seunghyun: "SH",
+        hyunwoo: "HW",
+        jihoon: "JH",
+        mom: "MOM"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -12,8 +15,8 @@
             id: "song-geonuk",
             name: "송건욱",
             shortName: "건욱",
-            maxHp: 630,
-            baseAttack: 32,
+            maxHp: 660,
+            baseAttack: 28,
             speedLabel: "느림",
             speed: 165,
             colorName: "검은색",
@@ -130,28 +133,30 @@
             id: "lee-seunghyun",
             name: "이승현",
             shortName: "승현",
-            maxHp: 220,
-            baseAttack: 22,
+            maxHp: 265,
+            baseAttack: 20,
             speedLabel: "빠름",
             speed: 255,
             colorName: "적갈색",
             color: "#8b2f23",
             textColor: "#ffffff",
-            avatarSrc: "",
+            avatarSrc: "images/seunghyun.png",
             avatarText: placeholderFaces.seunghyun,
-            traits: ["모서리 이동", "장판 흡혈", "밀치기 면역"],
+            traits: ["모서리 이동", "장판 흡혈", "밀치기 면역", "체력 50% 이하 보호막"],
             passive: {
                 name: "음침한 발자국",
-                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 85%만큼 체력을 회복합니다.",
+                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 85%만큼 체력을 회복합니다. 또한 처음으로 체력이 50% 미만으로 떨어지면 최대 체력의 30% 만큼의 보호막이 생성됩니다.",
                 effects: {
-                    puddleDamage: 22,
+                    puddleDamage: 20,
                     puddleDuration: 2,
                     puddleTickInterval: 0.55,
                     puddleRadius: 62,
                     puddleRadiusRatio: 0.105,
                     healRatio: 0.85,
                     dropInterval: 0.42,
-                    maxActivePuddles: 5
+                    maxActivePuddles: 5,
+                    shieldThresholdRatio: 0.5,
+                    shieldRatio: 0.3
                 }
             },
             skill: {
@@ -171,8 +176,100 @@
             immuneToKnockback: true,
             contactAttackDisabled: true,
             noPushCollision: true,
-            movementPattern: "corners",
-            avatarSrc: 'images/seunghyun.png'
+            movementPattern: "corners"
+        },
+        {
+            id: "lee-hyunwoo",
+            name: "이현우",
+            shortName: "현우",
+            maxHp: 385,
+            baseAttack: 5,
+            speedLabel: "매우 빠름",
+            speed: 315,
+            colorName: "남색",
+            color: "#1e3a8a",
+            textColor: "#ffffff",
+            avatarSrc: "",
+            avatarText: placeholderFaces.hyunwoo,
+            traits: ["엄마 소환", "피격 쿨감", "소환수 흡혈"],
+            skill: {
+                name: "엄마 빌려오기",
+                cooldown: 24,
+                description: "체력 175, 기본 공격력 45, 이동속도 매우 빠름의 엄마를 소환합니다. 엄마는 현우를 공격하지 않으며, 초당 25씩 체력이 감소하고, 엄마가 입힌 피해의 30%만큼 이현우가, 50%만큼 엄마가 회복합니다.",
+                effects: {
+                    summon: {
+                        id: "lee-hyunwoo-mom",
+                        name: "현우 엄마",
+                        shortName: "엄마",
+                        maxHp: 175,
+                        baseAttack: 45,
+                        speedLabel: "매우 빠름",
+                        speed: 315,
+                        colorName: "남색",
+                        color: "#172554",
+                        textColor: "#ffffff",
+                        avatarSrc: "",
+                        avatarText: placeholderFaces.mom,
+                        traits: ["소환수", "흡혈", "시간 제한"],
+                        skill: {
+                            name: "엄마의 잔소리",
+                            cooldown: 999,
+                            description: "스킬을 사용하지 않는 소환수입니다.",
+                            effects: {}
+                        },
+                        cooldownOnBasicHit: 0,
+                        cooldownOnDamageTaken: 0,
+                        immuneToBasic: false,
+                        isSummonDefinition: true,
+                        hpDecayPerSecond: 25,
+                        ownerHealRatioFromDamage: 0.3,
+                        selfHealRatioFromDamage: 0.5
+                    }
+                }
+            },
+            cooldownOnBasicHit: 0,
+            cooldownOnDamageTaken: 6,
+            immuneToBasic: false,
+            avatarSrc: 'images/hyunwoo.png'
+        },
+        {
+            id: "lee-jihoon",
+            name: "이지훈",
+            shortName: "지훈",
+            maxHp: 130,
+            baseAttack: 0,
+            speedLabel: "매우 빠름",
+            speed: 320,
+            colorName: "핑크색",
+            color: "#ec4899",
+            textColor: "#ffffff",
+            avatarSrc: "",
+            avatarText: placeholderFaces.jihoon,
+            traits: ["기본 공격 회피", "회피 회복", "집착 추적"],
+            passive: {
+                name: "기본 공격 회피",
+                description: "적의 기본 공격을 회피할 때마다 최대 체력의 5%만큼 체력을 회복합니다.",
+                effects: {
+                    healOnBasicEvadeRatio: 0.05
+                }
+            },
+            skill: {
+                name: "말 걸어준건 너가 처음이야",
+                cooldown: 9.5,
+                description: "가장 가까운 적을 5초간 따라다니며 매초 30의 피해를 입힙니다.",
+                effects: {
+                    duration: 5,
+                    damagePerSecond: 30,
+                    tickInterval: 1,
+                    followSpeedMultiplier: 1.25
+                }
+            },
+            cooldownOnBasicHit: 0,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: false,
+            evadesBasic: true,
+            contactAttackDisabled: true,
+            avatarSrc: 'images/jihoon.png'
         }
     ];
 

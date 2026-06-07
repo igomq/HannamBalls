@@ -164,6 +164,10 @@
             transform: translate(-140px, -140px) !important;
         }
 
+        .fighter-ball.has-shield {
+            box-shadow: 0 0 0 6px #38bdf8, 4px 4px 0px 0px #1c1b1b;
+        }
+
         .effect-ring,
         .effect-burst,
         .damage-float,
@@ -551,7 +555,7 @@
             `;
         }
 
-        function createFighter(definition, index, total) {
+        function createFighter(definition, index, total, options = {}) {
             const element = document.createElement("div");
             element.className = "fighter-ball";
             element.style.background = definition.color;
@@ -561,17 +565,21 @@
             arena.appendChild(element);
 
             return {
-                id: `${definition.id}-${index}`,
+                id: options.id || `${definition.id}-${index}`,
                 definition,
                 element,
                 index,
                 total,
+                ownerId: options.ownerId || null,
+                isSummon: Boolean(options.isSummon || definition.isSummonDefinition),
                 x: 0,
                 y: 0,
                 vx: 0,
                 vy: 0,
                 hp: definition.maxHp,
                 maxHp: definition.maxHp,
+                shield: 0,
+                shieldTriggered: false,
                 attack: definition.baseAttack,
                 speed: definition.speed,
                 baseSpeed: definition.speed,
@@ -587,10 +595,29 @@
                 offMapUntil: 0,
                 nextPuddleAt: 0,
                 nextDotFloatAt: 0,
+                followTargetId: null,
+                followUntil: 0,
+                nextFollowDamageAt: 0,
                 cornerIndex: index % 4,
                 dead: false,
                 hudElement: null
             };
+        }
+
+        function getFighterById(id) {
+            return battle.fighters.find((fighter) => fighter.id === id);
+        }
+
+        function areAllies(a, b) {
+            if (!a || !b) {
+                return false;
+            }
+
+            return a.ownerId === b.id || b.ownerId === a.id || (a.ownerId && a.ownerId === b.ownerId);
+        }
+
+        function livingEnemiesOf(fighter) {
+            return battle.fighters.filter((target) => target !== fighter && !target.dead && target.offMapUntil <= performance.now() && !areAllies(fighter, target));
         }
 
         function layoutFighters() {
@@ -661,7 +688,8 @@
 
             hud.querySelectorAll(".info-button").forEach((button) => {
                 button.addEventListener("click", () => {
-                    const definition = allCharacters.find((character) => character.id === button.dataset.infoId);
+                    const definition = allCharacters.find((character) => character.id === button.dataset.infoId)
+                        || battle.fighters.find((fighter) => fighter.definition.id === button.dataset.infoId)?.definition;
                     showInfo(definition);
                 });
             });
@@ -681,7 +709,10 @@
                     fighter.lastHpRatio = hpRatio;
                 }
 
-                const hpTextVal = `HP ${Math.ceil(Math.max(0, fighter.hp))} / ${fighter.maxHp}`;
+                let hpTextVal = `HP ${Math.ceil(Math.max(0, fighter.hp))} / ${fighter.maxHp}`;
+                if (fighter.shield > 0) {
+                    hpTextVal += ` (+${Math.round(fighter.shield)})`;
+                }
                 if (fighter.lastHpText !== hpTextVal) {
                     fighter.hudHpText.textContent = hpTextVal;
                     fighter.lastHpText = hpTextVal;
@@ -748,6 +779,12 @@
                 if (fighter.lastIsOffmap !== offmapState) {
                     fighter.element.classList.toggle("is-offmap", offmapState);
                     fighter.lastIsOffmap = offmapState;
+                }
+
+                const shieldState = !fighter.dead && fighter.shield > 0;
+                if (fighter.lastHasShield !== shieldState) {
+                    fighter.element.classList.toggle("has-shield", shieldState);
+                    fighter.lastHasShield = shieldState;
                 }
 
                 fighter.element.style.transform = `translate(${fighter.x - battle.ballSize / 2}px, ${fighter.y - battle.ballSize / 2}px)`;
@@ -893,6 +930,14 @@
                 return 0;
             }
 
+            if (kind === "basic" && target.definition.evadesBasic) {
+                floatText("DODGE", target.x, target.y - battle.ballSize / 2, target.definition.color);
+                effectRing(target.x, target.y, battle.ballSize * 1.15, target.definition.color);
+                const healRatio = target.definition.passive?.effects?.healOnBasicEvadeRatio || 0;
+                healFighter(target, target.maxHp * healRatio);
+                return 0;
+            }
+
             if (kind === "basic" && target.definition.immuneToBasic) {
                 floatText("IMMUNE", target.x, target.y - battle.ballSize / 2, target.definition.color);
                 effectRing(target.x, target.y, battle.ballSize * 1.2, target.definition.color);
@@ -900,7 +945,37 @@
             }
 
             const reducedAmount = amount * Math.max(0.4, 1 - (target.statDamageReduction || 0));
-            const actual = Math.min(target.hp, reducedAmount);
+
+            let damageToHp = reducedAmount;
+            if (target.shield > 0) {
+                const absorbed = Math.min(target.shield, damageToHp);
+                target.shield -= absorbed;
+                damageToHp -= absorbed;
+                floatText(`ABSORB ${Math.round(absorbed)}`, target.x, target.y - battle.ballSize / 2, "#38bdf8");
+                effectRing(target.x, target.y, battle.ballSize * 1.1, "#38bdf8");
+            }
+
+            const postHp = target.hp - damageToHp;
+
+            // 이승현 체력 50% 미만 첫 보호막 트리거
+            if (target.definition.id === "lee-seunghyun" && !target.shieldTriggered && postHp < target.maxHp * 0.5 && target.hp >= target.maxHp * 0.5) {
+                target.shieldTriggered = true;
+                const shieldAmount = target.maxHp * 0.3;
+                target.shield = (target.shield || 0) + shieldAmount;
+                floatText("보호막!", target.x, target.y - battle.ballSize / 2, "#38bdf8");
+                megaBurst(target.x, target.y, "#38bdf8", 6);
+
+                if (damageToHp > 0) {
+                    const damageToDropLimit = target.hp - target.maxHp * 0.5;
+                    const leftoverDamage = damageToHp - damageToDropLimit;
+                    const absorbed = Math.min(target.shield, leftoverDamage);
+                    target.shield -= absorbed;
+                    damageToHp = damageToDropLimit + (leftoverDamage - absorbed);
+                    floatText(`ABSORB ${Math.round(absorbed)}`, target.x, target.y - battle.ballSize / 2, "#38bdf8");
+                }
+            }
+
+            const actual = Math.min(target.hp, damageToHp);
             target.hp -= actual;
             const isDot = kind === "poison" || (kind === "basic" && source && source.definition.id === "lee-seunghyun");
             const canShowDot = !isDot || now >= target.nextDotFloatAt;
@@ -918,6 +993,14 @@
 
             if (kind === "skill") {
                 effectRing(target.x, target.y, battle.ballSize * 1.35, source ? source.definition.color : "#ba1a1a");
+            }
+
+            if (actual > 0 && source && source.isSummon) {
+                const owner = getFighterById(source.ownerId);
+                healFighter(source, actual * (source.definition.selfHealRatioFromDamage || 0));
+                if (owner && !owner.dead) {
+                    healFighter(owner, actual * (source.definition.ownerHealRatioFromDamage || 0));
+                }
             }
 
             if (!isStunned(target, now)) {
@@ -1052,7 +1135,7 @@
 
                 puddle.nextTickAt = now + puddle.tickInterval * 1000;
                 battle.fighters.forEach((target) => {
-                    if (target === puddle.source || target.dead || target.offMapUntil > now) {
+                    if (target === puddle.source || target.dead || target.offMapUntil > now || areAllies(puddle.source, target)) {
                         return;
                     }
 
@@ -1099,7 +1182,7 @@
 
                 poison.nextTickAt = now + poison.tickInterval * 1000;
                 battle.fighters.forEach((target) => {
-                    if (target === poison.source || target.dead || target.offMapUntil > now) {
+                    if (target === poison.source || target.dead || target.offMapUntil > now || areAllies(poison.source, target)) {
                         return;
                     }
 
@@ -1122,6 +1205,95 @@
             fighter.invulnerableUntil = 0;
             fighter.offMapUntil = 0;
             megaBurst(fighter.x, fighter.y, fighter.definition.color, 4);
+        }
+
+        function nearestEnemy(fighter) {
+            let nearest = null;
+            let nearestDistance = Infinity;
+            battle.fighters.forEach((target) => {
+                if (target === fighter || target.dead || target.offMapUntil > performance.now() || areAllies(fighter, target)) {
+                    return;
+                }
+
+                const distance = Math.hypot(target.x - fighter.x, target.y - fighter.y);
+                if (distance < nearestDistance) {
+                    nearest = target;
+                    nearestDistance = distance;
+                }
+            });
+            return nearest;
+        }
+
+        function summonFighter(owner, summonDefinition, now) {
+            const definition = JSON.parse(JSON.stringify(summonDefinition));
+            const summon = createFighter(definition, battle.fighters.length, battle.fighters.length + 1, {
+                id: `${owner.id}-mom-${Math.round(now)}`,
+                ownerId: owner.id,
+                isSummon: true
+            });
+            const angle = Math.atan2(owner.vy || 1, owner.vx || 1) + Math.PI / 2;
+            const distance = battle.ballSize * 1.25;
+            summon.x = Math.max(battle.ballSize / 2, Math.min(battle.arenaSize - battle.ballSize / 2, owner.x + Math.cos(angle) * distance));
+            summon.y = Math.max(battle.ballSize / 2, Math.min(battle.arenaSize - battle.ballSize / 2, owner.y + Math.sin(angle) * distance));
+            const center = battle.arenaSize / 2;
+            const direction = normalize(center - summon.x, center - summon.y);
+            summon.vx = direction.x * scaledSpeed(summon.speed);
+            summon.vy = direction.y * scaledSpeed(summon.speed);
+            summon.element.style.width = `${battle.ballSize}px`;
+            summon.element.style.height = `${battle.ballSize}px`;
+            battle.fighters.push(summon);
+            renderHud();
+            megaBurst(summon.x, summon.y, owner.definition.color, 6);
+            floatText("엄마 등장", summon.x, summon.y - battle.ballSize / 2, owner.definition.color);
+            return summon;
+        }
+
+        function updateSummons(dt) {
+            battle.fighters.forEach((fighter) => {
+                if (!fighter.isSummon || fighter.dead) {
+                    return;
+                }
+
+                const owner = getFighterById(fighter.ownerId);
+                if (!owner || owner.dead) {
+                    fighter.hp = 0;
+                } else {
+                    fighter.hp -= (fighter.definition.hpDecayPerSecond || 0) * dt;
+                }
+
+                if (fighter.hp <= 0) {
+                    fighter.dead = true;
+                    fighter.vx = 0;
+                    fighter.vy = 0;
+                    floatText("퇴근", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                }
+            });
+        }
+
+        function updateFollowSkill(fighter, now) {
+            if (!fighter.followUntil || fighter.followUntil <= now) {
+                fighter.followTargetId = null;
+                return false;
+            }
+
+            const target = getFighterById(fighter.followTargetId);
+            if (!target || target.dead || target.offMapUntil > now || areAllies(fighter, target)) {
+                fighter.followTargetId = null;
+                fighter.followUntil = 0;
+                return false;
+            }
+
+            const effects = fighter.definition.skill.effects;
+            const direction = normalize(target.x - fighter.x, target.y - fighter.y);
+            fighter.vx = direction.x * scaledSpeed(fighter.speed * (effects.followSpeedMultiplier || 1));
+            fighter.vy = direction.y * scaledSpeed(fighter.speed * (effects.followSpeedMultiplier || 1));
+
+            if (now >= fighter.nextFollowDamageAt) {
+                applyDamage(target, effects.damagePerSecond * (effects.tickInterval || 1), fighter, "skill");
+                fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
+            }
+
+            return true;
         }
 
         function useSkill(fighter, now) {
@@ -1151,7 +1323,7 @@
                 effectRing(fighter.x, fighter.y, radius * 2, fighter.definition.color);
                 burst(fighter.x, fighter.y, fighter.definition.color, 10);
                 battle.fighters.forEach((target) => {
-                    if (target === fighter || target.dead) {
+                    if (target === fighter || target.dead || areAllies(fighter, target)) {
                         return;
                     }
 
@@ -1169,7 +1341,7 @@
                 effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.2, fighter.definition.color);
                 burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 12);
                 battle.fighters.forEach((target) => {
-                    if (target !== fighter && !target.dead) {
+                    if (target !== fighter && !target.dead && !areAllies(fighter, target)) {
                         applyDamage(target, effects.damage, fighter, "skill");
                         stun(target, effects.stunSeconds, now);
                     }
@@ -1195,6 +1367,25 @@
                 effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.35, fighter.definition.color);
                 burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 6);
                 floatText("MAP OUT", fighter.x, fighter.y, fighter.definition.color);
+            }
+
+            if (id === "lee-hyunwoo") {
+                const summonDefinition = fighter.definition.skill.effects.summon;
+                summonFighter(fighter, summonDefinition, now);
+            }
+
+            if (id === "lee-jihoon") {
+                const target = nearestEnemy(fighter);
+                if (target) {
+                    const effects = fighter.definition.skill.effects;
+                    fighter.followTargetId = target.id;
+                    fighter.followUntil = now + effects.duration * 1000;
+                    fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
+                    floatText("LOCK ON", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+                    effectRing(target.x, target.y, battle.ballSize * 1.35, fighter.definition.color);
+                } else {
+                    floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                }
             }
 
             fighter.skillCooldown = fighter.definition.skill.cooldown;
@@ -1230,7 +1421,7 @@
         }
 
         function handleBasicAttack(attacker, defender, now) {
-            if (attacker.dead || defender.dead || isStunned(attacker, now) || attacker.definition.contactAttackDisabled) {
+            if (attacker.dead || defender.dead || areAllies(attacker, defender) || isStunned(attacker, now) || attacker.definition.contactAttackDisabled) {
                 return;
             }
 
@@ -1242,7 +1433,7 @@
 
         function handleChargeHit(charger, target, normalX, normalY) {
             const now = performance.now();
-            if (charger.chargeUntil <= now || charger.chargeHits.has(target.id) || charger.dead || target.dead) {
+            if (charger.chargeUntil <= now || charger.chargeHits.has(target.id) || charger.dead || target.dead || areAllies(charger, target)) {
                 return;
             }
 
@@ -1335,6 +1526,8 @@
         }
 
         function updatePhysics(dt, now) {
+            updateSummons(dt);
+
             battle.fighters.forEach((fighter) => {
                 if (fighter.dead) {
                     return;
@@ -1361,6 +1554,8 @@
                     if (Math.random() < 0.08) {
                         burst(fighter.x, fighter.y, fighter.definition.color, 2);
                     }
+                } else if (updateFollowSkill(fighter, now)) {
+                    // Follow skill controls movement while active.
                 } else if (fighter.definition.movementPattern === "corners") {
                     steerToCorner(fighter, dt, now);
                 } else {
@@ -1378,7 +1573,7 @@
         }
 
         function checkWinner(now) {
-            const alive = battle.fighters.filter((fighter) => !fighter.dead);
+            const alive = battle.fighters.filter((fighter) => !fighter.dead && !fighter.isSummon);
             if (!battle.isFinished && battle.isRunning && alive.length <= 1) {
                 battle.isFinished = true;
                 battle.isRunning = false;
