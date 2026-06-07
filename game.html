@@ -1,0 +1,1005 @@
+<!-- 전투 화면 -->
+<!DOCTYPE html>
+<html class="light" lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>한남볼파이트 전투</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="./characters.js"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&amp;family=JetBrains+Mono:wght@700&amp;family=Inter:wght@500&amp;display=swap"
+        rel="stylesheet">
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#006d36",
+                        "on-secondary-container": "#fffbff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#f0dbff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#e5e2e1",
+                        "on-primary-fixed-variant": "#005227",
+                        "tertiary-container": "#aac4ff",
+                        "surface-container-high": "#eae7e7",
+                        "on-secondary-fixed": "#2c0051",
+                        "surface-bright": "#fcf9f8",
+                        "primary": "#006d36",
+                        "secondary": "#8127cf",
+                        "primary-fixed": "#6dfe9c",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "surface-variant": "#e5e2e1",
+                        "secondary-fixed-dim": "#ddb7ff",
+                        "on-primary-fixed": "#00210c",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "tertiary-fixed": "#d8e2ff",
+                        "inverse-primary": "#4de082",
+                        "outline-variant": "#bccabb",
+                        "surface-container-low": "#f6f3f2",
+                        "on-tertiary-fixed": "#001a42",
+                        "background": "#fcf9f8",
+                        "secondary-container": "#9c48ea",
+                        "surface": "#fcf9f8",
+                        "inverse-surface": "#313030",
+                        "primary-fixed-dim": "#4de082",
+                        "surface-dim": "#dcd9d9",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#4ade80",
+                        "inverse-on-surface": "#f3f0ef",
+                        "on-secondary-fixed-variant": "#6900b3",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#005e2d",
+                        "surface-container": "#f0eded",
+                        "on-surface": "#1c1b1b",
+                        "outline": "#6d7b6d",
+                        "on-tertiary-container": "#004da8",
+                        "on-surface-variant": "#3d4a3e",
+                        "tertiary": "#005ac2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "bar-height": "64px",
+                        "border-width-thick": "4px",
+                        "arena-margin": "24px",
+                        "border-width-thin": "2px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-md-mobile": ["Plus Jakarta Sans"],
+                        "label-numeric": ["JetBrains Mono"],
+                        "body-base": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "label-numeric": ["14px", { "lineHeight": "1.0", "fontWeight": "700" }],
+                        "body-base": ["16px", { "lineHeight": "1.5", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .hard-shadow {
+            box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .hard-shadow-sm {
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .brutal-border-thick {
+            border: 4px solid #1c1b1b;
+        }
+
+        .brutal-border-thin {
+            border: 2px solid #1c1b1b;
+        }
+
+        .btn-brutal {
+            transition: all 0.1s ease;
+        }
+
+        .btn-brutal:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .fighter-ball {
+            position: absolute;
+            border-radius: 9999px;
+            border: 4px solid #1c1b1b;
+            box-shadow: 4px 4px 0px 0px #1c1b1b;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            will-change: transform;
+            user-select: none;
+        }
+
+        .fighter-ball.is-stunned::after {
+            content: "!";
+            position: absolute;
+            inset: -4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.72);
+            color: #ba1a1a;
+            font: 800 42px "Plus Jakarta Sans", sans-serif;
+        }
+
+        .fighter-ball.is-dead {
+            filter: grayscale(1);
+            opacity: 0.35;
+        }
+
+        .effect-ring,
+        .effect-burst,
+        .damage-float,
+        .skill-label {
+            position: absolute;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .effect-ring {
+            border: 4px solid currentColor;
+            border-radius: 9999px;
+            animation: ring-pop 520ms ease-out forwards;
+        }
+
+        .effect-burst {
+            width: 14px;
+            height: 14px;
+            background: currentColor;
+            border: 2px solid #1c1b1b;
+            animation: burst-pop 560ms ease-out forwards;
+        }
+
+        .damage-float {
+            padding: 3px 6px;
+            background: #ffffff;
+            border: 2px solid #1c1b1b;
+            box-shadow: 2px 2px 0px 0px #1c1b1b;
+            font: 700 14px "JetBrains Mono", monospace;
+            animation: damage-float 780ms ease-out forwards;
+            white-space: nowrap;
+        }
+
+        .skill-label {
+            padding: 4px 8px;
+            background: #1c1b1b;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            font: 700 13px "JetBrains Mono", monospace;
+            animation: skill-label 720ms ease-out forwards;
+            white-space: nowrap;
+        }
+
+        @keyframes ring-pop {
+            from {
+                opacity: 0.95;
+                transform: translate(-50%, -50%) scale(0.25);
+            }
+
+            to {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+        }
+
+        @keyframes burst-pop {
+            from {
+                opacity: 1;
+                transform: translate(-50%, -50%) rotate(0deg) scale(0.8);
+            }
+
+            to {
+                opacity: 0;
+                transform: translate(var(--dx), var(--dy)) rotate(90deg) scale(1.2);
+            }
+        }
+
+        @keyframes damage-float {
+            from {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+
+            to {
+                opacity: 0;
+                transform: translate(-50%, -84px);
+            }
+        }
+
+        @keyframes skill-label {
+            from {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0.9);
+            }
+
+            to {
+                opacity: 0;
+                transform: translate(-50%, -86px) scale(1.06);
+            }
+        }
+
+        .modal-backdrop {
+            background: rgba(28, 27, 27, 0.54);
+        }
+
+        .hud-card {
+            min-width: 0;
+        }
+
+        .hud-name,
+        .status-text,
+        .hp-text {
+            overflow-wrap: anywhere;
+        }
+
+        @media (max-width: 767px) {
+            .hud-card {
+                padding: 8px;
+                background: #ffffff;
+                border: 2px solid #1c1b1b;
+                box-shadow: 2px 2px 0px 0px #1c1b1b;
+            }
+
+            .hud-name {
+                font-size: 15px;
+                line-height: 1.15;
+            }
+
+            .hp-text,
+            .status-text {
+                font-size: 11px;
+                line-height: 1.15;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-background text-on-background font-body-base text-body-base min-h-screen flex flex-col pb-20 md:pb-0">
+    <main class="flex-grow flex flex-col items-center justify-center p-4 md:p-8 w-full max-w-6xl mx-auto">
+        <div class="w-full max-w-[980px] flex items-center justify-between mb-4 gap-3">
+            <a href="./index.html"
+                class="px-3 py-2 bg-surface-container-lowest brutal-border-thin hard-shadow-sm btn-brutal font-label-numeric text-label-numeric flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                선택
+            </a>
+            <div class="text-center">
+                <h1 id="match-title" class="font-headline-md-mobile text-headline-md-mobile md:font-headline-md md:text-headline-md">
+                    전투 준비
+                </h1>
+            <div id="elapsed-time" class="font-label-numeric text-label-numeric text-on-surface-variant mt-1">TIME 00:00.0</div>
+            </div>
+            <button id="restart-button"
+                class="px-3 py-2 bg-primary text-on-primary brutal-border-thin hard-shadow-sm btn-brutal font-label-numeric text-label-numeric flex items-center gap-1">
+                <span class="material-symbols-outlined text-[18px]">refresh</span>
+                재시작
+            </button>
+        </div>
+
+        <div class="w-full max-w-[980px] flex flex-col md:flex-row items-start justify-center gap-6 mb-8">
+            <div id="arena"
+                class="w-full max-w-[600px] aspect-square border-4 border-on-background bg-surface-container-lowest relative shadow-[8px_8px_0px_0px_#1c1b1b] overflow-hidden">
+                <div id="countdown"
+                    class="absolute inset-0 z-30 flex items-center justify-center bg-white/70 font-display-lg text-display-lg text-on-background text-center px-4">
+                    3
+                </div>
+            </div>
+
+            <div id="hud" class="w-full md:w-[320px] md:max-h-[600px] md:overflow-y-auto grid grid-cols-2 md:grid-cols-1 gap-3 md:gap-4 pb-2"></div>
+        </div>
+    </main>
+
+    <div id="info-modal" class="fixed inset-0 hidden items-center justify-center p-4 modal-backdrop z-50">
+        <div class="w-full max-w-md bg-surface brutal-border-thick hard-shadow p-6">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h2 id="modal-name" class="font-headline-md text-headline-md"></h2>
+                    <p id="modal-skill" class="font-label-numeric text-label-numeric text-secondary mt-1"></p>
+                </div>
+                <button id="modal-close"
+                    class="w-9 h-9 bg-surface-container-lowest brutal-border-thin hard-shadow-sm btn-brutal flex items-center justify-center"
+                    title="닫기">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div id="modal-body" class="space-y-3 text-body-base"></div>
+        </div>
+    </div>
+
+    <script>
+        const arena = document.getElementById("arena");
+        const hud = document.getElementById("hud");
+        const countdown = document.getElementById("countdown");
+        const matchTitle = document.getElementById("match-title");
+        const elapsedTime = document.getElementById("elapsed-time");
+        const allCharacters = window.HannamBalls.getCharacters();
+        const storedSelection = JSON.parse(localStorage.getItem("hannamBallsSelection") || "[]");
+        let selectedCharacters = storedSelection
+            .map((id) => window.HannamBalls.getCharacter(id))
+            .filter(Boolean);
+
+        if (selectedCharacters.length < 2) {
+            selectedCharacters = allCharacters;
+        }
+
+        const battle = {
+            fighters: [],
+            arenaSize: 600,
+            ballSize: 76,
+            startedAt: 0,
+            fightStartedAt: 0,
+            finishedAt: 0,
+            countdownSeconds: 3,
+            isRunning: false,
+            isFinished: false,
+            lastTime: 0,
+            pairHits: new Map()
+        };
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function normalize(x, y) {
+            const length = Math.hypot(x, y) || 1;
+            return { x: x / length, y: y / length };
+        }
+
+        function formatElapsed(ms) {
+            const totalSeconds = Math.max(0, ms) / 1000;
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds - minutes * 60;
+            return `${String(minutes).padStart(2, "0")}:${seconds.toFixed(1).padStart(4, "0")}`;
+        }
+
+        function currentFightElapsed(now) {
+            if (!battle.fightStartedAt) {
+                return 0;
+            }
+
+            return (battle.finishedAt || now) - battle.fightStartedAt;
+        }
+
+        function updateElapsed(now) {
+            elapsedTime.textContent = `TIME ${formatElapsed(currentFightElapsed(now))}`;
+        }
+
+        function setVelocitySpeed(fighter, speed) {
+            const direction = normalize(fighter.vx, fighter.vy);
+            fighter.vx = direction.x * speed;
+            fighter.vy = direction.y * speed;
+        }
+
+        function isStunned(fighter, now) {
+            return fighter.stunnedUntil > now;
+        }
+
+        function avatarContent(definition) {
+            if (definition.avatarSrc) {
+                return `<img alt="${escapeHtml(definition.name)} 얼굴" class="w-full h-full object-cover" src="${escapeHtml(definition.avatarSrc)}">`;
+            }
+
+            return `<span class="font-headline-md text-headline-md">${escapeHtml(definition.avatarText)}</span>`;
+        }
+
+        function createFighter(definition, index, total) {
+            const element = document.createElement("div");
+            element.className = "fighter-ball";
+            element.style.background = definition.color;
+            element.style.color = definition.textColor;
+            element.style.borderColor = definition.color;
+            element.innerHTML = avatarContent(definition);
+            arena.appendChild(element);
+
+            return {
+                id: `${definition.id}-${index}`,
+                definition,
+                element,
+                index,
+                total,
+                x: 0,
+                y: 0,
+                vx: 0,
+                vy: 0,
+                hp: definition.maxHp,
+                maxHp: definition.maxHp,
+                attack: definition.baseAttack,
+                speed: definition.speed,
+                skillCooldown: definition.skill.cooldown,
+                stunnedUntil: 0,
+                savedVelocity: null,
+                chargeUntil: 0,
+                chargeHits: new Set(),
+                dead: false,
+                hudElement: null
+            };
+        }
+
+        function layoutFighters() {
+            const rect = arena.getBoundingClientRect();
+            battle.arenaSize = rect.width;
+            battle.ballSize = Math.max(54, Math.min(82, battle.arenaSize * 0.14));
+            const center = battle.arenaSize / 2;
+            const radius = Math.max(battle.ballSize, battle.arenaSize * 0.34);
+
+            battle.fighters.forEach((fighter, index) => {
+                const angle = -Math.PI / 2 + (Math.PI * 2 * index) / battle.fighters.length;
+                fighter.x = center + Math.cos(angle) * radius;
+                fighter.y = center + Math.sin(angle) * radius;
+                const direction = normalize(center - fighter.x, center - fighter.y);
+                fighter.vx = direction.x * fighter.speed * 1.45;
+                fighter.vy = direction.y * fighter.speed * 1.45;
+                fighter.element.style.width = `${battle.ballSize}px`;
+                fighter.element.style.height = `${battle.ballSize}px`;
+            });
+        }
+
+        function renderHud() {
+            hud.innerHTML = battle.fighters.map((fighter) => `
+                <div class="hud-card flex flex-col gap-1" data-hud-id="${fighter.id}">
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="hud-name font-headline-md-mobile text-headline-md-mobile md:font-headline-md md:text-headline-md tracking-tight"
+                            style="color:${fighter.definition.color};">${escapeHtml(fighter.definition.name)}</span>
+                        <button class="info-button w-6 h-6 flex items-center justify-center brutal-border-thin text-[10px] font-bold hover:bg-surface-container-high transition-colors"
+                            data-info-id="${fighter.definition.id}" title="캐릭터 정보">i</button>
+                    </div>
+                    <div class="w-full h-6 md:h-8 border-2 border-on-background bg-surface-container-highest relative">
+                        <div class="hp-fill absolute top-0 left-0 h-full bg-primary" style="width:100%;"></div>
+                        <div class="hp-text absolute inset-0 flex items-center justify-center font-label-numeric text-label-numeric text-on-primary drop-shadow-[1px_1px_0px_rgba(0,0,0,0.8)]">
+                            HP ${fighter.maxHp} / ${fighter.maxHp}
+                        </div>
+                    </div>
+                    <div class="w-full h-3 bg-surface-container-highest border-2 border-on-background relative">
+                        <div class="skill-fill h-full" style="width:0%; background:${fighter.definition.color};"></div>
+                    </div>
+                    <div class="status-text font-label-numeric text-label-numeric text-on-surface-variant">
+                        CD ${escapeHtml(fighter.definition.skill.name)} ${fighter.definition.skill.cooldown.toFixed(1)} / ${fighter.definition.skill.cooldown.toFixed(1)}초
+                    </div>
+                </div>
+            `).join("");
+
+            battle.fighters.forEach((fighter) => {
+                fighter.hudElement = hud.querySelector(`[data-hud-id="${fighter.id}"]`);
+            });
+
+            hud.querySelectorAll(".info-button").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const definition = allCharacters.find((character) => character.id === button.dataset.infoId);
+                    showInfo(definition);
+                });
+            });
+        }
+
+        function updateHud(now) {
+            battle.fighters.forEach((fighter) => {
+                if (!fighter.hudElement) {
+                    return;
+                }
+
+                const hpRatio = Math.max(0, fighter.hp / fighter.maxHp);
+                const skillReady = Math.max(0, 1 - fighter.skillCooldown / fighter.definition.skill.cooldown);
+                fighter.hudElement.querySelector(".hp-fill").style.width = `${hpRatio * 100}%`;
+                fighter.hudElement.querySelector(".hp-text").textContent = `HP ${Math.ceil(Math.max(0, fighter.hp))} / ${fighter.maxHp}`;
+                fighter.hudElement.querySelector(".skill-fill").style.width = `${skillReady * 100}%`;
+
+                const status = fighter.hudElement.querySelector(".status-text");
+                if (fighter.dead) {
+                    status.textContent = "탈락";
+                    status.style.color = "#ba1a1a";
+                } else if (isStunned(fighter, now)) {
+                    status.textContent = `행동 불가 ${(Math.max(0, fighter.stunnedUntil - now) / 1000).toFixed(1)}초`;
+                    status.style.color = "#ba1a1a";
+                } else {
+                    const cooldown = fighter.definition.skill.cooldown;
+                    const remaining = Math.max(0, fighter.skillCooldown);
+                    status.textContent = remaining <= 0
+                        ? `CD ${fighter.definition.skill.name} READY`
+                        : `CD ${fighter.definition.skill.name} ${remaining.toFixed(1)} / ${cooldown.toFixed(1)}초`;
+                    status.style.color = "";
+                }
+            });
+        }
+
+        function renderFighters(now) {
+            battle.fighters.forEach((fighter) => {
+                fighter.element.classList.toggle("is-stunned", !fighter.dead && isStunned(fighter, now));
+                fighter.element.classList.toggle("is-dead", fighter.dead);
+                fighter.element.style.transform = `translate(${fighter.x - battle.ballSize / 2}px, ${fighter.y - battle.ballSize / 2}px)`;
+            });
+        }
+
+        function effectRing(x, y, size, color) {
+            const ring = document.createElement("div");
+            ring.className = "effect-ring";
+            ring.style.left = `${x}px`;
+            ring.style.top = `${y}px`;
+            ring.style.width = `${size}px`;
+            ring.style.height = `${size}px`;
+            ring.style.color = color;
+            arena.appendChild(ring);
+            setTimeout(() => ring.remove(), 600);
+        }
+
+        function burst(x, y, color, count = 8) {
+            for (let index = 0; index < count; index += 1) {
+                const shard = document.createElement("div");
+                const angle = (Math.PI * 2 * index) / count;
+                const distance = 36 + Math.random() * 42;
+                shard.className = "effect-burst";
+                shard.style.left = `${x}px`;
+                shard.style.top = `${y}px`;
+                shard.style.color = color;
+                shard.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
+                shard.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
+                arena.appendChild(shard);
+                setTimeout(() => shard.remove(), 620);
+            }
+        }
+
+        function floatText(text, x, y, color = "#ba1a1a") {
+            const label = document.createElement("div");
+            label.className = "damage-float";
+            label.textContent = text;
+            label.style.left = `${x}px`;
+            label.style.top = `${y}px`;
+            label.style.color = color;
+            arena.appendChild(label);
+            setTimeout(() => label.remove(), 820);
+        }
+
+        function skillLabel(text, fighter) {
+            const label = document.createElement("div");
+            label.className = "skill-label";
+            label.textContent = text;
+            label.style.left = `${fighter.x}px`;
+            label.style.top = `${fighter.y - battle.ballSize / 2}px`;
+            arena.appendChild(label);
+            setTimeout(() => label.remove(), 760);
+        }
+
+        function reduceCooldown(fighter, seconds) {
+            if (seconds > 0 && !fighter.dead && !isStunned(fighter, performance.now())) {
+                fighter.skillCooldown = Math.max(0, fighter.skillCooldown - seconds);
+            }
+        }
+
+        function applyDamage(target, amount, source, kind) {
+            const now = performance.now();
+            if (target.dead || amount <= 0) {
+                return 0;
+            }
+
+            if (kind === "basic" && target.definition.immuneToBasic) {
+                floatText("IMMUNE", target.x, target.y - battle.ballSize / 2, target.definition.color);
+                effectRing(target.x, target.y, battle.ballSize * 1.2, target.definition.color);
+                return 0;
+            }
+
+            const actual = Math.min(target.hp, amount);
+            target.hp -= actual;
+            floatText(`-${Math.round(actual)}`, target.x, target.y - battle.ballSize / 2);
+
+            if (!isStunned(target, now)) {
+                reduceCooldown(target, target.definition.cooldownOnDamageTaken);
+            }
+
+            if (target.hp <= 0) {
+                target.dead = true;
+                target.vx = 0;
+                target.vy = 0;
+                target.element.style.zIndex = "1";
+                burst(target.x, target.y, "#ba1a1a", 12);
+                floatText("OUT", target.x, target.y, "#ba1a1a");
+            }
+
+            return actual;
+        }
+
+        function stun(target, seconds, now) {
+            if (target.dead) {
+                return;
+            }
+
+            if (!isStunned(target, now)) {
+                target.savedVelocity = { vx: target.vx, vy: target.vy };
+            }
+
+            target.stunnedUntil = Math.max(target.stunnedUntil, now + seconds * 1000);
+            target.vx = 0;
+            target.vy = 0;
+        }
+
+        function restoreFromStun(fighter, now) {
+            if (fighter.dead || fighter.stunnedUntil === 0 || isStunned(fighter, now)) {
+                return;
+            }
+
+            if (fighter.savedVelocity) {
+                fighter.vx = fighter.savedVelocity.vx;
+                fighter.vy = fighter.savedVelocity.vy;
+                setVelocitySpeed(fighter, fighter.speed);
+            }
+
+            fighter.savedVelocity = null;
+            fighter.stunnedUntil = 0;
+        }
+
+        function useSkill(fighter, now) {
+            const id = fighter.definition.id;
+            skillLabel(fighter.definition.skill.name, fighter);
+
+            if (id === "song-geonuk") {
+                const effects = fighter.definition.skill.effects;
+                const lost = Math.max(1, fighter.hp * effects.hpCostRatio);
+                fighter.hp = Math.max(1, fighter.hp - lost);
+                fighter.attack += effects.attackGain;
+                fighter.speed *= effects.speedMultiplier;
+                setVelocitySpeed(fighter, fighter.speed);
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, fighter.definition.color);
+                burst(fighter.x, fighter.y, "#4ade80", 10);
+                floatText(`ATK+${effects.attackGain} SPD+`, fighter.x, fighter.y, "#006d36");
+            }
+
+            if (id === "yoo-seungchan") {
+                const effects = fighter.definition.skill.effects;
+                const radius = Math.min(effects.radius, battle.arenaSize * 0.38);
+                effectRing(fighter.x, fighter.y, radius * 2, fighter.definition.color);
+                burst(fighter.x, fighter.y, fighter.definition.color, 14);
+                battle.fighters.forEach((target) => {
+                    if (target === fighter || target.dead) {
+                        return;
+                    }
+
+                    if (Math.hypot(target.x - fighter.x, target.y - fighter.y) <= radius) {
+                        applyDamage(target, effects.damage, fighter, "skill");
+                        stun(target, effects.stunSeconds, now);
+                    }
+                });
+            }
+
+            if (id === "han-yejun") {
+                const effects = fighter.definition.skill.effects;
+                effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.2, fighter.definition.color);
+                burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 22);
+                battle.fighters.forEach((target) => {
+                    if (target !== fighter && !target.dead) {
+                        applyDamage(target, effects.damage, fighter, "skill");
+                        stun(target, effects.stunSeconds, now);
+                    }
+                });
+            }
+
+            if (id === "lee-woochan") {
+                const effects = fighter.definition.skill.effects;
+                fighter.chargeUntil = now + effects.durationMs;
+                fighter.chargeHits = new Set();
+                setVelocitySpeed(fighter, Math.max(effects.minSpeed, fighter.speed * effects.speedMultiplier));
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.4, fighter.definition.color);
+                burst(fighter.x, fighter.y, fighter.definition.color, 8);
+            }
+
+            fighter.skillCooldown = fighter.definition.skill.cooldown;
+        }
+
+        function handleWallBounce(fighter) {
+            const radius = battle.ballSize / 2;
+            let bounced = false;
+
+            if (fighter.x < radius) {
+                fighter.x = radius;
+                fighter.vx = Math.abs(fighter.vx);
+                bounced = true;
+            } else if (fighter.x > battle.arenaSize - radius) {
+                fighter.x = battle.arenaSize - radius;
+                fighter.vx = -Math.abs(fighter.vx);
+                bounced = true;
+            }
+
+            if (fighter.y < radius) {
+                fighter.y = radius;
+                fighter.vy = Math.abs(fighter.vy);
+                bounced = true;
+            } else if (fighter.y > battle.arenaSize - radius) {
+                fighter.y = battle.arenaSize - radius;
+                fighter.vy = -Math.abs(fighter.vy);
+                bounced = true;
+            }
+
+            if (bounced) {
+                effectRing(fighter.x, fighter.y, battle.ballSize * 0.8, fighter.definition.color);
+            }
+        }
+
+        function handleBasicAttack(attacker, defender, now) {
+            if (attacker.dead || defender.dead || isStunned(attacker, now)) {
+                return;
+            }
+
+            const dealt = applyDamage(defender, attacker.attack, attacker, "basic");
+            if (dealt > 0) {
+                reduceCooldown(attacker, attacker.definition.cooldownOnBasicHit);
+            }
+        }
+
+        function handleChargeHit(charger, target, normalX, normalY) {
+            const now = performance.now();
+            if (charger.chargeUntil <= now || charger.chargeHits.has(target.id) || charger.dead || target.dead) {
+                return;
+            }
+
+            charger.chargeHits.add(target.id);
+            const effects = charger.definition.skill.effects;
+            applyDamage(target, effects.damage, charger, "skill");
+            if (!isStunned(target, now)) {
+                target.vx = normalX * effects.knockback;
+                target.vy = normalY * effects.knockback;
+            }
+            burst(target.x, target.y, charger.definition.color, 10);
+            effectRing(target.x, target.y, battle.ballSize * 1.3, charger.definition.color);
+        }
+
+        function handleCollisions(now) {
+            const radius = battle.ballSize / 2;
+
+            for (let first = 0; first < battle.fighters.length; first += 1) {
+                for (let second = first + 1; second < battle.fighters.length; second += 1) {
+                    const a = battle.fighters[first];
+                    const b = battle.fighters[second];
+                    if (a.dead || b.dead) {
+                        continue;
+                    }
+
+                    const dx = b.x - a.x;
+                    const dy = b.y - a.y;
+                    const distance = Math.hypot(dx, dy) || 1;
+                    const minDistance = radius * 2;
+
+                    if (distance > minDistance) {
+                        continue;
+                    }
+
+                    const nx = dx / distance;
+                    const ny = dy / distance;
+                    const overlap = minDistance - distance;
+
+                    if (!isStunned(a, now)) {
+                        a.x -= nx * overlap * 0.5;
+                        a.y -= ny * overlap * 0.5;
+                    }
+                    if (!isStunned(b, now)) {
+                        b.x += nx * overlap * 0.5;
+                        b.y += ny * overlap * 0.5;
+                    }
+
+                    const aVelocity = a.vx * nx + a.vy * ny;
+                    const bVelocity = b.vx * nx + b.vy * ny;
+                    const impulse = bVelocity - aVelocity;
+
+                    if (!isStunned(a, now)) {
+                        a.vx += impulse * nx;
+                        a.vy += impulse * ny;
+                    }
+                    if (!isStunned(b, now)) {
+                        b.vx -= impulse * nx;
+                        b.vy -= impulse * ny;
+                    }
+
+                    const aCharge = a.definition.skill.effects || {};
+                    const bCharge = b.definition.skill.effects || {};
+                    setVelocitySpeed(a, a.chargeUntil > now ? Math.max(aCharge.minSpeed, a.speed * aCharge.speedMultiplier) : a.speed);
+                    setVelocitySpeed(b, b.chargeUntil > now ? Math.max(bCharge.minSpeed, b.speed * bCharge.speedMultiplier) : b.speed);
+                    effectRing((a.x + b.x) / 2, (a.y + b.y) / 2, battle.ballSize, "#1c1b1b");
+
+                    handleChargeHit(a, b, nx, ny);
+                    handleChargeHit(b, a, -nx, -ny);
+
+                    const key = `${a.id}:${b.id}`;
+                    const lastHit = battle.pairHits.get(key) || 0;
+                    if (now - lastHit > 620) {
+                        battle.pairHits.set(key, now);
+                        handleBasicAttack(a, b, now);
+                        handleBasicAttack(b, a, now);
+                        burst((a.x + b.x) / 2, (a.y + b.y) / 2, "#1c1b1b", 6);
+                    }
+                }
+            }
+        }
+
+        function updatePhysics(dt, now) {
+            battle.fighters.forEach((fighter) => {
+                if (fighter.dead) {
+                    return;
+                }
+
+                restoreFromStun(fighter, now);
+
+                if (isStunned(fighter, now)) {
+                    return;
+                }
+
+                fighter.skillCooldown -= dt;
+                if (fighter.skillCooldown <= 0) {
+                    useSkill(fighter, now);
+                }
+
+                if (fighter.chargeUntil > now) {
+                    if (Math.random() < 0.35) {
+                        burst(fighter.x, fighter.y, fighter.definition.color, 2);
+                    }
+                } else {
+                    setVelocitySpeed(fighter, fighter.speed);
+                }
+
+                fighter.x += fighter.vx * dt;
+                fighter.y += fighter.vy * dt;
+                handleWallBounce(fighter);
+            });
+
+            handleCollisions(now);
+        }
+
+        function checkWinner(now) {
+            const alive = battle.fighters.filter((fighter) => !fighter.dead);
+            if (!battle.isFinished && battle.isRunning && alive.length <= 1) {
+                battle.isFinished = true;
+                battle.isRunning = false;
+                battle.finishedAt = now;
+                countdown.classList.remove("hidden");
+                countdown.innerHTML = `
+                    <div>
+                        <div>${alive[0] ? `${escapeHtml(alive[0].definition.name)} 승리` : "무승부"}</div>
+                        <div class="font-label-numeric text-label-numeric mt-3">TIME ${formatElapsed(currentFightElapsed(now))}</div>
+                    </div>
+                `;
+                matchTitle.textContent = "전투 종료";
+                updateElapsed(now);
+            }
+        }
+
+        function tick(now) {
+            if (!battle.lastTime) {
+                battle.lastTime = now;
+            }
+
+            const elapsed = now - battle.startedAt;
+            const remaining = Math.ceil((battle.countdownSeconds * 1000 - elapsed) / 1000);
+
+            if (!battle.isRunning && !battle.isFinished) {
+                countdown.textContent = remaining > 0 ? String(remaining) : "FIGHT";
+                if (elapsed >= battle.countdownSeconds * 1000) {
+                    battle.isRunning = true;
+                    battle.fightStartedAt = now;
+                    countdown.classList.add("hidden");
+                    matchTitle.textContent = "전투 중";
+                }
+            }
+
+            const dt = Math.min(0.033, (now - battle.lastTime) / 1000);
+            battle.lastTime = now;
+
+            if (battle.isRunning) {
+                updatePhysics(dt, now);
+                checkWinner(now);
+            }
+
+            renderFighters(now);
+            updateHud(now);
+            updateElapsed(now);
+            requestAnimationFrame(tick);
+        }
+
+        function showInfo(definition) {
+            document.getElementById("modal-name").textContent = definition.name;
+            document.getElementById("modal-name").style.color = definition.color;
+            document.getElementById("modal-skill").textContent = `${definition.skill.name} / ${definition.skill.cooldown}초`;
+            document.getElementById("modal-body").innerHTML = `
+                <div class="grid grid-cols-2 gap-2 font-label-numeric text-label-numeric">
+                    <div class="bg-surface-container-low brutal-border-thin p-2">HP ${definition.maxHp}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">ATK ${definition.baseAttack}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">SPD ${escapeHtml(definition.speedLabel)}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">${escapeHtml(definition.colorName)}</div>
+                </div>
+                <p class="text-on-surface-variant">${escapeHtml(definition.skill.description)}</p>
+                <p class="font-label-numeric text-label-numeric">특성: ${escapeHtml(definition.traits.join(" / "))}</p>
+                ${definition.immuneToBasic ? '<p class="font-label-numeric text-label-numeric text-secondary">기본 공격 피해 면역</p>' : ''}
+            `;
+            document.getElementById("info-modal").classList.remove("hidden");
+            document.getElementById("info-modal").classList.add("flex");
+        }
+
+        function hideInfo() {
+            document.getElementById("info-modal").classList.add("hidden");
+            document.getElementById("info-modal").classList.remove("flex");
+        }
+
+        function startBattle() {
+            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label").forEach((node) => node.remove());
+            battle.fighters = selectedCharacters.map((definition, index) => createFighter(definition, index, selectedCharacters.length));
+            battle.pairHits = new Map();
+            battle.startedAt = performance.now();
+            battle.fightStartedAt = 0;
+            battle.finishedAt = 0;
+            battle.lastTime = 0;
+            battle.isRunning = false;
+            battle.isFinished = false;
+            countdown.classList.remove("hidden");
+            countdown.textContent = "3";
+            matchTitle.textContent = "전투 준비";
+            elapsedTime.textContent = "TIME 00:00.0";
+            layoutFighters();
+            renderHud();
+            renderFighters(performance.now());
+        }
+
+        document.getElementById("restart-button").addEventListener("click", startBattle);
+        document.getElementById("modal-close").addEventListener("click", hideInfo);
+        document.getElementById("info-modal").addEventListener("click", (event) => {
+            if (event.target.id === "info-modal") {
+                hideInfo();
+            }
+        });
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                hideInfo();
+            }
+        });
+
+        window.addEventListener("resize", () => {
+            if (!battle.fighters.length) {
+                return;
+            }
+            const oldSize = battle.arenaSize || 1;
+            const rect = arena.getBoundingClientRect();
+            const ratio = rect.width / oldSize;
+            battle.arenaSize = rect.width;
+            battle.ballSize = Math.max(54, Math.min(82, battle.arenaSize * 0.14));
+            battle.fighters.forEach((fighter) => {
+                fighter.x *= ratio;
+                fighter.y *= ratio;
+                fighter.element.style.width = `${battle.ballSize}px`;
+                fighter.element.style.height = `${battle.ballSize}px`;
+            });
+        });
+
+        startBattle();
+        requestAnimationFrame(tick);
+    </script>
+</body>
+
+</html>

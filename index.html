@@ -1,1168 +1,369 @@
+<!-- 볼 선택 화면 -->
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>한남볼파이트</title>
-  <style>
-    :root {
-      color-scheme: dark;
-      font-family: Arial, "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
-      background: #1c1c1c;
-    }
-
-    * { box-sizing: border-box; }
-
-    html, body {
-      margin: 0;
-      min-height: 100%;
-      overflow: hidden;
-      background: #1c1c1c;
-      color: #f8f8f8;
-    }
-
-    body {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    #gameShell {
-      position: relative;
-      width: min(100vw, 1180px);
-      height: min(100vh, 820px);
-      padding: 14px;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-      background: #1c1c1c;
-      border-radius: 18px;
-    }
-
-    #selectionOverlay,
-    #resultOverlay {
-      position: absolute;
-      inset: 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      padding: 28px;
-      border-radius: 18px;
-      background:
-        linear-gradient(135deg, rgba(255,255,255,.10), rgba(255,255,255,.02)),
-        radial-gradient(circle at 50% 6%, rgba(255,230,109,.13), rgba(0,0,0,.84) 52%, rgba(0,0,0,.93));
-      border: 1px solid rgba(255,255,255,.14);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.12), 0 22px 80px rgba(0,0,0,.55);
-      backdrop-filter: blur(5px);
-      text-align: center;
-      z-index: 2;
-    }
-
-    .hidden { display: none !important; }
-
-    h1, h2, p { margin: 0; }
-
-    h1 {
-      font-size: clamp(38px, 6vw, 76px);
-      letter-spacing: -0.04em;
-      line-height: .92;
-      text-shadow: 0 8px 24px rgba(0,0,0,.7);
-    }
-
-    .hint {
-      color: #d7d7d7;
-      line-height: 1.5;
-      max-width: 780px;
-      font-size: 15px;
-    }
-
-    #selectionStep {
-      min-height: 28px;
-      color: #ffe66d;
-      font-size: 17px;
-      font-weight: 900;
-      letter-spacing: .08em;
-    }
-
-    #cards {
-      width: min(100%, 940px);
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-      gap: 16px;
-    }
-
-    .card {
-      appearance: none;
-      border: 2px solid rgba(255,255,255,.14);
-      border-radius: 18px;
-      padding: 16px 14px;
-      background: linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.035));
-      color: white;
-      cursor: pointer;
-      transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
-      font: inherit;
-      text-align: center;
-    }
-
-    .card:hover,
-    .card:focus-visible {
-      transform: translateY(-4px);
-      border-color: rgba(255,255,255,.55);
-      box-shadow: 0 14px 32px rgba(0,0,0,.35);
-      outline: none;
-    }
-
-    .card.selected {
-      border-color: var(--ring);
-      box-shadow: 0 0 0 3px var(--ring), 0 18px 42px rgba(0,0,0,.45);
-    }
-
-    .pickCount {
-      display: inline-grid;
-      place-items: center;
-      min-width: 28px;
-      height: 28px;
-      margin-left: 8px;
-      border-radius: 999px;
-      background: var(--ring);
-      color: white;
-      font-size: 13px;
-      font-weight: 1000;
-    }
-
-    .avatar {
-      width: 92px;
-      height: 92px;
-      margin: 0 auto 12px;
-      border-radius: 50%;
-      border: 5px solid var(--ring);
-      background: var(--ring);
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-      color: white;
-      font-size: 34px;
-      font-weight: 900;
-    }
-
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .cardName {
-      font-size: 24px;
-      font-weight: 900;
-      margin-bottom: 8px;
-      color: var(--name);
-    }
-
-    .stats {
-      font-size: 14px;
-      line-height: 1.6;
-      color: #e8e8e8;
-    }
-
-    .selectionStatus {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      justify-content: center;
-      color: #e8e8e8;
-    }
-
-    .pill {
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.09);
-      border: 1px solid rgba(255,255,255,.14);
-      font-weight: 800;
-      max-width: min(92vw, 760px);
-      line-height: 1.45;
-    }
-
-    .actions {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-
-    button.primary,
-    button.secondary {
-      appearance: none;
-      border: 0;
-      border-radius: 999px;
-      padding: 15px 34px;
-      color: #151515;
-      background: linear-gradient(90deg, #ffe66d, #ff9f43);
-      font-weight: 1000;
-      letter-spacing: .1em;
-      cursor: pointer;
-      box-shadow: 0 12px 26px rgba(0,0,0,.35);
-    }
-
-    button.secondary {
-      color: #f4f4f4;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.16);
-    }
-
-    button.primary:disabled {
-      filter: grayscale(1) brightness(.65);
-      cursor: not-allowed;
-    }
-
-    #resultOverlay h2 {
-      font-size: clamp(34px, 6vw, 66px);
-      color: #ffe66d;
-      text-shadow: 0 5px 20px rgba(0,0,0,.7);
-    }
-  </style>
-</head>
-<body>
-  <main id="gameShell" aria-label="한남볼파이트">
-    <canvas id="gameCanvas"></canvas>
-
-    <section id="selectionOverlay" aria-label="캐릭터 선택 화면">
-      <h1>한남볼파이트</h1>
-      <p class="hint">카드를 누르는 만큼 참가자가 추가됩니다. 같은 캐릭터를 여러 번 넣어도 되고, 2명 이상이면 바로 난투 시작.</p>
-      <div id="selectionStep">ROSTER SELECT</div>
-      <div id="cards"></div>
-      <div class="selectionStatus">
-        <span id="leftPick" class="pill">참가자: -</span>
-        <span id="rightPick" class="pill">규칙: 전원 자동 난투 · 마지막 1명 승리</span>
-      </div>
-      <div class="actions">
-        <button id="startButton" class="primary" disabled>START BATTLE</button>
-        <button id="clearButton" class="secondary">RESET PICKS</button>
-      </div>
-    </section>
-
-    <section id="resultOverlay" class="hidden" aria-label="전투 결과 화면">
-      <h2 id="winnerText">WINNER</h2>
-      <button id="againButton" class="primary">SELECT AGAIN</button>
-    </section>
-  </main>
-
-  <script>
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //  CHARACTERS — 여기에 캐릭터를 추가하세요
-    //  imageSrc에는 base64 data URL 또는 이미지 URL을 넣을 수 있습니다.
-    //  빈 문자열('')이면 ringColor 단색 원으로 렌더링됩니다.
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const CHARACTERS = [
-      {
-        id: 'lee_woo_chan',
-        name: '이우찬',
-        imageSrc: '',
-        ringColor: '#9b59b6',
-        nameColor: '#9b59b6',
-        stats: {
-          hp: 260,
-          speed: 185,
-          attackDamage: 12,
-          attackRange: 66,
-          attackCooldown: 0.8,
-          skillGaugeMax: 100,
-          skillGaugeRate: 8,
-          skillGaugeOnHit: 9,
-          skillGaugeOnHurt: 5,
-        },
-        matchups: {},
-        skill: {
-          name: '보랏빛 연속돌진',
-          cast(self, enemy, world) {
-            const dir = world.directionTo(self, enemy);
-            world.triggerScreenShake(4, 0.18);
-            world.spawnFloatingText(self.x, self.y - 62, 'RUSH!', '#d7a4ff', 26);
-            for (let i = 0; i < 5; i += 1) {
-              world.schedule(i * 0.16, () => {
-                if (!self.alive || !enemy.alive) return;
-                const d = world.directionTo(self, enemy);
-                self.x = enemy.x - d.x * (self.radius + enemy.radius + 7);
-                self.y = enemy.y - d.y * (self.radius + enemy.radius + 7);
-                world.clampToArena(self);
-                world.spawnLightning(self.x, self.y, enemy.x, enemy.y, '#c084fc', 5, 0.16);
-                world.spawnParticles(enemy.x - d.x * enemy.radius, enemy.y - d.y * enemy.radius, '#c084fc', 26, 90, 320, 2, 7, 0.22, 0.62);
-                world.applyKnockback(enemy, d.x, d.y, i === 4 ? 300 : 120);
-                world.damage(enemy, self, 18, true, '#ffd166');
-                if (i === 4) {
-                  world.spawnShockwave(enemy.x, enemy.y, 155, 'rgba(155,89,182,.82)', 0.48);
-                  world.applyAreaDamage(enemy.x, enemy.y, 130, 24, self.id, (target) => {
-                    const kd = world.directionTo(self, target);
-                    world.applyKnockback(target, kd.x, kd.y, 380);
-                  });
-                  world.triggerScreenShake(12, 0.35);
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>한남볼파이트</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@500&amp;family=JetBrains+Mono:wght@700&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="./characters.js"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#006d36",
+                        "on-secondary-container": "#fffbff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#f0dbff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#e5e2e1",
+                        "on-primary-fixed-variant": "#005227",
+                        "tertiary-container": "#aac4ff",
+                        "surface-container-high": "#eae7e7",
+                        "on-secondary-fixed": "#2c0051",
+                        "surface-bright": "#fcf9f8",
+                        "primary": "#006d36",
+                        "secondary": "#8127cf",
+                        "primary-fixed": "#6dfe9c",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "surface-variant": "#e5e2e1",
+                        "secondary-fixed-dim": "#ddb7ff",
+                        "on-primary-fixed": "#00210c",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "tertiary-fixed": "#d8e2ff",
+                        "inverse-primary": "#4de082",
+                        "outline-variant": "#bccabb",
+                        "surface-container-low": "#f6f3f2",
+                        "on-tertiary-fixed": "#001a42",
+                        "background": "#fcf9f8",
+                        "secondary-container": "#9c48ea",
+                        "surface": "#fcf9f8",
+                        "inverse-surface": "#313030",
+                        "primary-fixed-dim": "#4de082",
+                        "surface-dim": "#dcd9d9",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#4ade80",
+                        "inverse-on-surface": "#f3f0ef",
+                        "on-secondary-fixed-variant": "#6900b3",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#005e2d",
+                        "surface-container": "#f0eded",
+                        "on-surface": "#1c1b1b",
+                        "outline": "#6d7b6d",
+                        "on-tertiary-container": "#004da8",
+                        "on-surface-variant": "#3d4a3e",
+                        "tertiary": "#005ac2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "bar-height": "32px",
+                        "border-width-thick": "4px",
+                        "arena-margin": "24px",
+                        "border-width-thin": "2px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-md-mobile": ["Plus Jakarta Sans"],
+                        "label-numeric": ["JetBrains Mono"],
+                        "body-base": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "label-numeric": ["14px", { "lineHeight": "1.0", "fontWeight": "700" }],
+                        "body-base": ["16px", { "lineHeight": "1.5", "fontWeight": "500" }]
+                    }
                 }
-              });
             }
-            world.applyKnockback(self, dir.x, dir.y, 260);
-          }
         }
-      },
-      {
-        id: 'yoo_seung_chan',
-        name: '유승찬',
-        imageSrc: '',
-        ringColor: '#2c3e50',
-        nameColor: '#2c3e50',
-        stats: {
-          hp: 350,
-          speed: 130,
-          attackDamage: 18,
-          attackRange: 70,
-          attackCooldown: 0.9,
-          skillGaugeMax: 100,
-          skillGaugeRate: 6,
-          skillGaugeOnHit: 8,
-          skillGaugeOnHurt: 7,
-        },
-        matchups: {},
-        skill: {
-          name: '대지 파쇄 충격파',
-          cast(self, enemy, world) {
-            world.spawnFloatingText(self.x, self.y - 70, 'QUAKE!', '#ffb703', 28);
-            world.triggerScreenShake(18, 0.55);
-            world.spawnShockwave(self.x, self.y, 245, 'rgba(44,62,80,.9)', 0.64);
-            world.spawnShockwave(self.x, self.y, 170, 'rgba(255,255,255,.55)', 0.34);
-            world.spawnParticles(self.x, self.y, '#7f8c8d', 95, 120, 520, 3, 12, 0.35, 1.05);
-            world.spawnParticles(self.x, self.y, '#2c3e50', 54, 90, 390, 4, 15, 0.4, 1.2);
-            world.applyAreaDamage(self.x, self.y, 230, 58, self.id, (target) => {
-              const d = world.directionTo(self, target);
-              world.applyKnockback(target, d.x, d.y, 680);
-              world.spawnLightning(self.x, self.y, target.x, target.y, '#f1c40f', 7, 0.23);
+    </script>
+    <style>
+        .hard-shadow {
+            box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .hard-shadow-sm {
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .brutal-border-thick {
+            border: 4px solid #1c1b1b;
+        }
+
+        .brutal-border-thin {
+            border: 2px solid #1c1b1b;
+        }
+
+        .btn-brutal {
+            transition: all 0.1s ease;
+        }
+
+        .btn-brutal:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .ball-avatar {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .ball-card:hover .ball-avatar {
+            transform: scale(1.1);
+        }
+
+        .ball-card.is-selected {
+            outline: 4px solid #4ade80;
+            outline-offset: -8px;
+        }
+
+        .selected-chip {
+            min-width: 148px;
+        }
+
+        .modal-backdrop {
+            background: rgba(28, 27, 27, 0.54);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background text-on-background min-h-screen flex flex-col font-body-base overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+    <main
+        class="flex-grow flex flex-col items-center justify-center p-4 md:p-8 w-full max-w-screen-xl mx-auto pb-24 md:pb-8">
+        <div class="w-full max-w-3xl mb-8 text-center pt-8">
+            <h1 class="text-display-lg font-display-lg mb-2">한남볼파이트</h1>
+            <p class="text-body-base text-on-surface-variant">아레나에 참여할 볼을 선택하세요.</p>
+        </div>
+
+        <div class="w-full max-w-4xl bg-surface brutal-border-thick hard-shadow p-6 md:p-10 mb-5 relative">
+            <div id="character-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+        </div>
+
+        <div class="w-full max-w-4xl mb-10">
+            <div class="flex items-center justify-between gap-4 mb-3">
+                <h2 class="font-headline-md-mobile text-headline-md-mobile">추가한 캐릭터</h2>
+                <span id="selected-count" class="font-label-numeric text-label-numeric text-on-surface-variant">0명</span>
+            </div>
+            <div id="selected-list"
+                class="min-h-20 bg-surface-container-lowest brutal-border-thin hard-shadow-sm p-3 flex gap-3 overflow-x-auto items-center">
+            </div>
+        </div>
+
+        <div class="w-full max-w-4xl flex justify-center">
+            <button id="start-button"
+                class="w-full md:w-auto px-12 py-4 bg-primary text-on-primary font-headline-md text-headline-md brutal-border-thick hard-shadow btn-brutal uppercase tracking-tighter flex items-center justify-center gap-2 hover:bg-surface-tint">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">swords</span>
+                전투 시작
+            </button>
+        </div>
+    </main>
+
+    <div id="info-modal" class="fixed inset-0 hidden items-center justify-center p-4 modal-backdrop z-50">
+        <div class="w-full max-w-md bg-surface brutal-border-thick hard-shadow p-6">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h2 id="modal-name" class="font-headline-md text-headline-md"></h2>
+                    <p id="modal-skill" class="font-label-numeric text-label-numeric text-secondary mt-1"></p>
+                </div>
+                <button id="modal-close"
+                    class="w-9 h-9 bg-surface-container-lowest brutal-border-thin hard-shadow-sm btn-brutal flex items-center justify-center"
+                    title="닫기">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div id="modal-body" class="space-y-3 text-body-base"></div>
+        </div>
+    </div>
+
+    <script>
+        const characters = window.HannamBalls.getCharacters();
+        const selectedIds = JSON.parse(localStorage.getItem("hannamBallsSelection") || "[]")
+            .filter((id) => characters.some((character) => character.id === id));
+
+        const grid = document.getElementById("character-grid");
+        const selectedList = document.getElementById("selected-list");
+        const selectedCount = document.getElementById("selected-count");
+        const startButton = document.getElementById("start-button");
+        const modal = document.getElementById("info-modal");
+        const modalName = document.getElementById("modal-name");
+        const modalSkill = document.getElementById("modal-skill");
+        const modalBody = document.getElementById("modal-body");
+
+        function saveSelection() {
+            localStorage.setItem("hannamBallsSelection", JSON.stringify(selectedIds));
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function avatarHtml(character, sizeClass) {
+            if (character.avatarSrc) {
+                return `<img alt="${escapeHtml(character.name)} 얼굴" class="w-full h-full object-cover" src="${escapeHtml(character.avatarSrc)}">`;
+            }
+
+            return `<div class="${sizeClass} rounded-full flex items-center justify-center font-headline-md text-headline-md" style="background:${character.color}; color:${character.textColor};">${escapeHtml(character.avatarText)}</div>`;
+        }
+
+        function showInfo(character) {
+            modalName.textContent = character.name;
+            modalName.style.color = character.color;
+            modalSkill.textContent = `${character.skill.name} / ${character.skill.cooldown}초`;
+            modalBody.innerHTML = `
+                <div class="grid grid-cols-2 gap-2 font-label-numeric text-label-numeric">
+                    <div class="bg-surface-container-low brutal-border-thin p-2">HP ${character.maxHp}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">ATK ${character.baseAttack}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">SPD ${escapeHtml(character.speedLabel)}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">${escapeHtml(character.colorName)}</div>
+                </div>
+                <p class="text-on-surface-variant">${escapeHtml(character.skill.description)}</p>
+                <p class="font-label-numeric text-label-numeric">특성: ${escapeHtml(character.traits.join(" / "))}</p>
+                ${character.immuneToBasic ? '<p class="font-label-numeric text-label-numeric text-secondary">기본 공격 피해 면역</p>' : ''}
+            `;
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function hideInfo() {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function addCharacter(id) {
+            selectedIds.push(id);
+            saveSelection();
+            render();
+        }
+
+        function removeSelectionAt(index) {
+            selectedIds.splice(index, 1);
+            saveSelection();
+            render();
+        }
+
+        function renderCards() {
+            grid.innerHTML = characters.map((character) => {
+                const selectedCount = selectedIds.filter((id) => id === character.id).length;
+                return `
+                    <div class="ball-card ${selectedCount > 0 ? "is-selected" : ""} flex flex-col items-center bg-surface-container-lowest brutal-border-thin hard-shadow-sm p-4 relative overflow-hidden group cursor-pointer"
+                        data-id="${character.id}">
+                        <div class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity" style="background:${character.color};"></div>
+                        ${selectedCount > 0 ? `<div class="absolute top-2 right-2 z-20 bg-primary text-on-primary brutal-border-thin hard-shadow-sm font-label-numeric text-label-numeric px-2 py-1">x${selectedCount}</div>` : ""}
+                        <div class="w-24 h-24 rounded-full border-[3px] mb-4 ball-avatar bg-surface-container-highest overflow-hidden flex items-center justify-center relative z-10"
+                            style="border-color:${character.color};">
+                            ${avatarHtml(character, "w-16 h-16")}
+                        </div>
+                        <div class="flex items-center gap-1 justify-center mb-1 relative z-10">
+                            <h3 class="text-label-numeric font-label-numeric">${escapeHtml(character.name)}</h3>
+                            <button type="button" class="info-button flex items-center hover:text-primary" data-info-id="${character.id}" title="정보 보기">
+                                <span class="material-symbols-outlined text-[16px]">info</span>
+                            </button>
+                        </div>
+                        <p class="text-xs font-body-base text-on-surface-variant mb-4 text-center relative z-10">HP: ${character.maxHp} / ATK: ${character.baseAttack}</p>
+                        <button type="button"
+                            class="add-button w-full py-2 bg-primary text-on-primary font-label-numeric text-label-numeric brutal-border-thin hard-shadow-sm btn-brutal uppercase tracking-wider relative z-10">
+                            추가
+                        </button>
+                    </div>
+                `;
+            }).join("");
+
+            grid.querySelectorAll(".ball-card").forEach((card) => {
+                card.addEventListener("click", () => addCharacter(card.dataset.id));
             });
-          }
+
+            grid.querySelectorAll(".info-button").forEach((button) => {
+                button.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    showInfo(characters.find((character) => character.id === button.dataset.infoId));
+                });
+            });
         }
-      }
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      //  새 캐릭터는 이 아래에 쉼표(,)로 구분해 추가하세요.
-      // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    ];
 
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
-    const selectionOverlay = document.getElementById('selectionOverlay');
-    const resultOverlay = document.getElementById('resultOverlay');
-    const cardsEl = document.getElementById('cards');
-    const selectionStepEl = document.getElementById('selectionStep');
-    const leftPickEl = document.getElementById('leftPick');
-    const rightPickEl = document.getElementById('rightPick');
-    const clearButton = document.getElementById('clearButton');
-    const startButton = document.getElementById('startButton');
-    const againButton = document.getElementById('againButton');
-    const winnerText = document.getElementById('winnerText');
+        function renderSelected() {
+            selectedCount.textContent = `${selectedIds.length}명`;
+            if (selectedIds.length === 0) {
+                selectedList.innerHTML = `<p class="text-on-surface-variant">캐릭터 카드를 클릭해서 추가하세요.</p>`;
+                return;
+            }
 
-    const BASE_WIDTH = 1100;
-    const BASE_HEIGHT = 760;
-    const ARENA = { x: 70, y: 40, w: 960, h: 530 };
-    const PANEL_Y = 604;
-    const BALL_RADIUS = 38;
+            selectedList.innerHTML = selectedIds.map((id, index) => {
+                const character = characters.find((item) => item.id === id);
+                return `
+                    <button type="button" class="selected-chip flex items-center gap-3 bg-surface brutal-border-thin hard-shadow-sm btn-brutal p-2 shrink-0"
+                        data-remove-index="${index}" title="클릭하면 제거">
+                        <span class="w-10 h-10 rounded-full border-[3px] overflow-hidden flex items-center justify-center shrink-0"
+                            style="border-color:${character.color};">
+                            ${avatarHtml(character, "w-7 h-7 text-xs")}
+                        </span>
+                        <span class="font-label-numeric text-label-numeric text-left">${escapeHtml(character.name)}</span>
+                    </button>
+                `;
+            }).join("");
 
-    let scale = 1;
-    const selectedRoster = [];
-    const MAX_FIGHTERS = 8;
-    let fighters = [];
-    let projectiles = [];
-    let particles = [];
-    let shockwaves = [];
-    let floatingTexts = [];
-    let lightnings = [];
-    let scheduled = [];
-    let flashes = [];
-    let shake = { time: 0, duration: 0, magnitude: 0 };
-    let lastTime = performance.now();
-    let state = 'select';
-    let winner = null;
-    let loadedImages = new Map();
-
-    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-    const rand = (min, max) => min + Math.random() * (max - min);
-    const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
-    const normalize = (x, y) => {
-      const len = Math.hypot(x, y) || 1;
-      return { x: x / len, y: y / len };
-    };
-
-    function resizeCanvas() {
-      const shell = document.getElementById('gameShell');
-      const rect = shell.getBoundingClientRect();
-      const dpr = window.devicePixelRatio || 1;
-      canvas.width = Math.floor(rect.width * dpr);
-      canvas.height = Math.floor(rect.height * dpr);
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      scale = Math.min(rect.width / BASE_WIDTH, rect.height / BASE_HEIGHT);
-      const viewW = BASE_WIDTH * scale;
-      const viewH = BASE_HEIGHT * scale;
-      ctx.setTransform(dpr * scale, 0, 0, dpr * scale, (rect.width * dpr - viewW * dpr) / 2, (rect.height * dpr - viewH * dpr) / 2);
-    }
-
-    function ensureImage(character) {
-      if (!character.imageSrc || loadedImages.has(character.id + character.imageSrc)) return;
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.src = character.imageSrc;
-      loadedImages.set(character.id + character.imageSrc, img);
-    }
-
-    function makeFighter(character, index, total) {
-      const stats = character.stats;
-      const angle = -Math.PI / 2 + (Math.PI * 2 * index) / total;
-      const spawnRadiusX = Math.min(ARENA.w * 0.36, 330);
-      const spawnRadiusY = Math.min(ARENA.h * 0.32, 180);
-      return {
-        ...character,
-        id: `${character.id}_${index}_${Math.random().toString(36).slice(2, 7)}`,
-        baseId: character.id,
-        side: index % 2 === 0 ? 'left' : 'right',
-        x: ARENA.x + ARENA.w / 2 + Math.cos(angle) * spawnRadiusX,
-        y: ARENA.y + ARENA.h / 2 + Math.sin(angle) * spawnRadiusY,
-        vx: Math.cos(angle) * rand(120, 230),
-        vy: Math.sin(angle) * rand(120, 230),
-        radius: BALL_RADIUS,
-        hp: stats.hp,
-        maxHp: stats.hp,
-        skillGauge: 0,
-        attackTimer: rand(0, 0.2),
-        wanderTimer: 0,
-        wanderAngle: angle + Math.PI,
-        alive: true,
-        alpha: 1,
-        skillCasting: 0,
-      };
-    }
-
-    function characterInitial(name) {
-      return [...name][0] || '?';
-    }
-
-    function renderCards() {
-      cardsEl.innerHTML = '';
-      CHARACTERS.forEach((character, index) => {
-        ensureImage(character);
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'card';
-        button.style.setProperty('--ring', character.ringColor);
-        button.style.setProperty('--name', character.nameColor);
-        button.dataset.index = index;
-        const imageHtml = character.imageSrc ? `<img alt="${character.name}" src="${character.imageSrc}">` : characterInitial(character.name);
-        button.innerHTML = `
-          <div class="avatar">${imageHtml}</div>
-          <div class="cardName">${character.name}<span class="pickCount">×0</span></div>
-          <div class="stats">
-            HP ${character.stats.hp}<br>
-            SPEED ${Math.round(character.stats.speed)}<br>
-            ATK ${character.stats.attackDamage}<br>
-            SKILL ${character.skill.name}
-          </div>
-        `;
-        button.addEventListener('click', () => selectCharacter(character));
-        cardsEl.appendChild(button);
-      });
-      updateSelectionUI();
-    }
-
-    function selectCharacter(character) {
-      if (selectedRoster.length >= MAX_FIGHTERS) {
-        selectedRoster.shift();
-      }
-      selectedRoster.push(character);
-      updateSelectionUI();
-    }
-
-    function clearRoster() {
-      selectedRoster.length = 0;
-      updateSelectionUI();
-    }
-
-    function updateSelectionUI() {
-      const counts = new Map();
-      selectedRoster.forEach((character) => counts.set(character.id, (counts.get(character.id) || 0) + 1));
-      selectionStepEl.textContent = `${selectedRoster.length}/${MAX_FIGHTERS} PARTICIPANTS`;
-      leftPickEl.textContent = selectedRoster.length
-        ? `참가자: ${selectedRoster.map((character, i) => `${i + 1}.${character.name}`).join(' · ')}`
-        : '참가자: -';
-      rightPickEl.textContent = selectedRoster.length < 2
-        ? '2명 이상 선택하면 시작 가능'
-        : '벽 충돌 + 볼 충돌 난투 준비 완료';
-      startButton.disabled = selectedRoster.length < 2;
-      [...cardsEl.children].forEach((card, i) => {
-        const character = CHARACTERS[i];
-        const count = counts.get(character.id) || 0;
-        card.classList.toggle('selected', count > 0);
-        const badge = card.querySelector('.pickCount');
-        if (badge) {
-          badge.textContent = `×${count}`;
-          badge.style.display = count > 0 ? 'inline-grid' : 'none';
+            selectedList.querySelectorAll("[data-remove-index]").forEach((chip) => {
+                chip.addEventListener("click", () => removeSelectionAt(Number(chip.dataset.removeIndex)));
+            });
         }
-      });
-    }
 
-    function startBattle() {
-      fighters = selectedRoster.map((character, index) => makeFighter(character, index, selectedRoster.length));
-      projectiles = [];
-      particles = [];
-      shockwaves = [];
-      floatingTexts = [];
-      lightnings = [];
-      scheduled = [];
-      flashes = [];
-      shake = { time: 0, duration: 0, magnitude: 0 };
-      winner = null;
-      state = 'battle';
-      selectionOverlay.classList.add('hidden');
-      resultOverlay.classList.add('hidden');
-      lastTime = performance.now();
-    }
-
-    function backToSelect() {
-      state = 'select';
-      resultOverlay.classList.add('hidden');
-      selectionOverlay.classList.remove('hidden');
-      selectedRoster.length = 0;
-      updateSelectionUI();
-    }
-
-    const world = {
-      spawnProjectile(config) {
-        projectiles.push({ ...config, age: 0, trailPoints: [] });
-      },
-      spawnParticles(x, y, color, count, speedMin, speedMax, sizeMin, sizeMax, lifeMin, lifeMax) {
-        for (let i = 0; i < count; i += 1) {
-          const angle = rand(0, Math.PI * 2);
-          const speed = rand(speedMin, speedMax);
-          particles.push({
-            x, y,
-            vx: Math.cos(angle) * speed,
-            vy: Math.sin(angle) * speed,
-            color,
-            size: rand(sizeMin, sizeMax),
-            life: rand(lifeMin, lifeMax),
-            maxLife: 0,
-            drag: rand(0.86, 0.96),
-          });
-          particles[particles.length - 1].maxLife = particles[particles.length - 1].life;
+        function render() {
+            renderCards();
+            renderSelected();
         }
-      },
-      spawnShockwave(x, y, maxRadius, color, duration) {
-        shockwaves.push({ x, y, radius: 0, maxRadius, color, duration, age: 0 });
-      },
-      applyAreaDamage(x, y, radius, damage, ownerId, effectFn) {
-        fighters.forEach((target) => {
-          if (!target.alive || target.id === ownerId) return;
-          if (Math.hypot(target.x - x, target.y - y) <= radius + target.radius) {
-            const owner = fighters.find((f) => f.id === ownerId) || null;
-            this.damage(target, owner, damage, true, '#ffb703');
-            if (effectFn) effectFn(target);
-          }
+
+        startButton.addEventListener("click", () => {
+            if (selectedIds.length < 2) {
+                alert("최소 2명의 캐릭터를 추가해야 전투를 시작할 수 있습니다.");
+                return;
+            }
+
+            saveSelection();
+            window.location.href = "./game.html";
         });
-      },
-      applyKnockback(target, dirX, dirY, force) {
-        target.vx += dirX * force;
-        target.vy += dirY * force;
-      },
-      spawnFloatingText(x, y, text, color, size) {
-        floatingTexts.push({ x: x + rand(-12, 12), y: y + rand(-10, 8), text, color, size, life: 0.8, maxLife: 0.8, vy: -58 });
-      },
-      triggerScreenShake(magnitude, duration) {
-        if (magnitude > shake.magnitude || duration > shake.time) {
-          shake = { magnitude, duration, time: duration };
-        }
-      },
-      spawnLightning(x1, y1, x2, y2, color, thickness, life) {
-        lightnings.push({ x1, y1, x2, y2, color, thickness, life, maxLife: life, seed: Math.random() });
-      },
-      schedule(delay, fn) {
-        scheduled.push({ delay, fn });
-      },
-      directionTo(a, b) {
-        return normalize(b.x - a.x, b.y - a.y);
-      },
-      clampToArena(fighter) {
-        bounceOffWalls(fighter);
-      },
-      damage(target, source, amount, isSkill = false, color = '#fff') {
-        if (!target.alive) return;
-        const multiplier = source && source.matchups ? (source.matchups[target.baseId] || source.matchups[target.id] || 1) : 1;
-        const finalDamage = Math.max(1, Math.round(amount * multiplier));
-        target.hp = Math.max(0, target.hp - finalDamage);
-        target.skillGauge = Math.min(target.stats.skillGaugeMax, target.skillGauge + target.stats.skillGaugeOnHurt);
-        if (source && source.alive) {
-          source.skillGauge = Math.min(source.stats.skillGaugeMax, source.skillGauge + source.stats.skillGaugeOnHit);
-        }
-        const d = source ? this.directionTo(source, target) : { x: 1, y: 0 };
-        this.spawnParticles(target.x - d.x * target.radius, target.y - d.y * target.radius, isSkill ? color : target.ringColor, isSkill ? 34 : 18, 80, isSkill ? 380 : 240, 2, isSkill ? 8 : 5, 0.2, 0.65);
-        this.spawnFloatingText(target.x, target.y - target.radius, String(finalDamage), isSkill ? color : '#ffffff', isSkill ? 28 : 19);
-        flashes.push({ life: isSkill ? 0.14 : 0.07, maxLife: isSkill ? 0.14 : 0.07, color: isSkill ? 'rgba(255,210,70,.28)' : 'rgba(255,255,255,.2)' });
-        this.triggerScreenShake(isSkill ? 8 : 3, isSkill ? 0.22 : 0.08);
-        if (target.hp <= 0) {
-          target.alive = false;
-          target.vx = 0;
-          target.vy = 0;
-          this.spawnShockwave(target.x, target.y, 130, 'rgba(255,255,255,.7)', 0.45);
-          this.spawnParticles(target.x, target.y, target.ringColor, 70, 80, 360, 3, 10, 0.35, 1.0);
-        }
-      }
-    };
 
-    function update(dt) {
-      if (state !== 'battle') return;
-      updateScheduled(dt);
-      updateFighters(dt);
-      updateProjectiles(dt);
-      updateEffects(dt);
-      checkWinner();
-    }
-
-    function updateScheduled(dt) {
-      for (let i = scheduled.length - 1; i >= 0; i -= 1) {
-        scheduled[i].delay -= dt;
-        if (scheduled[i].delay <= 0) {
-          const task = scheduled.splice(i, 1)[0];
-          task.fn();
-        }
-      }
-    }
-
-    function updateFighters(dt) {
-      fighters.forEach((fighter) => {
-        if (!fighter.alive) {
-          fighter.alpha = Math.max(0, fighter.alpha - dt * 0.9);
-          return;
-        }
-        const enemy = findNearestEnemy(fighter);
-        fighter.attackTimer = Math.max(0, fighter.attackTimer - dt);
-        fighter.skillCasting = Math.max(0, fighter.skillCasting - dt);
-        fighter.skillGauge = Math.min(fighter.stats.skillGaugeMax, fighter.skillGauge + fighter.stats.skillGaugeRate * dt);
-        fighter.wanderTimer -= dt;
-        if (fighter.wanderTimer <= 0) {
-          fighter.wanderTimer = rand(0.25, 0.75);
-          fighter.wanderAngle = rand(0, Math.PI * 2);
-        }
-
-        if (enemy && enemy.alive && fighter.skillCasting <= 0) {
-          const toEnemy = normalize(enemy.x - fighter.x, enemy.y - fighter.y);
-          const distance = dist(fighter, enemy);
-          const desiredDistance = fighter.stats.attackRange * 0.7;
-          const approach = distance > desiredDistance ? 1 : -0.18;
-          const wander = { x: Math.cos(fighter.wanderAngle) * 0.42, y: Math.sin(fighter.wanderAngle) * 0.42 };
-          const move = normalize(toEnemy.x * approach + wander.x, toEnemy.y * approach + wander.y);
-          fighter.vx += move.x * fighter.stats.speed * 5.4 * dt;
-          fighter.vy += move.y * fighter.stats.speed * 5.4 * dt;
-
-          if (distance <= fighter.stats.attackRange && fighter.attackTimer <= 0) {
-            fighter.attackTimer = fighter.stats.attackCooldown;
-            world.damage(enemy, fighter, fighter.stats.attackDamage, false);
-            world.applyKnockback(enemy, toEnemy.x, toEnemy.y, 190);
-            world.applyKnockback(fighter, -toEnemy.x, -toEnemy.y, 55);
-          }
-
-          if (fighter.skillGauge >= fighter.stats.skillGaugeMax) {
-            fighter.skillGauge = 0;
-            fighter.skillCasting = 0.55;
-            fighter.skill.cast(fighter, enemy, world);
-          }
-        }
-
-        fighter.vx *= Math.pow(0.52, dt);
-        fighter.vy *= Math.pow(0.52, dt);
-        fighter.x += fighter.vx * dt;
-        fighter.y += fighter.vy * dt;
-        world.clampToArena(fighter);
-      });
-      resolveAllCollisions();
-    }
-
-    function findNearestEnemy(fighter) {
-      let best = null;
-      let bestDistance = Infinity;
-      fighters.forEach((candidate) => {
-        if (candidate === fighter || !candidate.alive) return;
-        const candidateDistance = dist(fighter, candidate);
-        if (candidateDistance < bestDistance) {
-          best = candidate;
-          bestDistance = candidateDistance;
-        }
-      });
-      return best;
-    }
-
-    function resolveAllCollisions() {
-      for (let i = 0; i < fighters.length; i += 1) {
-        for (let j = i + 1; j < fighters.length; j += 1) {
-          resolveCollision(fighters[i], fighters[j]);
-        }
-      }
-    }
-
-    function resolveCollision(a, b) {
-      if (!a || !b || (!a.alive && !b.alive)) return;
-      const dx = b.x - a.x;
-      const dy = b.y - a.y;
-      const distance = Math.hypot(dx, dy) || 1;
-      const minDistance = a.radius + b.radius + 2;
-      if (distance < minDistance) {
-        const overlap = minDistance - distance;
-        const nx = dx / distance;
-        const ny = dy / distance;
-        const aShare = a.alive ? 0.5 : 0;
-        const bShare = b.alive ? 0.5 : 0;
-        if (a.alive) {
-          a.x -= nx * overlap * (b.alive ? aShare : 1);
-          a.y -= ny * overlap * (b.alive ? aShare : 1);
-        }
-        if (b.alive) {
-          b.x += nx * overlap * (a.alive ? bShare : 1);
-          b.y += ny * overlap * (a.alive ? bShare : 1);
-        }
-
-        const relativeVelocity = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
-        const impulse = Math.max(260, Math.abs(relativeVelocity) * 0.82);
-        if (a.alive) {
-          a.vx -= nx * impulse;
-          a.vy -= ny * impulse;
-        }
-        if (b.alive) {
-          b.vx += nx * impulse;
-          b.vy += ny * impulse;
-        }
-        world.spawnParticles((a.x + b.x) / 2, (a.y + b.y) / 2, '#ffffff', 10, 70, 210, 1.5, 4, 0.14, 0.35);
-        world.clampToArena(a);
-        world.clampToArena(b);
-      }
-    }
-
-    function bounceOffWalls(fighter) {
-      const restitution = 0.92;
-      const kick = 120;
-      if (fighter.x < ARENA.x + fighter.radius) {
-        fighter.x = ARENA.x + fighter.radius;
-        fighter.vx = Math.abs(fighter.vx) * restitution + kick;
-        world.spawnParticles(fighter.x - fighter.radius, fighter.y, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
-      } else if (fighter.x > ARENA.x + ARENA.w - fighter.radius) {
-        fighter.x = ARENA.x + ARENA.w - fighter.radius;
-        fighter.vx = -Math.abs(fighter.vx) * restitution - kick;
-        world.spawnParticles(fighter.x + fighter.radius, fighter.y, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
-      }
-      if (fighter.y < ARENA.y + fighter.radius) {
-        fighter.y = ARENA.y + fighter.radius;
-        fighter.vy = Math.abs(fighter.vy) * restitution + kick;
-        world.spawnParticles(fighter.x, fighter.y - fighter.radius, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
-      } else if (fighter.y > ARENA.y + ARENA.h - fighter.radius) {
-        fighter.y = ARENA.y + ARENA.h - fighter.radius;
-        fighter.vy = -Math.abs(fighter.vy) * restitution - kick;
-        world.spawnParticles(fighter.x, fighter.y + fighter.radius, fighter.ringColor, 8, 50, 180, 1.5, 4, 0.12, 0.32);
-      }
-    }
-
-    function updateProjectiles(dt) {
-      for (let i = projectiles.length - 1; i >= 0; i -= 1) {
-        const p = projectiles[i];
-        p.age += dt;
-        p.life -= dt;
-        p.trailPoints.push({ x: p.x, y: p.y });
-        if (p.trailPoints.length > 10) p.trailPoints.shift();
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        fighters.forEach((target) => {
-          if (!target.alive || target.id === p.owner) return;
-          if (Math.hypot(target.x - p.x, target.y - p.y) <= target.radius + p.radius) {
-            const owner = fighters.find((f) => f.id === p.owner) || null;
-            world.damage(target, owner, p.damage, true, p.color);
-            if (p.onHit) p.onHit(target, p);
-            p.life = 0;
-          }
+        document.getElementById("modal-close").addEventListener("click", hideInfo);
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) {
+                hideInfo();
+            }
         });
-        if (p.life <= 0 || p.x < ARENA.x - 80 || p.x > ARENA.x + ARENA.w + 80 || p.y < ARENA.y - 80 || p.y > ARENA.y + ARENA.h + 80) {
-          projectiles.splice(i, 1);
-        }
-      }
-    }
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                hideInfo();
+            }
+        });
 
-    function updateEffects(dt) {
-      for (let i = particles.length - 1; i >= 0; i -= 1) {
-        const p = particles[i];
-        p.life -= dt;
-        p.x += p.vx * dt;
-        p.y += p.vy * dt;
-        p.vx *= Math.pow(p.drag, dt * 60);
-        p.vy *= Math.pow(p.drag, dt * 60);
-        p.vy += 130 * dt;
-        if (p.life <= 0) particles.splice(i, 1);
-      }
-      for (let i = shockwaves.length - 1; i >= 0; i -= 1) {
-        const s = shockwaves[i];
-        s.age += dt;
-        s.radius = s.maxRadius * easeOutCubic(s.age / s.duration);
-        if (s.age >= s.duration) shockwaves.splice(i, 1);
-      }
-      for (let i = floatingTexts.length - 1; i >= 0; i -= 1) {
-        const t = floatingTexts[i];
-        t.life -= dt;
-        t.y += t.vy * dt;
-        if (t.life <= 0) floatingTexts.splice(i, 1);
-      }
-      for (let i = lightnings.length - 1; i >= 0; i -= 1) {
-        lightnings[i].life -= dt;
-        if (lightnings[i].life <= 0) lightnings.splice(i, 1);
-      }
-      for (let i = flashes.length - 1; i >= 0; i -= 1) {
-        flashes[i].life -= dt;
-        if (flashes[i].life <= 0) flashes.splice(i, 1);
-      }
-      if (shake.time > 0) shake.time = Math.max(0, shake.time - dt);
-    }
-
-    function easeOutCubic(t) {
-      t = clamp(t, 0, 1);
-      return 1 - Math.pow(1 - t, 3);
-    }
-
-    function checkWinner() {
-      const alive = fighters.filter((fighter) => fighter.alive);
-      if (alive.length === 1 && !winner) {
-        winner = alive[0];
-        world.spawnFloatingText(winner.x, winner.y - 70, 'WINNER!', '#ffe66d', 32);
-        scheduled.push({ delay: 1.55, fn: showResult });
-      } else if (alive.length === 0 && !winner) {
-        scheduled.push({ delay: 1.55, fn: showResult });
-      }
-    }
-
-    function showResult() {
-      state = 'result';
-      winnerText.textContent = winner ? `${winner.name} 승리!` : '무승부!';
-      resultOverlay.classList.remove('hidden');
-    }
-
-    function render() {
-      ctx.save();
-      ctx.clearRect(-1000, -1000, BASE_WIDTH + 2000, BASE_HEIGHT + 2000);
-      ctx.fillStyle = '#1c1c1c';
-      ctx.fillRect(0, 0, BASE_WIDTH, BASE_HEIGHT);
-      const shakePower = shake.time > 0 ? shake.magnitude * (shake.time / shake.duration) : 0;
-      ctx.translate(rand(-shakePower, shakePower), rand(-shakePower, shakePower));
-      drawArena();
-      drawEffectsBehind();
-      drawProjectiles();
-      drawFighters();
-      drawEffectsFront();
-      drawPanels();
-      drawFlash();
-      ctx.restore();
-    }
-
-    function drawArena() {
-      ctx.save();
-      ctx.fillStyle = '#fff';
-      ctx.shadowColor = 'rgba(0,0,0,.45)';
-      ctx.shadowBlur = 22;
-      ctx.shadowOffsetY = 10;
-      ctx.fillRect(ARENA.x, ARENA.y, ARENA.w, ARENA.h);
-      ctx.shadowColor = 'transparent';
-      const inset = ctx.createLinearGradient(ARENA.x, ARENA.y, ARENA.x, ARENA.y + 40);
-      inset.addColorStop(0, 'rgba(0,0,0,.18)');
-      inset.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = inset;
-      ctx.fillRect(ARENA.x + 8, ARENA.y + 8, ARENA.w - 16, 45);
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 8;
-      ctx.strokeRect(ARENA.x, ARENA.y, ARENA.w, ARENA.h);
-      ctx.restore();
-    }
-
-    function drawFighters() {
-      fighters.forEach((fighter) => drawBall(fighter));
-    }
-
-    function drawBall(fighter) {
-      ctx.save();
-      ctx.globalAlpha = fighter.alpha;
-      ctx.translate(fighter.x, fighter.y);
-      ctx.shadowColor = 'rgba(0,0,0,.36)';
-      ctx.shadowBlur = 14;
-      ctx.shadowOffsetY = 8;
-      ctx.beginPath();
-      ctx.arc(0, 0, fighter.radius, 0, Math.PI * 2);
-      ctx.fillStyle = fighter.ringColor;
-      ctx.fill();
-      ctx.shadowColor = 'transparent';
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(0, 0, fighter.radius - 5, 0, Math.PI * 2);
-      ctx.clip();
-      const image = loadedImages.get(fighter.baseId + fighter.imageSrc);
-      if (image && image.complete && image.naturalWidth > 0) {
-        ctx.drawImage(image, -fighter.radius + 5, -fighter.radius + 5, (fighter.radius - 5) * 2, (fighter.radius - 5) * 2);
-      } else {
-        const gradient = ctx.createRadialGradient(-12, -16, 4, 0, 0, fighter.radius);
-        gradient.addColorStop(0, lighten(fighter.ringColor, 55));
-        gradient.addColorStop(1, fighter.ringColor);
-        ctx.fillStyle = gradient;
-        ctx.fillRect(-fighter.radius, -fighter.radius, fighter.radius * 2, fighter.radius * 2);
-        ctx.fillStyle = 'rgba(255,255,255,.88)';
-        ctx.font = '900 32px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(characterInitial(fighter.name), 0, 2);
-      }
-      ctx.restore();
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = fighter.ringColor;
-      ctx.beginPath();
-      ctx.arc(0, 0, fighter.radius - 2, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function shiftHex(hex, amount) {
-      const value = hex.replace('#', '');
-      const num = parseInt(value.length === 3 ? value.split('').map((c) => c + c).join('') : value, 16);
-      const r = clamp((num >> 16) + amount, 0, 255);
-      const g = clamp(((num >> 8) & 255) + amount, 0, 255);
-      const b = clamp((num & 255) + amount, 0, 255);
-      return `rgb(${r}, ${g}, ${b})`;
-    }
-
-    function lighten(hex, amount) {
-      return shiftHex(hex, amount);
-    }
-
-    function darken(hex, amount) {
-      return shiftHex(hex, -amount);
-    }
-
-    function drawEffectsBehind() {
-      shockwaves.forEach((s) => {
-        const progress = s.age / s.duration;
-        ctx.save();
-        ctx.globalAlpha = 1 - progress;
-        ctx.strokeStyle = s.color;
-        ctx.lineWidth = 9 * (1 - progress) + 2;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.globalAlpha = 0.18 * (1 - progress);
-        ctx.fillStyle = s.color;
-        ctx.beginPath();
-        ctx.arc(s.x, s.y, s.radius * 0.62, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
-    }
-
-    function drawProjectiles() {
-      projectiles.forEach((p) => {
-        if (p.trail) {
-          ctx.save();
-          ctx.strokeStyle = p.trailColor || p.color;
-          ctx.lineWidth = p.radius * 1.4;
-          ctx.globalAlpha = 0.42;
-          ctx.beginPath();
-          p.trailPoints.forEach((point, i) => i === 0 ? ctx.moveTo(point.x, point.y) : ctx.lineTo(point.x, point.y));
-          ctx.stroke();
-          ctx.restore();
-        }
-        ctx.save();
-        ctx.fillStyle = p.color;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 16;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
-    }
-
-    function drawEffectsFront() {
-      particles.forEach((p) => {
-        ctx.save();
-        ctx.globalAlpha = clamp(p.life / p.maxLife, 0, 1);
-        ctx.fillStyle = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
-      lightnings.forEach(drawLightning);
-      floatingTexts.forEach((t) => {
-        const alpha = clamp(t.life / t.maxLife, 0, 1);
-        ctx.save();
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = t.color;
-        ctx.strokeStyle = 'rgba(0,0,0,.75)';
-        ctx.lineWidth = 5;
-        ctx.font = `900 ${t.size}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.strokeText(t.text, t.x, t.y);
-        ctx.fillText(t.text, t.x, t.y);
-        ctx.restore();
-      });
-    }
-
-    function drawLightning(l) {
-      const segments = 8;
-      ctx.save();
-      ctx.globalAlpha = clamp(l.life / l.maxLife, 0, 1);
-      ctx.strokeStyle = l.color;
-      ctx.lineWidth = l.thickness;
-      ctx.shadowColor = l.color;
-      ctx.shadowBlur = 12;
-      ctx.beginPath();
-      for (let i = 0; i <= segments; i += 1) {
-        const t = i / segments;
-        const x = l.x1 + (l.x2 - l.x1) * t;
-        const y = l.y1 + (l.y2 - l.y1) * t;
-        const offset = i === 0 || i === segments ? 0 : (Math.sin((i + l.seed * 10) * 13.7) * 16 + rand(-7, 7));
-        const dx = l.x2 - l.x1;
-        const dy = l.y2 - l.y1;
-        const n = normalize(-dy, dx);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x + n.x * offset, y + n.y * offset);
-      }
-      ctx.stroke();
-      ctx.restore();
-    }
-
-    function drawFlash() {
-      flashes.forEach((flash) => {
-        ctx.save();
-        ctx.globalAlpha = clamp(flash.life / flash.maxLife, 0, 1);
-        ctx.fillStyle = flash.color;
-        ctx.fillRect(ARENA.x, ARENA.y, ARENA.w, ARENA.h);
-        ctx.restore();
-      });
-    }
-
-    function drawPanels() {
-      if (!fighters.length) return;
-      const aliveCount = fighters.filter((fighter) => fighter.alive).length;
-      ctx.save();
-      ctx.fillStyle = '#f4f4f4';
-      ctx.font = '900 20px Arial, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(`한남볼파이트 · ALIVE ${aliveCount}/${fighters.length}`, 72, 592);
-      ctx.restore();
-
-      const cols = Math.min(4, fighters.length);
-      const rows = Math.ceil(fighters.length / cols);
-      const gap = 10;
-      const panelW = (960 - gap * (cols - 1)) / cols;
-      const panelH = rows > 1 ? 68 : 92;
-      fighters.forEach((fighter, index) => {
-        const col = index % cols;
-        const row = Math.floor(index / cols);
-        drawStatusPanel(fighter, 70 + col * (panelW + gap), PANEL_Y + row * (panelH + 8), panelW, panelH, col >= cols / 2);
-      });
-    }
-
-    function drawStatusPanel(fighter, x, y, w, h, mirror) {
-      ctx.save();
-      ctx.globalAlpha = fighter.alive ? 1 : 0.52;
-      ctx.fillStyle = 'rgba(12,12,12,.86)';
-      ctx.strokeStyle = fighter.ringColor;
-      ctx.lineWidth = 1.5;
-      roundedRect(x, y, w, h, 15);
-      ctx.fill();
-      ctx.stroke();
-
-      ctx.fillStyle = fighter.nameColor;
-      ctx.font = `900 ${h < 80 ? 15 : 20}px Arial, sans-serif`;
-      ctx.textAlign = mirror ? 'right' : 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(fighter.name, mirror ? x + w - 14 : x + 14, y + 10);
-
-      const barX = x + 14;
-      const barW = w - 28;
-      drawBar(barX, y + (h < 80 ? 32 : 39), barW, h < 80 ? 16 : 23, fighter.hp / fighter.maxHp, hpGradient(fighter.hp / fighter.maxHp, barX, barW), `${Math.ceil(fighter.hp)} / ${fighter.maxHp}`, mirror);
-      drawBar(barX, y + (h < 80 ? 53 : 68), barW, 8, fighter.skillGauge / fighter.stats.skillGaugeMax, skillGradient(fighter, barX, barW), '', mirror);
-      ctx.restore();
-    }
-
-    function drawBar(x, y, w, h, ratio, fill, text, mirror) {
-      ratio = clamp(ratio, 0, 1);
-      ctx.save();
-      roundedRect(x, y, w, h, h / 2);
-      ctx.fillStyle = 'rgba(255,255,255,.14)';
-      ctx.fill();
-      ctx.clip();
-      ctx.fillStyle = fill;
-      if (mirror) ctx.fillRect(x + w * (1 - ratio), y, w * ratio, h);
-      else ctx.fillRect(x, y, w * ratio, h);
-      ctx.restore();
-      roundedRect(x, y, w, h, h / 2);
-      ctx.strokeStyle = 'rgba(255,255,255,.36)';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      if (text) {
-        ctx.fillStyle = '#fff';
-        ctx.strokeStyle = 'rgba(0,0,0,.85)';
-        ctx.lineWidth = 4;
-        ctx.font = '900 15px Arial';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.strokeText(text, x + w / 2, y + h / 2 + 1);
-        ctx.fillText(text, x + w / 2, y + h / 2 + 1);
-      }
-    }
-
-    function hpGradient(ratio, x, w) {
-      const g = ctx.createLinearGradient(x, 0, x + w, 0);
-      if (ratio > 0.5) {
-        g.addColorStop(0, '#27ae60');
-        g.addColorStop(1, '#8ee65d');
-      } else if (ratio > 0.25) {
-        g.addColorStop(0, '#f1c40f');
-        g.addColorStop(1, '#fff176');
-      } else {
-        g.addColorStop(0, '#c0392b');
-        g.addColorStop(1, '#ff6b6b');
-      }
-      return g;
-    }
-
-    function skillGradient(fighter, x, w) {
-      const g = ctx.createLinearGradient(x, 0, x + w, 0);
-      g.addColorStop(0, darken(fighter.ringColor, 46));
-      g.addColorStop(0.58, fighter.ringColor);
-      g.addColorStop(1, lighten(fighter.ringColor, 46));
-      return g;
-    }
-
-    function roundedRect(x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-    }
-
-    function loop(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.033);
-      lastTime = now;
-      update(dt);
-      render();
-      requestAnimationFrame(loop);
-    }
-
-    startButton.addEventListener('click', startBattle);
-    clearButton.addEventListener('click', clearRoster);
-    againButton.addEventListener('click', backToSelect);
-    window.addEventListener('resize', resizeCanvas);
-    renderCards();
-    resizeCanvas();
-    requestAnimationFrame(loop);
-  </script>
+        render();
+    </script>
 </body>
+
 </html>
