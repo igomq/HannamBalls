@@ -1,0 +1,401 @@
+/* ===== 스킬별 고유 비주얼 이펙트 ===== */
+
+/* 다이어트 - 녹색 근육 파동 */
+.diet-aura {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: 9999px;
+    border: 3px solid #4ade80;
+    background: radial-gradient(circle, rgba(74, 222, 128, 0.35) 0%, transparent 70%);
+    animation: diet-pulse 650ms ease-out forwards;
+}
+
+/* 쿵쾅! - 지면 충격파 */
+.ground-shockwave {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: 9999px;
+    border: 6px solid currentColor;
+    animation: shockwave-expand 550ms ease-out forwards;
+}
+
+.ground-crack {
+    position: absolute;
+    pointer-events: none;
+    z-index: 19;
+    border-radius: 9999px;
+    border: 3px dashed currentColor;
+    background: radial-gradient(circle, rgba(123, 127, 134, 0.18) 0%, transparent 70%);
+    animation: ground-crack-spread 700ms ease-out forwards;
+}
+
+/* 아이스 에이지 - 얼음 결정 */
+.ice-crystal {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    width: 12px;
+    height: 12px;
+    background: linear-gradient(135deg, #bae6fd, #38bdf8);
+    border: 1px solid #0284c7;
+    clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+    animation: ice-crystal-fall 900ms ease-out forwards;
+}
+
+.frost-ring {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: 9999px;
+    border: 3px solid rgba(56, 189, 248, 0.8);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.5), inset 0 0 8px rgba(255, 255, 255, 0.3);
+    animation: frost-expand 800ms ease-out forwards;
+}
+
+/* 무지성 돌진 - 잔상 궤적 */
+.charge-ghost {
+    position: absolute;
+    pointer-events: none;
+    z-index: 8;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    animation: charge-ghost-fade 400ms ease-out forwards;
+}
+
+.speed-line {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9;
+    height: 2px;
+    background: linear-gradient(90deg, currentColor, transparent);
+    animation: speed-line-fade 350ms ease-out forwards;
+}
+
+/* 음침 물들이기 - 독안개 */
+.poison-drop {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    width: 8px;
+    height: 12px;
+    background: currentColor;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: poison-drip-fall 700ms ease-in forwards;
+}
+
+.poison-mist-cloud {
+    position: absolute;
+    pointer-events: none;
+    z-index: 18;
+    border-radius: 9999px;
+    background: radial-gradient(circle, currentColor 0%, transparent 70%);
+    opacity: 0.3;
+    animation: mist-expand 1200ms ease-out forwards;
+}
+
+/* 엄마 소환 - 포탈 */
+.summon-portal {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: 9999px;
+    border: 4px solid currentColor;
+    box-shadow: 0 0 18px currentColor, inset 0 0 12px currentColor;
+    animation: summon-spiral 800ms ease-out forwards;
+}
+
+.summon-sparkle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+    animation: sparkle-orbit 600ms ease-out forwards;
+}
+
+/* 집착 추적 - 하트 파티클 */
+.heart-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    font-size: 16px;
+    animation: heart-fly 800ms ease-out forwards;
+}
+
+/* 스킬 도둑 - 글리치 */
+.glitch-line {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    height: 3px;
+    background: currentColor;
+    mix-blend-mode: difference;
+    animation: glitch-scan 400ms steps(8) forwards;
+}
+
+.glitch-block {
+    position: absolute;
+    pointer-events: none;
+    z-index: 23;
+    background: currentColor;
+    opacity: 0.3;
+    animation: glitch-block-flash 300ms steps(4) forwards;
+}
+
+/* 뭉개뭉개 구름 */
+.cloud-particle {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.5;
+    filter: blur(4px);
+    animation: cloud-expand 900ms ease-out forwards;
+}
+
+.slow-spiral {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    border-radius: 9999px;
+    border: 2px dashed currentColor;
+    animation: slow-spin 650ms linear forwards;
+}
+
+/* 공안 호출 - 경광등 */
+.siren-light {
+    position: absolute;
+    pointer-events: none;
+    z-index: 24;
+    border-radius: 9999px;
+    animation: siren-blink 600ms steps(6) forwards;
+}
+
+.arrest-net {
+    position: absolute;
+    pointer-events: none;
+    z-index: 23;
+    border: 3px dashed currentColor;
+    border-radius: 4px;
+    animation: net-close 500ms ease-out forwards;
+}
+
+/* 뒷치기 - 은신/등장 */
+.stealth-ghost {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    background: currentColor;
+    opacity: 0.4;
+    animation: stealth-blur 500ms ease-out forwards;
+}
+
+.blade-flash {
+    position: absolute;
+    pointer-events: none;
+    z-index: 24;
+    width: 4px;
+    height: 28px;
+    background: linear-gradient(to bottom, transparent, currentColor, transparent);
+    animation: blade-slash 350ms ease-out forwards;
+}
+
+/* 대시 - 먼지 */
+.dust-puff {
+    position: absolute;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: 9999px;
+    background: currentColor;
+    opacity: 0.5;
+    animation: dust-rise 500ms ease-out forwards;
+}
+
+/* 임신펀치 - 폭탄 */
+.bomb-pulse-ring {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    border-radius: 9999px;
+    border: 3px solid currentColor;
+    animation: bomb-pulse-anim 400ms ease-out forwards;
+}
+
+.explosion-ember {
+    position: absolute;
+    pointer-events: none;
+    z-index: 23;
+    width: 8px;
+    height: 8px;
+    background: currentColor;
+    border-radius: 2px;
+    animation: ember-fly 600ms ease-out forwards;
+}
+
+.explosion-flash-ring {
+    position: absolute;
+    pointer-events: none;
+    z-index: 22;
+    border-radius: 9999px;
+    border: 5px solid currentColor;
+    box-shadow: 0 0 20px currentColor, inset 0 0 12px rgba(255, 200, 0, 0.4);
+    animation: explosion-ring-expand 500ms ease-out forwards;
+}
+
+/* 폭탄 째깍 긴급 표시 */
+.bomb-timer.bomb-urgent {
+    animation: bomb-timer-urgent 0.3s ease-in-out infinite;
+}
+
+/* ===== 키프레임 애니메이션 ===== */
+
+@keyframes diet-pulse {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.6); }
+}
+
+@keyframes shockwave-expand {
+    0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.3); border-width: 6px; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); border-width: 1px; }
+}
+
+@keyframes ground-crack-spread {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.1); }
+    40% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.8); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3); }
+}
+
+@keyframes ice-crystal-fall {
+    0% { opacity: 1; transform: translate(-50%, -50%) rotate(0deg) scale(0.5); }
+    60% { opacity: 0.8; transform: translate(var(--ix), var(--iy)) rotate(180deg) scale(1.2); }
+    100% { opacity: 0; transform: translate(var(--ix), calc(var(--iy) + 30px)) rotate(270deg) scale(0.6); }
+}
+
+@keyframes frost-expand {
+    0% { opacity: 0.9; transform: translate(-50%, -50%) scale(0.4); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); box-shadow: 0 0 24px rgba(56, 189, 248, 0.8); }
+}
+
+@keyframes charge-ghost-fade {
+    0% { opacity: 0.45; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+}
+
+@keyframes speed-line-fade {
+    0% { opacity: 0.7; transform: scaleX(1); }
+    100% { opacity: 0; transform: scaleX(0.3); }
+}
+
+@keyframes poison-drip-fall {
+    0% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, calc(-50% + 40px)) scale(0.4); }
+}
+
+@keyframes mist-expand {
+    0% { opacity: 0.35; transform: translate(-50%, -50%) scale(0.3); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+}
+
+@keyframes summon-spiral {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0) rotate(0deg); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(180deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3) rotate(360deg); }
+}
+
+@keyframes sparkle-orbit {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(var(--sx), var(--sy)) scale(0); }
+}
+
+@keyframes heart-fly {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+    50% { opacity: 0.9; transform: translate(var(--hx), var(--hy)) scale(1.2); }
+    100% { opacity: 0; transform: translate(var(--hx), calc(var(--hy) - 20px)) scale(0.8); }
+}
+
+@keyframes glitch-scan {
+    0% { opacity: 1; transform: translateY(0); width: 100%; }
+    50% { opacity: 0.7; transform: translateY(var(--gy)); width: 60%; }
+    100% { opacity: 0; transform: translateY(calc(var(--gy) * 2)); width: 30%; }
+}
+
+@keyframes glitch-block-flash {
+    0% { opacity: 0.4; transform: translate(var(--gx), var(--gbx)) scaleX(1); }
+    25% { opacity: 0.2; transform: translate(calc(var(--gx) + 5px), var(--gbx)) scaleX(1.5); }
+    50% { opacity: 0.5; transform: translate(calc(var(--gx) - 3px), var(--gbx)) scaleX(0.8); }
+    100% { opacity: 0; transform: translate(var(--gx), var(--gbx)) scaleX(0); }
+}
+
+@keyframes cloud-expand {
+    0% { opacity: 0.6; transform: translate(-50%, -50%) scale(0.3); }
+    100% { opacity: 0; transform: translate(var(--cx), var(--cy)) scale(1.5); }
+}
+
+@keyframes slow-spin {
+    0% { opacity: 0.7; transform: translate(-50%, -50%) scale(0.5) rotate(0deg); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.3) rotate(360deg); }
+}
+
+@keyframes siren-blink {
+    0% { opacity: 0.9; background: #dc2626; box-shadow: 0 0 20px #dc2626; }
+    16% { opacity: 0.7; background: #2563eb; box-shadow: 0 0 20px #2563eb; }
+    33% { opacity: 0.9; background: #dc2626; box-shadow: 0 0 24px #dc2626; }
+    50% { opacity: 0.7; background: #2563eb; box-shadow: 0 0 24px #2563eb; }
+    66% { opacity: 0.5; background: #dc2626; box-shadow: 0 0 16px #dc2626; }
+    83% { opacity: 0.3; background: #2563eb; box-shadow: 0 0 12px #2563eb; }
+    100% { opacity: 0; }
+}
+
+@keyframes net-close {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(2); }
+    40% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.9); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+}
+
+@keyframes stealth-blur {
+    0% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); filter: blur(0px); }
+    100% { opacity: 0; transform: translate(var(--fx), var(--fy)) scale(0.3); filter: blur(6px); }
+}
+
+@keyframes blade-slash {
+    0% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--br)) scaleY(0); }
+    30% { opacity: 1; transform: translate(-50%, -50%) rotate(var(--br)) scaleY(1.2); }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(var(--br)) scaleY(0.5); }
+}
+
+@keyframes dust-rise {
+    0% { opacity: 0.5; transform: translate(-50%, -50%) scale(0.5); }
+    100% { opacity: 0; transform: translate(var(--ddx), calc(var(--ddy) - 15px)) scale(1.3); }
+}
+
+@keyframes bomb-pulse-anim {
+    0% { opacity: 0.8; transform: translate(-50%, -50%) scale(0.8); }
+    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+}
+
+@keyframes ember-fly {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    40% { opacity: 0.9; }
+    100% { opacity: 0; transform: translate(var(--ex), var(--ey)) scale(0.3); }
+}
+
+@keyframes explosion-ring-expand {
+    0% { opacity: 1; transform: translate(-50%, -50%) scale(0.2); }
+    40% { opacity: 0.8; border-color: #fbbf24; }
+    100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); border-width: 1px; }
+}
+
+@keyframes bomb-timer-urgent {
+    0%, 100% { transform: translate(-50%, -115%) scale(1); }
+    50% { transform: translate(-50%, -115%) scale(1.15); box-shadow: 2px 2px 0px 0px #ba1a1a, 0 0 10px rgba(186, 26, 26, 0.6); }
+}

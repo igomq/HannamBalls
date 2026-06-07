@@ -7,7 +7,13 @@
         seunghyun: "SH",
         hyunwoo: "HW",
         jihoon: "JH",
-        mom: "MOM"
+        mom: "엄마",
+        heoyul: "HY",
+        heojaemin: "HM",
+        junmo: "JM",
+        haejin: "CH",
+        kanghyunwoo: "KH",
+        shingyu: "IS"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -27,13 +33,14 @@
             traits: ["성장형 공격력", "느린 시작"],
             skill: {
                 name: "다이어트",
-                cooldown: 7.5,
-                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 10 증가하고 이동 속도가 5% 상승하며 받는 피해가 5% 감소합니다. (최대 40%)",
+                cooldown: 7,
+                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 6 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 2% 감소합니다. 3회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
                 effects: {
                     hpCostRatio: 0.055,
-                    attackGain: 10,
-                    speedMultiplier: 1.05,
-                    damageReductionGain: 0.05
+                    attackGain: 6,
+                    speedMultiplier: 1.155,
+                    damageReductionGain: 0.02,
+                    pierceBasicAfterUses: 3
                 }
             },
             cooldownOnBasicHit: 0,
@@ -87,10 +94,13 @@
             skill: {
                 name: "아이스 에이지",
                 cooldown: 12.5,
-                description: "모든 적을 1초간 행동 불가 상태로 만들고 180의 피해를 입힙니다.",
+                description: "모든 적을 1초간 행동 불가 상태로 만들고 140의 피해를 입힙니다. 잠깐 맵 절반이 얼음 구역이 되며, 구역 안 캐릭터는 스킬 피해량의 40%만큼 추가 피해를 입습니다. 이 구역 피해량의 15%만큼 회복합니다.",
                 effects: {
-                    damage: 180,
-                    stunSeconds: 1
+                    damage: 140,
+                    stunSeconds: 1,
+                    iceZoneDuration: 2.4,
+                    iceZoneBonusRatio: 0.4,
+                    iceZoneHealRatio: 0.15
                 }
             },
             cooldownOnBasicHit: 0,
@@ -103,7 +113,7 @@
             name: "이우찬",
             shortName: "우찬",
             maxHp: 315,
-            baseAttack: 18,
+            baseAttack: 12,
             speedLabel: "빠름",
             speed: 275,
             colorName: "보라색",
@@ -118,13 +128,13 @@
                 description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 45의 피해를 입히고 주변으로 밀쳐냅니다.",
                 effects: {
                     damage: 45,
-                    durationMs: 480,
-                    speedMultiplier: 2.45,
+                    durationMs: 660,
+                    speedMultiplier: 2.75,
                     minSpeed: 430,
                     knockback: 250
                 }
             },
-            cooldownOnBasicHit: 0.35,
+            cooldownOnBasicHit: 0.4,
             cooldownOnDamageTaken: 0,
             immuneToBasic: true,
             avatarSrc: 'images/woochan.png'
@@ -134,7 +144,7 @@
             name: "이승현",
             shortName: "승현",
             maxHp: 265,
-            baseAttack: 20,
+            baseAttack: 18,
             speedLabel: "빠름",
             speed: 255,
             colorName: "적갈색",
@@ -144,30 +154,33 @@
             avatarText: placeholderFaces.seunghyun,
             traits: ["모서리 이동", "장판 흡혈", "밀치기 면역", "체력 50% 이하 보호막"],
             passive: {
-                name: "음침한 발자국",
-                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 85%만큼 체력을 회복합니다. 또한 처음으로 체력이 50% 미만으로 떨어지면 최대 체력의 30% 만큼의 보호막이 생성됩니다.",
+                name: "음침한 기운",
+                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 45%만큼 체력을 회복합니다. 처음으로 체력이 30% 미만으로 떨어지면 최대 체력의 50%에 해당하는 보호막을 얻습니다.",
                 effects: {
-                    puddleDamage: 20,
+                    puddleDamage: 28,
                     puddleDuration: 2,
                     puddleTickInterval: 0.55,
                     puddleRadius: 62,
                     puddleRadiusRatio: 0.105,
-                    healRatio: 0.85,
+                    healRatio: 0.45,
                     dropInterval: 0.42,
                     maxActivePuddles: 5,
-                    shieldThresholdRatio: 0.5,
-                    shieldRatio: 0.3
+                    shieldThresholdRatio: 0.3,
+                    shieldRatio: 0.5
                 }
             },
             skill: {
                 name: "음침 물들이기",
-                cooldown: 22,
-                description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 3초 동안 지속되는 독 장판을 깔아 모든 적에게 초당 35의 독 피해를 입힙니다. 이 독 피해는 피해 흡수 효과를 받지 않습니다.",
+                cooldown: 15,
+                description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 독 장판을 깝니다. 첫 사용은 무적 2초/초당 20 피해이며, 사용할 때마다 다음 쿨타임은 6초, 무적 시간은 1초, 초당 피해는 10씩 증가합니다.",
                 effects: {
-                    poisonDps: 35,
-                    duration: 3,
-                    offMapDuration: 3,
-                    tickInterval: 0.5
+                    poisonDps: 20,
+                    duration: 2,
+                    offMapDuration: 2,
+                    tickInterval: 0.5,
+                    cooldownIncrease: 6,
+                    offMapDurationIncrease: 1,
+                    poisonDpsIncrease: 10
                 }
             },
             cooldownOnBasicHit: 0.22,
@@ -182,12 +195,12 @@
             id: "lee-hyunwoo",
             name: "이현우",
             shortName: "현우",
-            maxHp: 385,
-            baseAttack: 5,
+            maxHp: 355,
+            baseAttack: 10,
             speedLabel: "매우 빠름",
             speed: 315,
-            colorName: "남색",
-            color: "#1e3a8a",
+            colorName: "민트색",
+            color: "#42bb74ff",
             textColor: "#ffffff",
             avatarSrc: "",
             avatarText: placeholderFaces.hyunwoo,
@@ -201,12 +214,12 @@
                         id: "lee-hyunwoo-mom",
                         name: "현우 엄마",
                         shortName: "엄마",
-                        maxHp: 175,
+                        maxHp: 225,
                         baseAttack: 45,
                         speedLabel: "매우 빠름",
                         speed: 315,
-                        colorName: "남색",
-                        color: "#172554",
+                        colorName: "민트색",
+                        color: "#2f9175ff",
                         textColor: "#ffffff",
                         avatarSrc: "",
                         avatarText: placeholderFaces.mom,
@@ -222,13 +235,13 @@
                         immuneToBasic: false,
                         isSummonDefinition: true,
                         hpDecayPerSecond: 25,
-                        ownerHealRatioFromDamage: 0.3,
-                        selfHealRatioFromDamage: 0.5
+                        ownerHealRatioFromDamage: 0.5,
+                        selfHealRatioFromDamage: 1
                     }
                 }
             },
             cooldownOnBasicHit: 0,
-            cooldownOnDamageTaken: 6,
+            cooldownOnDamageTaken: 3,
             immuneToBasic: false,
             avatarSrc: 'images/hyunwoo.png'
         },
@@ -247,7 +260,7 @@
             avatarText: placeholderFaces.jihoon,
             traits: ["기본 공격 회피", "회피 회복", "집착 추적"],
             passive: {
-                name: "기본 공격 회피",
+                name: "회피형 인간",
                 description: "적의 기본 공격을 회피할 때마다 최대 체력의 5%만큼 체력을 회복합니다.",
                 effects: {
                     healOnBasicEvadeRatio: 0.05
@@ -270,6 +283,213 @@
             evadesBasic: true,
             contactAttackDisabled: true,
             avatarSrc: 'images/jihoon.png'
+        },
+        {
+            id: "heo-yul",
+            name: "허율",
+            shortName: "허율",
+            maxHp: 365,
+            baseAttack: 15,
+            speedLabel: "보통",
+            speed: 215,
+            colorName: "남색",
+            color: "#1e3a8a",
+            textColor: "#ffffff",
+            avatarSrc: "",
+            avatarText: placeholderFaces.heoyul,
+            traits: ["스킬 도둑", "잠깐 단단함", "쓰면 느려짐"],
+            skill: {
+                name: "생활지능 포기하고 얻은 공부지능",
+                cooldown: 8,
+                description: "가장 가까운 캐릭터의 스킬을 훔쳐 사용하고 3초간 받는 피해가 감소합니다. 대신 이동속도가 5 감소합니다.",
+                effects: {
+                    copyClosestSkill: true,
+                    damageReduction: 0.25,
+                    damageReductionDuration: 3,
+                    speedLoss: 5
+                }
+            },
+            cooldownOnBasicHit: 0,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: false,
+            avatarSrc: 'images/yul.png'
+        },
+        {
+            id: "heo-jaemin",
+            name: "허재민",
+            shortName: "재민",
+            maxHp: 400,
+            baseAttack: 20,
+            speedLabel: "보통",
+            speed: 215,
+            colorName: "노란색",
+            color: "#facc15",
+            textColor: "#1c1b1b",
+            avatarSrc: "",
+            avatarText: placeholderFaces.heojaemin,
+            traits: ["광역 둔화", "자가 가속", "쿨타임 순환"],
+            skill: {
+                name: "뭉개뭉개 구름",
+                cooldown: 10,
+                description: "주변 캐릭터들의 이동 속도를 크게 낮추고 45의 피해를 입히며, 5초간 본인의 이동 속도가 크게 증가합니다.",
+                effects: {
+                    damage: 45,
+                    radius: 180,
+                    slowMultiplier: 0.45,
+                    slowDuration: 3,
+                    hasteMultiplier: 1.65,
+                    hasteDuration: 5
+                }
+            },
+            cooldownOnBasicHit: 1,
+            cooldownOnDamageTaken: 1,
+            immuneToBasic: false,
+            avatarSrc: 'images/jaemin.png'
+        },
+        {
+            id: "kim-junmo",
+            name: "김준모",
+            shortName: "준모",
+            maxHp: 435,
+            baseAttack: 25,
+            speedLabel: "보통",
+            speed: 215,
+            colorName: "빨간색",
+            color: "#dc2626",
+            textColor: "#ffffff",
+            avatarSrc: "",
+            avatarText: placeholderFaces.junmo,
+            traits: ["단일 제압", "4번째 스킬 탈락"],
+            passive: {
+                name: "공산당의 저주",
+                description: "스킬을 4회째 사용하면 본인이 공안에게 끌려가 탈락합니다.",
+                effects: {
+                    selfOutOnSkillUse: 4
+                }
+            },
+            skill: {
+                name: "공안 호출",
+                cooldown: 10.5,
+                description: "공안을 불러와 가장 가까운 적을 3.5초간 이동 불가 상태로 만들고 90의 피해를 입힙니다.",
+                effects: {
+                    damage: 90,
+                    stunSeconds: 3.5
+                }
+            },
+            cooldownOnBasicHit: 0,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: false,
+            avatarSrc: 'images/junmo.png'
+        },
+        {
+            id: "choi-haejin",
+            name: "최해진",
+            shortName: "해진",
+            maxHp: 285,
+            baseAttack: 45,
+            speedLabel: "빠름",
+            speed: 275,
+            colorName: "핫핑크",
+            color: "#ff1493",
+            textColor: "#ffffff",
+            avatarSrc: "",
+            avatarText: placeholderFaces.haejin,
+            traits: ["암살", "처치 보상", "잠깐 사라짐"],
+            passive: {
+                name: "흥분",
+                description: "적을 죽이면 체력을 55% 회복하고 현재 스킬 쿨타임이 65% 감소합니다.",
+                effects: {
+                    healOnKillRatio: 0.55,
+                    cooldownOnKillRatio: 0.65
+                }
+            },
+            skill: {
+                name: "뒷치기",
+                cooldown: 9,
+                description: "1초간 맵에서 사라졌다가 랜덤한 캐릭터의 진행 방향 뒤에서 나와 75의 피해를 입히고, 스킬 피해량의 10%만큼 회복합니다.",
+                effects: {
+                    disappearDuration: 1,
+                    damage: 75,
+                    behindDistance: 92,
+                    healRatio: 0.1
+                }
+            },
+            cooldownOnBasicHit: 0.5,
+            cooldownOnDamageTaken: 0.3,
+            immuneToBasic: false,
+            avatarSrc: 'images/haejin.png'
+        },
+        {
+            id: "kang-hyunwoo",
+            name: "강현우",
+            shortName: "강현우",
+            maxHp: 288,
+            baseAttack: 5,
+            speedLabel: "이동 불가",
+            speed: 0,
+            colorName: "연두색",
+            color: "#84cc16",
+            textColor: "#1c1b1b",
+            avatarSrc: "",
+            avatarText: placeholderFaces.kanghyunwoo,
+            traits: ["원거리 딜러", "제자리 포탑", "시간 성장"],
+            passive: {
+                name: "배짱이새끼",
+                description: "움직이지 못하는 대신 가까운 적을 0.25초마다 공격하며 입힌 피해량의 30%만큼 회복합니다. 게임 시간 10초마다 기본 공격 피해량이 7 증가합니다.",
+                effects: {
+                    rangedAttack: true,
+                    interval: 0.25,
+                    damage: 5,
+                    healRatio: 0.3,
+                    growthInterval: 10,
+                    growthDamage: 7
+                }
+            },
+            skill: {
+                name: "대시",
+                cooldown: 1,
+                description: "적이 없는 방향으로 회피합니다.",
+                effects: {
+                    dashDistance: 115
+                }
+            },
+            cooldownOnBasicHit: 0,
+            cooldownOnDamageTaken: 1,
+            immuneToBasic: false,
+            contactAttackDisabled: true,
+            immobile: true,
+            avatarSrc: 'images/hyunwoo_k.png'
+        },
+        {
+            id: "lim-shingyu",
+            name: "임신규",
+            shortName: "신규",
+            maxHp: 515,
+            baseAttack: 26,
+            speedLabel: "매우 느림",
+            speed: 120,
+            colorName: "녹색",
+            color: "#16a34a",
+            textColor: "#ffffff",
+            avatarSrc: "",
+            avatarText: placeholderFaces.shingyu,
+            traits: ["폭탄 부여", "광역 폭발", "기본공격 쿨감"],
+            skill: {
+                name: "임신펀치",
+                cooldown: 14,
+                description: "가장 가까운 적에게 폭탄을 임신시킵니다. 폭탄은 3.5초 뒤 터지며 대상에게 105, 주변에 55의 피해를 입히고 이동 불가 상태로 만듭니다.",
+                effects: {
+                    delay: 3.5,
+                    targetDamage: 105,
+                    splashDamage: 55,
+                    radius: 150,
+                    stunSeconds: 1.4
+                }
+            },
+            cooldownOnBasicHit: 2,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: false,
+            avatarSrc: 'images/shingyu.png'
         }
     ];
 

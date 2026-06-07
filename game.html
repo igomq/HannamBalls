@@ -8,6 +8,7 @@
     <title>한남볼파이트 전투</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script src="./characters.js"></script>
+    <link href="./effects.css" rel="stylesheet">
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet">
@@ -172,9 +173,11 @@
         .effect-burst,
         .damage-float,
         .skill-label,
+        .bomb-timer,
         .impact-star,
         .puddle-zone,
         .poison-field,
+        .ice-field,
         .arena-flash {
             position: absolute;
             pointer-events: none;
@@ -217,6 +220,18 @@
             white-space: nowrap;
         }
 
+        .bomb-timer {
+            padding: 3px 7px;
+            background: #1c1b1b;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            box-shadow: 2px 2px 0px 0px #ba1a1a;
+            font: 800 13px "JetBrains Mono", monospace;
+            transform: translate(-50%, -115%);
+            white-space: nowrap;
+            z-index: 35;
+        }
+
         .impact-star {
             width: 24px;
             height: 24px;
@@ -237,6 +252,13 @@
             inset: 0;
             background: rgba(139, 47, 35, 0.24);
             border: 6px solid rgba(139, 47, 35, 0.75);
+            z-index: 4;
+        }
+
+        .ice-field {
+            background: rgba(56, 189, 248, 0.28);
+            border: 5px solid rgba(2, 132, 199, 0.72);
+            box-shadow: inset 0 0 28px rgba(255, 255, 255, 0.72);
             z-index: 4;
         }
 
@@ -431,6 +453,7 @@
         </div>
     </div>
 
+    <script src="./effects.js"></script>
     <script>
         const arena = document.getElementById("arena");
         const hud = document.getElementById("hud");
@@ -460,7 +483,9 @@
             lastTime: 0,
             pairHits: new Map(),
             activePuddles: [],
-            activePoisons: []
+            activePoisons: [],
+            activeBombs: [],
+            activeIceZones: []
         };
         const EFFECT_LIMITS = {
             bursts: 70,
@@ -482,6 +507,8 @@
         let lastElapsedText = "";
         let cachedCorners = [];
 
+        initEffects(arena, battle);
+
         function escapeHtml(value) {
             return String(value)
                 .replaceAll("&", "&amp;")
@@ -502,6 +529,123 @@
 
         function scaledSpeed(speed) {
             return speed * arenaScale();
+        }
+
+        function moveSpeedOf(fighter, now = performance.now()) {
+            if (fighter.definition.immobile && fighter.forceMoveUntil <= now) {
+                return 0;
+            }
+
+            let speed = fighter.speed;
+            if (fighter.slowUntil > now) {
+                speed *= fighter.slowMultiplier;
+            }
+            if (fighter.hasteUntil > now) {
+                speed *= fighter.hasteMultiplier;
+            }
+            return speed;
+        }
+
+        function skillCooldownDuration(fighter) {
+            if (fighter.definition.id === "lee-seunghyun") {
+                const effects = fighter.definition.skill.effects;
+                return fighter.definition.skill.cooldown + (fighter.seunghyunSkillUses || 0) * (effects.cooldownIncrease || 0);
+            }
+
+            return fighter.definition.skill.cooldown;
+        }
+
+        function rotateVector(x, y, radians) {
+            const cos = Math.cos(radians);
+            const sin = Math.sin(radians);
+            return {
+                x: x * cos - y * sin,
+                y: x * sin + y * cos
+            };
+        }
+
+        function setVelocityDirection(fighter, x, y, speed) {
+            const direction = normalize(x, y);
+            const scaled = scaledSpeed(speed);
+            fighter.vx = direction.x * scaled;
+            fighter.vy = direction.y * scaled;
+        }
+
+        function jitterVelocity(fighter, radians, speed = moveSpeedOf(fighter)) {
+            if (speed <= 0) {
+                fighter.vx = 0;
+                fighter.vy = 0;
+                return;
+            }
+
+            const rotated = rotateVector(fighter.vx || Math.random() - 0.5, fighter.vy || Math.random() - 0.5, radians);
+            setVelocityDirection(fighter, rotated.x, rotated.y, speed);
+        }
+
+        function maintainMotion(fighter, now, jitterStrength = 0.18) {
+            const speed = moveSpeedOf(fighter, now);
+            if (speed <= 0) {
+                if (fighter.forceMoveUntil <= now) {
+                    fighter.vx = 0;
+                    fighter.vy = 0;
+                }
+                return;
+            }
+            if (isStunned(fighter, now)) {
+                return;
+            }
+
+            const desired = scaledSpeed(speed);
+            const current = Math.hypot(fighter.vx, fighter.vy);
+            if (!Number.isFinite(current) || current < desired * 0.18) {
+                setVelocityDirection(fighter, Math.random() - 0.5, Math.random() - 0.5, speed);
+                return;
+            }
+
+            if (!fighter.nextWobbleAt || now >= fighter.nextWobbleAt) {
+                fighter.nextWobbleAt = now + 420 + Math.random() * 760;
+                jitterVelocity(fighter, (Math.random() - 0.5) * jitterStrength, speed);
+            } else {
+                setVelocityDirection(fighter, fighter.vx, fighter.vy, speed);
+            }
+        }
+
+        function clampToArena(value) {
+            const radius = battle.ballSize / 2;
+            return Math.max(radius, Math.min(battle.arenaSize - radius, value));
+        }
+
+        function dashWithFallback(fighter, preferredDirection, distance) {
+            const startX = fighter.x;
+            const startY = fighter.y;
+            const base = normalize(preferredDirection.x, preferredDirection.y);
+            const candidates = [
+                base,
+                rotateVector(base.x, base.y, Math.PI / 2),
+                rotateVector(base.x, base.y, -Math.PI / 2),
+                rotateVector(base.x, base.y, Math.PI / 4),
+                rotateVector(base.x, base.y, -Math.PI / 4),
+                normalize(battle.arenaSize / 2 - fighter.x, battle.arenaSize / 2 - fighter.y),
+                normalize(Math.random() - 0.5, Math.random() - 0.5)
+            ];
+            let best = { x: startX, y: startY, moved: -1, direction: base };
+
+            candidates.forEach((direction) => {
+                const x = clampToArena(startX + direction.x * distance);
+                const y = clampToArena(startY + direction.y * distance);
+                const moved = Math.hypot(x - startX, y - startY);
+                if (moved > best.moved) {
+                    best = { x, y, moved, direction };
+                }
+            });
+
+            fighter.x = best.x;
+            fighter.y = best.y;
+            if (best.moved > 1) {
+                fighter.forceMoveUntil = performance.now() + 180;
+                setVelocityDirection(fighter, best.direction.x, best.direction.y, Math.max(140, fighter.speed || 140));
+            }
+            return best.moved;
         }
 
         function formatElapsed(ms) {
@@ -598,6 +742,22 @@
                 followTargetId: null,
                 followUntil: 0,
                 nextFollowDamageAt: 0,
+                followEffects: null,
+                tempDamageReductionUntil: 0,
+                tempDamageReduction: 0,
+                slowUntil: 0,
+                slowMultiplier: 1,
+                hasteUntil: 0,
+                hasteMultiplier: 1,
+                forceMoveUntil: 0,
+                skillUseCount: 0,
+                dietUses: 0,
+                seunghyunSkillUses: 0,
+                nextRangedAt: 0,
+                rangedDamageBonus: 0,
+                nextRangedGrowthAt: 0,
+                nextWobbleAt: 0,
+                backstab: null,
                 cornerIndex: index % 4,
                 dead: false,
                 hudElement: null
@@ -613,7 +773,7 @@
                 return false;
             }
 
-            return a.ownerId === b.id || b.ownerId === a.id || (a.ownerId && a.ownerId === b.ownerId);
+            return Boolean(a.ownerId && b.ownerId && a.ownerId === b.ownerId);
         }
 
         function livingEnemiesOf(fighter) {
@@ -633,8 +793,8 @@
                 fighter.x = center + Math.cos(angle) * radius;
                 fighter.y = center + Math.sin(angle) * radius;
                 const direction = normalize(center - fighter.x, center - fighter.y);
-                fighter.vx = direction.x * scaledSpeed(fighter.speed) * 1.45;
-                fighter.vy = direction.y * scaledSpeed(fighter.speed) * 1.45;
+                fighter.vx = direction.x * scaledSpeed(moveSpeedOf(fighter)) * 1.45;
+                fighter.vy = direction.y * scaledSpeed(moveSpeedOf(fighter)) * 1.45;
                 fighter.element.style.width = `${battle.ballSize}px`;
                 fighter.element.style.height = `${battle.ballSize}px`;
             });
@@ -659,7 +819,7 @@
                         <div class="skill-fill h-full" style="width:0%; background:${fighter.definition.color};"></div>
                     </div>
                     <div class="status-text font-label-numeric text-label-numeric text-on-surface-variant">
-                        CD ${escapeHtml(fighter.definition.skill.name)} ${fighter.definition.skill.cooldown.toFixed(1)} / ${fighter.definition.skill.cooldown.toFixed(1)}초
+                        CD ${escapeHtml(fighter.definition.skill.name)} ${skillCooldownDuration(fighter).toFixed(1)} / ${skillCooldownDuration(fighter).toFixed(1)}초
                     </div>
                     <div class="stat-bonus-text hidden font-label-numeric text-label-numeric text-primary">
                         ATK +0 / SPD +0%
@@ -697,12 +857,14 @@
 
         function updateHud(now) {
             battle.fighters.forEach((fighter) => {
+                sanitizeFighterState(fighter);
                 if (!fighter.hudElement) {
                     return;
                 }
 
                 const hpRatio = Math.max(0, fighter.hp / fighter.maxHp);
-                const skillReady = Math.max(0, 1 - fighter.skillCooldown / fighter.definition.skill.cooldown);
+                const cooldownDuration = skillCooldownDuration(fighter);
+                const skillReady = Math.max(0, 1 - fighter.skillCooldown / cooldownDuration);
 
                 if (fighter.lastHpRatio !== hpRatio) {
                     fighter.hudHpFill.style.width = `${hpRatio * 100}%`;
@@ -728,15 +890,17 @@
                 if (fighter.dead) {
                     statusTextVal = "탈락";
                     statusColor = "#ba1a1a";
+                } else if (fighter.offMapUntil > now) {
+                    statusTextVal = `맵 밖 ${(Math.max(0, fighter.offMapUntil - now) / 1000).toFixed(1)}초`;
+                    statusColor = fighter.definition.color;
                 } else if (isStunned(fighter, now)) {
                     statusTextVal = `행동 불가 ${(Math.max(0, fighter.stunnedUntil - now) / 1000).toFixed(1)}초`;
                     statusColor = "#ba1a1a";
                 } else {
-                    const cooldown = fighter.definition.skill.cooldown;
                     const remaining = Math.max(0, fighter.skillCooldown);
                     statusTextVal = remaining <= 0
                         ? `CD ${fighter.definition.skill.name} READY`
-                        : `CD ${fighter.definition.skill.name} ${remaining.toFixed(1)} / ${cooldown.toFixed(1)}초`;
+                        : `CD ${fighter.definition.skill.name} ${remaining.toFixed(1)} / ${cooldownDuration.toFixed(1)}초`;
                 }
 
                 if (fighter.lastStatusText !== statusTextVal) {
@@ -745,9 +909,38 @@
                     fighter.lastStatusText = statusTextVal;
                 }
 
-                const hasBonus = fighter.statBonusAttack > 0 || fighter.statBonusSpeedRatio > 0 || fighter.statDamageReduction > 0;
-                if (hasBonus) {
-                    const bonusTextVal = `ATK +${Math.round(fighter.statBonusAttack)} / SPD +${Math.round(fighter.statBonusSpeedRatio * 100)}% / DMG -${Math.round(fighter.statDamageReduction * 100)}%`;
+                const bonusParts = [];
+                if (fighter.statBonusAttack !== 0) {
+                    bonusParts.push(`ATK ${fighter.statBonusAttack > 0 ? "+" : ""}${Math.round(fighter.statBonusAttack)}`);
+                }
+                if (Math.abs(fighter.statBonusSpeedRatio) > 0.005) {
+                    bonusParts.push(`SPD ${fighter.statBonusSpeedRatio > 0 ? "+" : ""}${Math.round(fighter.statBonusSpeedRatio * 100)}%`);
+                }
+                if (fighter.statDamageReduction > 0) {
+                    bonusParts.push(`DMG -${Math.round(fighter.statDamageReduction * 100)}%`);
+                }
+                if (fighter.tempDamageReductionUntil > now) {
+                    bonusParts.push(`방어 +${Math.round(fighter.tempDamageReduction * 100)}% ${((fighter.tempDamageReductionUntil - now) / 1000).toFixed(1)}초`);
+                }
+                if (fighter.slowUntil > now) {
+                    bonusParts.push(`둔화 ${Math.round(fighter.slowMultiplier * 100)}% ${((fighter.slowUntil - now) / 1000).toFixed(1)}초`);
+                }
+                if (fighter.hasteUntil > now) {
+                    bonusParts.push(`가속 +${Math.round((fighter.hasteMultiplier - 1) * 100)}% ${((fighter.hasteUntil - now) / 1000).toFixed(1)}초`);
+                }
+                if (fighter.definition.id === "kim-junmo") {
+                    const maxUses = fighter.definition.passive?.effects?.selfOutOnSkillUse || 4;
+                    bonusParts.push(`스킬 ${fighter.skillUseCount}/${maxUses}`);
+                }
+                if (fighter.definition.id === "song-geonuk" && fighter.dietUses > 0) {
+                    bonusParts.push(`다이어트 ${fighter.dietUses}회`);
+                }
+                if (fighter.definition.id === "lee-seunghyun") {
+                    bonusParts.push(`사용 ${fighter.seunghyunSkillUses}회`);
+                }
+
+                if (bonusParts.length > 0) {
+                    const bonusTextVal = bonusParts.join(" / ");
                     if (fighter.lastStatBonusText !== bonusTextVal) {
                         fighter.hudStatBonus.classList.remove("hidden");
                         fighter.hudStatBonus.textContent = bonusTextVal;
@@ -903,25 +1096,86 @@
         }
 
         function reduceCooldown(fighter, seconds) {
-            if (seconds > 0 && !fighter.dead && !isStunned(fighter, performance.now())) {
+            if (!Number.isFinite(seconds) || seconds <= 0 || fighter.dead || isStunned(fighter, performance.now())) {
+                return;
+            }
+
+            if (!Number.isFinite(fighter.skillCooldown)) {
+                fighter.skillCooldown = skillCooldownDuration(fighter);
+            }
+            {
                 fighter.skillCooldown = Math.max(0, fighter.skillCooldown - seconds);
             }
         }
 
+        function sanitizeFighterState(fighter) {
+            if (!fighter) {
+                return;
+            }
+
+            if (!Number.isFinite(fighter.maxHp) || fighter.maxHp <= 0) {
+                fighter.maxHp = fighter.definition.maxHp || 1;
+            }
+            if (!Number.isFinite(fighter.hp)) {
+                fighter.hp = fighter.dead ? 0 : fighter.maxHp;
+            }
+            fighter.hp = Math.max(0, Math.min(fighter.maxHp, fighter.hp));
+
+            if (!Number.isFinite(fighter.skillCooldown)) {
+                fighter.skillCooldown = skillCooldownDuration(fighter);
+            }
+            if (!Number.isFinite(fighter.shield)) {
+                fighter.shield = 0;
+            }
+
+            const center = battle.arenaSize / 2 || 300;
+            if (!Number.isFinite(fighter.x)) {
+                fighter.x = center;
+            }
+            if (!Number.isFinite(fighter.y)) {
+                fighter.y = center;
+            }
+            if (!Number.isFinite(fighter.vx)) {
+                fighter.vx = 0;
+            }
+            if (!Number.isFinite(fighter.vy)) {
+                fighter.vy = 0;
+            }
+        }
+
         function healFighter(fighter, amount) {
-            if (fighter.dead || amount <= 0 || fighter.hp >= fighter.maxHp) {
+            if (!fighter || fighter.dead || !Number.isFinite(amount) || amount <= 0) {
+                return;
+            }
+
+            if (!Number.isFinite(fighter.hp)) {
+                fighter.hp = Math.max(1, fighter.maxHp);
+            }
+
+            if (!Number.isFinite(fighter.maxHp) || fighter.maxHp <= 0 || fighter.hp >= fighter.maxHp) {
                 return;
             }
 
             const healed = Math.min(amount, fighter.maxHp - fighter.hp);
+            if (!Number.isFinite(healed) || healed <= 0) {
+                return;
+            }
+
             fighter.hp += healed;
             floatText(`+${Math.round(healed)}`, fighter.x, fighter.y - battle.ballSize / 2, "#006d36");
         }
 
         function applyDamage(target, amount, source, kind) {
             const now = performance.now();
-            if (target.dead || amount <= 0) {
+            if (!target || target.dead || !Number.isFinite(amount) || amount <= 0) {
                 return 0;
+            }
+
+            if (!Number.isFinite(target.hp)) {
+                target.hp = Math.max(1, target.maxHp);
+            }
+            if (!Number.isFinite(target.shield)) {
+                target.shield = 0;
             }
 
             if (target.invulnerableUntil > now || target.offMapUntil > now) {
@@ -930,7 +1184,12 @@
                 return 0;
             }
 
-            if (kind === "basic" && target.definition.evadesBasic) {
+            const piercesBasicIgnore = kind === "basic"
+                && source
+                && source.definition.id === "song-geonuk"
+                && source.dietUses >= (source.definition.skill.effects.pierceBasicAfterUses || Infinity);
+
+            if (kind === "basic" && target.definition.evadesBasic && !piercesBasicIgnore) {
                 floatText("DODGE", target.x, target.y - battle.ballSize / 2, target.definition.color);
                 effectRing(target.x, target.y, battle.ballSize * 1.15, target.definition.color);
                 const healRatio = target.definition.passive?.effects?.healOnBasicEvadeRatio || 0;
@@ -938,13 +1197,19 @@
                 return 0;
             }
 
-            if (kind === "basic" && target.definition.immuneToBasic) {
+            if (kind === "basic" && target.definition.immuneToBasic && !piercesBasicIgnore) {
                 floatText("IMMUNE", target.x, target.y - battle.ballSize / 2, target.definition.color);
                 effectRing(target.x, target.y, battle.ballSize * 1.2, target.definition.color);
                 return 0;
             }
 
-            const reducedAmount = amount * Math.max(0.4, 1 - (target.statDamageReduction || 0));
+            if (piercesBasicIgnore && (target.definition.evadesBasic || target.definition.immuneToBasic)) {
+                floatText("PIERCE", target.x, target.y - battle.ballSize / 2, source.definition.color);
+            }
+
+            const permanentReduction = Number.isFinite(target.statDamageReduction) ? target.statDamageReduction : 0;
+            const temporaryReduction = target.tempDamageReductionUntil > now && Number.isFinite(target.tempDamageReduction) ? target.tempDamageReduction : 0;
+            const reducedAmount = amount * Math.max(0.1, 1 - permanentReduction - temporaryReduction);
 
             let damageToHp = reducedAmount;
             if (target.shield > 0) {
@@ -1014,6 +1279,13 @@
                 target.element.style.zIndex = "1";
                 burst(target.x, target.y, "#ba1a1a", 12);
                 floatText("OUT", target.x, target.y, "#ba1a1a");
+
+                if (source && source.definition.id === "choi-haejin") {
+                    const effects = source.definition.passive?.effects || {};
+                    healFighter(source, source.maxHp * (effects.healOnKillRatio || 0));
+                    source.skillCooldown *= effects.cooldownOnKillRatio || 1;
+                    floatText("막타냠", source.x, source.y - battle.ballSize / 2, source.definition.color);
+                }
             }
 
             return actual;
@@ -1041,7 +1313,7 @@
             if (fighter.savedVelocity) {
                 fighter.vx = fighter.savedVelocity.vx;
                 fighter.vy = fighter.savedVelocity.vy;
-                setVelocitySpeed(fighter, fighter.speed);
+                setVelocitySpeed(fighter, moveSpeedOf(fighter, now));
             }
 
             fighter.savedVelocity = null;
@@ -1075,8 +1347,8 @@
 
             const nextTarget = corners[fighter.cornerIndex % corners.length];
             const direction = normalize(nextTarget.x - fighter.x, nextTarget.y - fighter.y);
-            fighter.vx = direction.x * scaledSpeed(fighter.speed);
-            fighter.vy = direction.y * scaledSpeed(fighter.speed);
+            fighter.vx = direction.x * scaledSpeed(moveSpeedOf(fighter, now));
+            fighter.vy = direction.y * scaledSpeed(moveSpeedOf(fighter, now));
 
             if (fighter.passiveDropEnabled !== false && now >= fighter.nextPuddleAt) {
                 createPuddle(fighter, now);
@@ -1154,8 +1426,8 @@
             });
         }
 
-        function createPoisonField(source, now) {
-            const effects = source.definition.skill.effects;
+        function createPoisonField(source, now, copiedEffects = null) {
+            const effects = copiedEffects || source.definition.skill.effects;
             const field = document.createElement("div");
             field.className = "poison-field";
             arena.appendChild(field);
@@ -1193,6 +1465,45 @@
             });
         }
 
+        function createIceZone(source, now, effects) {
+            const vertical = Math.random() < 0.5;
+            const highSide = Math.random() < 0.5;
+            const zone = document.createElement("div");
+            zone.className = "ice-field";
+            zone.style.left = vertical && highSide ? `${battle.arenaSize / 2}px` : "0px";
+            zone.style.top = !vertical && highSide ? `${battle.arenaSize / 2}px` : "0px";
+            zone.style.width = vertical ? `${battle.arenaSize / 2}px` : `${battle.arenaSize}px`;
+            zone.style.height = vertical ? `${battle.arenaSize}px` : `${battle.arenaSize / 2}px`;
+            arena.appendChild(zone);
+
+            const ice = {
+                source,
+                vertical,
+                highSide,
+                expiresAt: now + (effects.iceZoneDuration || 2.4) * 1000,
+                element: zone
+            };
+            battle.activeIceZones.push(ice);
+            effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.05, source.definition.color);
+            return ice;
+        }
+
+        function isInsideIceZone(fighter, ice) {
+            return ice.vertical
+                ? (ice.highSide ? fighter.x >= battle.arenaSize / 2 : fighter.x < battle.arenaSize / 2)
+                : (ice.highSide ? fighter.y >= battle.arenaSize / 2 : fighter.y < battle.arenaSize / 2);
+        }
+
+        function updateIceZones(now) {
+            battle.activeIceZones = battle.activeIceZones.filter((ice) => {
+                if (now >= ice.expiresAt || ice.source.dead) {
+                    ice.element.remove();
+                    return false;
+                }
+                return true;
+            });
+        }
+
         function restoreFromOffMap(fighter, now) {
             if (fighter.offMapUntil === 0 || fighter.offMapUntil > now) {
                 return;
@@ -1222,6 +1533,312 @@
                 }
             });
             return nearest;
+        }
+
+        function randomEnemy(fighter) {
+            const enemies = livingEnemiesOf(fighter);
+            if (enemies.length === 0) {
+                return null;
+            }
+            return enemies[Math.floor(Math.random() * enemies.length)];
+        }
+
+        function applyCopiedSkill(fighter, copiedFrom, now) {
+            const copiedTarget = copiedFrom && copiedFrom !== fighter && !copiedFrom.dead && copiedFrom.offMapUntil <= now && !areAllies(fighter, copiedFrom)
+                ? copiedFrom
+                : nearestEnemy(fighter);
+            if (!copiedTarget) {
+                healFighter(fighter, fighter.maxHp * 0.33);
+                megaBurst(fighter.x, fighter.y, fighter.definition.color, 5);
+                floatText("혼자라 회복", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                return false;
+            }
+
+            const copiedDefinition = copiedTarget.definition;
+            const copiedId = copiedDefinition.id;
+            const effects = copiedDefinition.skill?.effects || {};
+            const copiedColor = copiedDefinition.color || fighter.definition.color;
+
+            screenFlash(copiedColor);
+            effectRing(copiedTarget.x, copiedTarget.y, battle.ballSize * 1.75, copiedColor);
+            impactStar(copiedTarget.x, copiedTarget.y, fighter.definition.color);
+            floatText(`${copiedDefinition.shortName || copiedDefinition.name} 스킬`, fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
+
+            if (copiedId === "song-geonuk") {
+                const lost = Math.max(1, fighter.hp * (effects.hpCostRatio || 0.05));
+                fighter.hp = Math.max(1, fighter.hp - lost);
+                fighter.attack += effects.attackGain || 0;
+                fighter.statBonusAttack += effects.attackGain || 0;
+                fighter.speed *= effects.speedMultiplier || 1;
+                fighter.statBonusSpeedRatio = fighter.speed / fighter.baseSpeed - 1;
+                fighter.statDamageReduction += effects.damageReductionGain || 0;
+                setVelocitySpeed(fighter, fighter.speed);
+                burst(fighter.x, fighter.y, copiedColor, 7);
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, copiedColor);
+            } else if (copiedId === "yoo-seungchan") {
+                const radius = Math.min(effects.radius || 190, battle.arenaSize * 0.38);
+                effectRing(fighter.x, fighter.y, radius * 2, copiedColor);
+                burst(fighter.x, fighter.y, copiedColor, 8);
+                battle.fighters.forEach((enemy) => {
+                    if (enemy !== fighter && !enemy.dead && !areAllies(fighter, enemy)) {
+                        const dx = enemy.x - fighter.x;
+                        const dy = enemy.y - fighter.y;
+                        if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+                            applyDamage(enemy, effects.damage || 110, fighter, "skill");
+                            stun(enemy, effects.stunSeconds || 1, now);
+                            impactStar(enemy.x, enemy.y, copiedColor);
+                        }
+                    }
+                });
+            } else if (copiedId === "han-yejun") {
+                const ice = createIceZone(fighter, now, effects);
+                effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.2, copiedColor);
+                burst(battle.arenaSize / 2, battle.arenaSize / 2, copiedColor, 8);
+                battle.fighters.forEach((enemy) => {
+                    if (enemy !== fighter && !enemy.dead && !areAllies(fighter, enemy)) {
+                        applyDamage(enemy, effects.damage || 140, fighter, "skill");
+                        stun(enemy, effects.stunSeconds || 1, now);
+                        if (isInsideIceZone(enemy, ice)) {
+                            const bonus = applyDamage(enemy, (effects.damage || 140) * (effects.iceZoneBonusRatio || 0.4), fighter, "skill");
+                            healFighter(fighter, bonus * (effects.iceZoneHealRatio || 0.15));
+                            floatText("얼음추가", enemy.x, enemy.y - battle.ballSize, copiedColor);
+                        }
+                    }
+                });
+            } else if (copiedId === "lee-woochan") {
+                fighter.chargeUntil = now + (effects.durationMs || 660);
+                fighter.chargeHits = new Set();
+                setVelocitySpeed(fighter, Math.max(effects.minSpeed || 430, fighter.speed * (effects.speedMultiplier || 2.75)));
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, copiedColor);
+                burst(fighter.x, fighter.y, copiedColor, 7);
+            } else if (copiedId === "lee-seunghyun") {
+                const uses = fighter.seunghyunSkillUses || 0;
+                const copiedPoison = {
+                    ...effects,
+                    poisonDps: (effects.poisonDps || 30) + uses * (effects.poisonDpsIncrease || 0),
+                    offMapDuration: (effects.offMapDuration || 2) + uses * (effects.offMapDurationIncrease || 0)
+                };
+                fighter.offMapUntil = now + copiedPoison.offMapDuration * 1000;
+                fighter.invulnerableUntil = fighter.offMapUntil;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                createPoisonField(fighter, now, copiedPoison);
+                fighter.seunghyunSkillUses += 1;
+                effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.35, copiedColor);
+                burst(battle.arenaSize / 2, battle.arenaSize / 2, copiedColor, 6);
+            } else if (copiedId === "lee-hyunwoo" && effects.summon) {
+                summonFighter(fighter, effects.summon, now);
+            } else if (copiedId === "lee-jihoon") {
+                fighter.followTargetId = copiedTarget.id;
+                fighter.followUntil = now + (effects.duration || 5) * 1000;
+                fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
+                fighter.followEffects = effects;
+                effectRing(copiedTarget.x, copiedTarget.y, battle.ballSize * 1.5, copiedColor);
+                floatText("따라감", copiedTarget.x, copiedTarget.y - battle.ballSize / 2, copiedColor);
+            } else if (copiedId === "heo-yul") {
+                healFighter(fighter, fighter.maxHp * 0.33);
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.7, copiedColor);
+            } else if (copiedId === "heo-jaemin") {
+                const radius = Math.min(effects.radius || 180, battle.arenaSize * 0.4);
+                fighter.hasteMultiplier = effects.hasteMultiplier || 1.65;
+                fighter.hasteUntil = now + (effects.hasteDuration || 5) * 1000;
+                effectRing(fighter.x, fighter.y, radius * 2, copiedColor);
+                burst(fighter.x, fighter.y, copiedColor, 8);
+                battle.fighters.forEach((enemy) => {
+                    if (enemy === fighter || enemy.dead || areAllies(fighter, enemy)) {
+                        return;
+                    }
+                    const dx = enemy.x - fighter.x;
+                    const dy = enemy.y - fighter.y;
+                    if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+                        enemy.slowMultiplier = effects.slowMultiplier || 0.45;
+                        enemy.slowUntil = now + (effects.slowDuration || 3) * 1000;
+                        applyDamage(enemy, effects.damage || 45, fighter, "skill");
+                        impactStar(enemy.x, enemy.y, copiedColor);
+                    }
+                });
+            } else if (copiedId === "kim-junmo") {
+                applyDamage(copiedTarget, effects.damage || 90, fighter, "skill");
+                stun(copiedTarget, effects.stunSeconds || 3.5, now);
+                effectRing(copiedTarget.x, copiedTarget.y, battle.ballSize * 1.8, copiedColor);
+                burst(copiedTarget.x, copiedTarget.y, copiedColor, 7);
+                floatText("공안복사", copiedTarget.x, copiedTarget.y - battle.ballSize / 2, copiedColor);
+            } else if (copiedId === "choi-haejin") {
+                fighter.backstab = {
+                    targetId: copiedTarget.id,
+                    returnAt: now + (effects.disappearDuration || 1) * 1000,
+                    damage: effects.damage || 75,
+                    behindDistance: effects.behindDistance || 92,
+                    healRatio: effects.healRatio || 0
+                };
+                fighter.offMapUntil = fighter.backstab.returnAt;
+                fighter.invulnerableUntil = fighter.offMapUntil;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.5, copiedColor);
+                floatText("은신복사", fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
+            } else if (copiedId === "kang-hyunwoo") {
+                const direction = normalize(fighter.x - copiedTarget.x, fighter.y - copiedTarget.y);
+                dashWithFallback(fighter, direction, (effects.dashDistance || 115) * arenaScale());
+                megaBurst(fighter.x, fighter.y, copiedColor, 5);
+                floatText("대시복사", fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
+            } else if (copiedId === "lim-shingyu") {
+                plantBomb(fighter, copiedTarget, now, effects);
+            } else {
+                applyDamage(copiedTarget, 75, fighter, "skill");
+                stun(copiedTarget, 0.8, now);
+                effectRing(copiedTarget.x, copiedTarget.y, battle.ballSize * 1.5, copiedColor);
+                burst(copiedTarget.x, copiedTarget.y, copiedColor, 5);
+            }
+
+            floatText("복사 완료", fighter.x, fighter.y - battle.ballSize, fighter.definition.color);
+            return true;
+        }
+
+        function removeBombLabel(bomb) {
+            if (bomb.label) {
+                bomb.label.remove();
+                bomb.label = null;
+            }
+        }
+
+        function updateBombLabel(bomb, now) {
+            if (!bomb.label) {
+                return;
+            }
+
+            const remaining = Math.max(0, (bomb.explodeAt - now) / 1000);
+            bomb.label.textContent = `💣 ${remaining.toFixed(1)}초`;
+            bomb.label.classList.toggle("bomb-urgent", remaining < 1.5);
+            if (remaining < 1.5 && (!bomb.nextPulseAt || now >= bomb.nextPulseAt)) {
+                bombPulseEffect(bomb.target.x, bomb.target.y, bomb.source.definition.color);
+                bomb.nextPulseAt = now + 400;
+            }
+            bomb.label.style.left = `${bomb.target.x}px`;
+            bomb.label.style.top = `${bomb.target.y - battle.ballSize * 0.72}px`;
+        }
+
+        function plantBomb(source, target, now, copiedEffects = null) {
+            const effects = copiedEffects || source.definition.skill.effects;
+            const label = document.createElement("div");
+            label.className = "bomb-timer";
+            label.style.color = source.definition.color;
+            arena.appendChild(label);
+            battle.activeBombs.push({
+                source,
+                target,
+                explodeAt: now + effects.delay * 1000,
+                effects,
+                label
+            });
+            updateBombLabel(battle.activeBombs[battle.activeBombs.length - 1], now);
+            floatText("폭탄임신", target.x, target.y - battle.ballSize / 2, source.definition.color);
+            effectRing(target.x, target.y, battle.ballSize * 1.75, source.definition.color);
+            burst(target.x, target.y, source.definition.color, 6);
+        }
+
+        function updateBombs(now) {
+            battle.activeBombs = battle.activeBombs.filter((bomb) => {
+                if (bomb.source.dead || bomb.target.dead) {
+                    removeBombLabel(bomb);
+                    return false;
+                }
+                if (now < bomb.explodeAt) {
+                    updateBombLabel(bomb, now);
+                    return true;
+                }
+
+                const { source, target, effects } = bomb;
+                removeBombLabel(bomb);
+                explosionFire(target.x, target.y, effects.radius, source.definition.color);
+                megaBurst(target.x, target.y, source.definition.color, 8);
+                effectRing(target.x, target.y, effects.radius * 2, source.definition.color);
+                floatText("💥펑!", target.x, target.y - battle.ballSize / 2, source.definition.color);
+                applyDamage(target, effects.targetDamage, source, "skill");
+                stun(target, effects.stunSeconds, now);
+                battle.fighters.forEach((enemy) => {
+                    if (enemy === target || enemy === source || enemy.dead || areAllies(source, enemy)) {
+                        return;
+                    }
+                    const dx = enemy.x - target.x;
+                    const dy = enemy.y - target.y;
+                    if (Math.sqrt(dx * dx + dy * dy) <= effects.radius) {
+                        applyDamage(enemy, effects.splashDamage, source, "skill");
+                        stun(enemy, effects.stunSeconds, now);
+                        impactStar(enemy.x, enemy.y, source.definition.color);
+                    }
+                });
+                return false;
+            });
+        }
+
+        function updateRangedAttacks(fighter, now) {
+            const effects = fighter.definition.passive?.effects;
+            if (!effects?.rangedAttack || fighter.dead) {
+                return;
+            }
+
+            if (!fighter.nextRangedGrowthAt) {
+                fighter.nextRangedGrowthAt = (battle.fightStartedAt || now) + effects.growthInterval * 1000;
+            }
+            while (now >= fighter.nextRangedGrowthAt) {
+                fighter.rangedDamageBonus += effects.growthDamage;
+                fighter.nextRangedGrowthAt += effects.growthInterval * 1000;
+                floatText(`딱콩+${effects.growthDamage}`, fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+            }
+
+            if (now < fighter.nextRangedAt) {
+                return;
+            }
+
+            const target = nearestEnemy(fighter);
+            if (!target) {
+                return;
+            }
+
+            const damage = effects.damage + fighter.rangedDamageBonus;
+            const dealt = applyDamage(target, damage, fighter, "ranged");
+            impactStar(target.x, target.y, fighter.definition.color);
+            if (Math.random() < 0.35) {
+                effectRing(target.x, target.y, battle.ballSize * 1.05, fighter.definition.color);
+            }
+            if (dealt > 0) {
+                healFighter(fighter, dealt * effects.healRatio);
+            }
+            fighter.nextRangedAt = now + effects.interval * 1000;
+        }
+
+        function resolveBackstab(fighter, now) {
+            if (!fighter.backstab || now < fighter.backstab.returnAt) {
+                return false;
+            }
+
+            const target = getFighterById(fighter.backstab.targetId) || randomEnemy(fighter);
+            fighter.offMapUntil = 0;
+            fighter.invulnerableUntil = 0;
+            if (target && !target.dead) {
+                const direction = normalize(target.vx || 1, target.vy || 1);
+                const distance = fighter.backstab.behindDistance;
+                fighter.x = Math.max(battle.ballSize / 2, Math.min(battle.arenaSize - battle.ballSize / 2, target.x - direction.x * distance));
+                fighter.y = Math.max(battle.ballSize / 2, Math.min(battle.arenaSize - battle.ballSize / 2, target.y - direction.y * distance));
+                fighter.vx = direction.x * scaledSpeed(fighter.speed);
+                fighter.vy = direction.y * scaledSpeed(fighter.speed);
+                const dealt = applyDamage(target, fighter.backstab.damage, fighter, "skill");
+                if (dealt > 0 && fighter.backstab.healRatio) {
+                    healFighter(fighter, dealt * fighter.backstab.healRatio);
+                }
+                stealthReveal(fighter.x, fighter.y, fighter.definition.color);
+                megaBurst(fighter.x, fighter.y, fighter.definition.color, 5);
+                effectRing(target.x, target.y, battle.ballSize * 1.65, fighter.definition.color);
+                impactStar(target.x, target.y, fighter.definition.color);
+                floatText("🗡️뒷치기!", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+            } else {
+                const direction = normalize(Math.random() - 0.5, Math.random() - 0.5);
+                fighter.vx = direction.x * scaledSpeed(fighter.speed);
+                fighter.vy = direction.y * scaledSpeed(fighter.speed);
+            }
+            fighter.backstab = null;
+            return true;
         }
 
         function summonFighter(owner, summonDefinition, now) {
@@ -1273,6 +1890,7 @@
         function updateFollowSkill(fighter, now) {
             if (!fighter.followUntil || fighter.followUntil <= now) {
                 fighter.followTargetId = null;
+                fighter.followEffects = null;
                 return false;
             }
 
@@ -1280,16 +1898,17 @@
             if (!target || target.dead || target.offMapUntil > now || areAllies(fighter, target)) {
                 fighter.followTargetId = null;
                 fighter.followUntil = 0;
+                fighter.followEffects = null;
                 return false;
             }
 
-            const effects = fighter.definition.skill.effects;
+            const effects = fighter.followEffects || fighter.definition.skill.effects || {};
             const direction = normalize(target.x - fighter.x, target.y - fighter.y);
             fighter.vx = direction.x * scaledSpeed(fighter.speed * (effects.followSpeedMultiplier || 1));
             fighter.vy = direction.y * scaledSpeed(fighter.speed * (effects.followSpeedMultiplier || 1));
 
             if (now >= fighter.nextFollowDamageAt) {
-                applyDamage(target, effects.damagePerSecond * (effects.tickInterval || 1), fighter, "skill");
+                applyDamage(target, (effects.damagePerSecond || 0) * (effects.tickInterval || 1), fighter, "skill");
                 fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
             }
 
@@ -1304,6 +1923,7 @@
 
             if (id === "song-geonuk") {
                 const effects = fighter.definition.skill.effects;
+                fighter.dietUses += 1;
                 const lost = Math.max(1, fighter.hp * effects.hpCostRatio);
                 fighter.hp = Math.max(1, fighter.hp - lost);
                 fighter.attack += effects.attackGain;
@@ -1314,6 +1934,7 @@
                 setVelocitySpeed(fighter, fighter.speed);
                 effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, fighter.definition.color);
                 burst(fighter.x, fighter.y, "#4ade80", 8);
+                dietAura(fighter);
                 floatText(`ATK+${effects.attackGain} DEF+`, fighter.x, fighter.y, "#006d36");
             }
 
@@ -1321,6 +1942,7 @@
                 const effects = fighter.definition.skill.effects;
                 const radius = Math.min(effects.radius, battle.arenaSize * 0.38);
                 effectRing(fighter.x, fighter.y, radius * 2, fighter.definition.color);
+                groundSlam(fighter.x, fighter.y, radius, fighter.definition.color);
                 burst(fighter.x, fighter.y, fighter.definition.color, 10);
                 battle.fighters.forEach((target) => {
                     if (target === fighter || target.dead || areAllies(fighter, target)) {
@@ -1338,12 +1960,19 @@
 
             if (id === "han-yejun") {
                 const effects = fighter.definition.skill.effects;
+                const ice = createIceZone(fighter, now, effects);
                 effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.2, fighter.definition.color);
+                iceCrystals(battle.arenaSize / 2, battle.arenaSize / 2, 10, fighter.definition.color);
                 burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 12);
                 battle.fighters.forEach((target) => {
                     if (target !== fighter && !target.dead && !areAllies(fighter, target)) {
                         applyDamage(target, effects.damage, fighter, "skill");
                         stun(target, effects.stunSeconds, now);
+                        if (isInsideIceZone(target, ice)) {
+                            const bonus = applyDamage(target, effects.damage * effects.iceZoneBonusRatio, fighter, "skill");
+                            healFighter(fighter, bonus * effects.iceZoneHealRatio);
+                            floatText("얼음추가", target.x, target.y - battle.ballSize, fighter.definition.color);
+                        }
                     }
                 });
             }
@@ -1355,22 +1984,32 @@
                 setVelocitySpeed(fighter, Math.max(effects.minSpeed, fighter.speed * effects.speedMultiplier));
                 effectRing(fighter.x, fighter.y, battle.ballSize * 1.4, fighter.definition.color);
                 burst(fighter.x, fighter.y, fighter.definition.color, 8);
+                chargeGhost(fighter);
             }
 
             if (id === "lee-seunghyun") {
                 const effects = fighter.definition.skill.effects;
-                fighter.offMapUntil = now + effects.offMapDuration * 1000;
+                const uses = fighter.seunghyunSkillUses || 0;
+                const poisonEffects = {
+                    ...effects,
+                    poisonDps: effects.poisonDps + uses * effects.poisonDpsIncrease,
+                    offMapDuration: effects.offMapDuration + uses * effects.offMapDurationIncrease
+                };
+                fighter.offMapUntil = now + poisonEffects.offMapDuration * 1000;
                 fighter.invulnerableUntil = fighter.offMapUntil;
                 fighter.vx = 0;
                 fighter.vy = 0;
-                createPoisonField(fighter, now);
+                createPoisonField(fighter, now, poisonEffects);
+                fighter.seunghyunSkillUses += 1;
                 effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.35, fighter.definition.color);
+                poisonMist(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color);
                 burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 6);
-                floatText("MAP OUT", fighter.x, fighter.y, fighter.definition.color);
+                floatText(`MAP OUT ${poisonEffects.poisonDps}/s`, fighter.x, fighter.y, fighter.definition.color);
             }
 
             if (id === "lee-hyunwoo") {
                 const summonDefinition = fighter.definition.skill.effects.summon;
+                summonPortal(fighter.x, fighter.y, fighter.definition.color);
                 summonFighter(fighter, summonDefinition, now);
             }
 
@@ -1381,14 +2020,120 @@
                     fighter.followTargetId = target.id;
                     fighter.followUntil = now + effects.duration * 1000;
                     fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
-                    floatText("LOCK ON", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+                    fighter.followEffects = effects;
+                    heartChase(fighter.x, fighter.y, target.x, target.y, fighter.definition.color);
+                    floatText("💕LOCK ON", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
                     effectRing(target.x, target.y, battle.ballSize * 1.35, fighter.definition.color);
                 } else {
                     floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
                 }
             }
 
-            fighter.skillCooldown = fighter.definition.skill.cooldown;
+            if (id === "heo-yul") {
+                const target = nearestEnemy(fighter);
+                const effects = fighter.definition.skill.effects;
+                fighter.tempDamageReduction = effects.damageReduction;
+                fighter.tempDamageReductionUntil = now + effects.damageReductionDuration * 1000;
+                fighter.speed = Math.max(40, fighter.speed - effects.speedLoss);
+                fighter.statBonusSpeedRatio = fighter.speed / fighter.baseSpeed - 1;
+                glitchScan(fighter.x, fighter.y, battle.ballSize * 1.5, fighter.definition.color);
+                applyCopiedSkill(fighter, target, now);
+                floatText("🔀공부지능 ON", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+            }
+
+            if (id === "heo-jaemin") {
+                const effects = fighter.definition.skill.effects;
+                const radius = Math.min(effects.radius, battle.arenaSize * 0.4);
+                fighter.hasteMultiplier = effects.hasteMultiplier;
+                fighter.hasteUntil = now + effects.hasteDuration * 1000;
+                effectRing(fighter.x, fighter.y, radius * 2, fighter.definition.color);
+                cloudPuff(fighter.x, fighter.y, radius, fighter.definition.color);
+                burst(fighter.x, fighter.y, fighter.definition.color, 8);
+                floatText("☁️구름가속", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                battle.fighters.forEach((target) => {
+                    if (target === fighter || target.dead || areAllies(fighter, target)) {
+                        return;
+                    }
+                    const dx = target.x - fighter.x;
+                    const dy = target.y - fighter.y;
+                    if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+                        target.slowMultiplier = effects.slowMultiplier;
+                        target.slowUntil = now + effects.slowDuration * 1000;
+                        applyDamage(target, effects.damage, fighter, "skill");
+                        floatText("🌀느려짐", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+                        slowSpiral(target.x, target.y, fighter.definition.color);
+                        impactStar(target.x, target.y, fighter.definition.color);
+                        effectRing(target.x, target.y, battle.ballSize * 1.25, fighter.definition.color);
+                    }
+                });
+            }
+
+            if (id === "kim-junmo") {
+                fighter.skillUseCount += 1;
+                if (fighter.skillUseCount >= fighter.definition.passive.effects.selfOutOnSkillUse) {
+                    fighter.dead = true;
+                    fighter.hp = 0;
+                    fighter.vx = 0;
+                    fighter.vy = 0;
+                    floatText("셀프연행", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                    megaBurst(fighter.x, fighter.y, fighter.definition.color, 6);
+                } else {
+                    const target = nearestEnemy(fighter);
+                    if (target) {
+                        const effects = fighter.definition.skill.effects;
+                        applyDamage(target, effects.damage, fighter, "skill");
+                        stun(target, effects.stunSeconds, now);
+                        sirenFlash(target.x, target.y);
+                        effectRing(target.x, target.y, battle.ballSize * 1.85, fighter.definition.color);
+                        burst(target.x, target.y, fighter.definition.color, 7);
+                        impactStar(target.x, target.y, fighter.definition.color);
+                        floatText("🚨공안출동", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+                    }
+                }
+            }
+
+            if (id === "choi-haejin") {
+                const target = randomEnemy(fighter);
+                const effects = fighter.definition.skill.effects;
+                if (target) {
+                    fighter.backstab = {
+                        targetId: target.id,
+                        returnAt: now + effects.disappearDuration * 1000,
+                        damage: effects.damage,
+                        behindDistance: effects.behindDistance,
+                        healRatio: effects.healRatio || 0
+                    };
+                    fighter.offMapUntil = fighter.backstab.returnAt;
+                    fighter.invulnerableUntil = fighter.offMapUntil;
+                    fighter.vx = 0;
+                    fighter.vy = 0;
+                    stealthFade(fighter.x, fighter.y, fighter.definition.color);
+                    effectRing(fighter.x, fighter.y, battle.ballSize * 1.5, fighter.definition.color);
+                    burst(fighter.x, fighter.y, fighter.definition.color, 5);
+                    floatText("🔪사라짐", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                }
+            }
+
+            if (id === "kang-hyunwoo") {
+                const target = nearestEnemy(fighter);
+                const effects = fighter.definition.skill.effects;
+                let direction = target ? normalize(fighter.x - target.x, fighter.y - target.y) : normalize(Math.random() - 0.5, Math.random() - 0.5);
+                const moved = dashWithFallback(fighter, direction, effects.dashDistance * arenaScale());
+                dustKick(fighter.x, fighter.y, "#a8a29e");
+                megaBurst(fighter.x, fighter.y, fighter.definition.color, 4);
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.35, fighter.definition.color);
+                floatText(moved > 1 ? "💨호다닥" : "꿈틀", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+            }
+
+            if (id === "lim-shingyu") {
+                const target = nearestEnemy(fighter);
+                if (target) {
+                    plantBomb(fighter, target, now);
+                    impactStar(target.x, target.y, fighter.definition.color);
+                }
+            }
+
+            fighter.skillCooldown = skillCooldownDuration(fighter);
         }
 
         function handleWallBounce(fighter) {
@@ -1416,6 +2161,7 @@
             }
 
             if (bounced) {
+                jitterVelocity(fighter, (Math.random() - 0.5) * 0.75, moveSpeedOf(fighter));
                 effectRing(fighter.x, fighter.y, battle.ballSize * 0.8, fighter.definition.color);
             }
         }
@@ -1425,7 +2171,11 @@
                 return;
             }
 
-            const dealt = applyDamage(defender, attacker.attack, attacker, "basic");
+            const piercesBasicIgnore = attacker.definition.id === "song-geonuk"
+                && attacker.dietUses >= (attacker.definition.skill.effects.pierceBasicAfterUses || Infinity)
+                && (defender.definition.evadesBasic || defender.definition.immuneToBasic);
+            const attackAmount = piercesBasicIgnore ? attacker.definition.baseAttack : attacker.attack;
+            const dealt = applyDamage(defender, attackAmount, attacker, "basic");
             if (dealt > 0) {
                 reduceCooldown(attacker, attacker.definition.cooldownOnBasicHit);
             }
@@ -1475,14 +2225,28 @@
                     const ny = dy / distance;
                     const overlap = minDistance - distance;
                     const noPushPair = a.definition.noPushCollision || b.definition.noPushCollision;
+                    const tangentX = -ny;
+                    const tangentY = nx;
+                    const randomSide = Math.random() < 0.5 ? -1 : 1;
 
-                    if (!noPushPair && !isStunned(a, now)) {
-                        a.x -= nx * overlap * 0.5;
-                        a.y -= ny * overlap * 0.5;
-                    }
-                    if (!noPushPair && !isStunned(b, now)) {
-                        b.x += nx * overlap * 0.5;
-                        b.y += ny * overlap * 0.5;
+                    if (noPushPair) {
+                        if (a.definition.noPushCollision && !isStunned(a, now)) {
+                            a.x -= nx * overlap;
+                            a.y -= ny * overlap;
+                        } else if (b.definition.noPushCollision && !isStunned(b, now)) {
+                            b.x += nx * overlap;
+                            b.y += ny * overlap;
+                        }
+                    } else {
+                        const separation = overlap * 0.58 + 0.8;
+                        if (!isStunned(a, now)) {
+                            a.x -= nx * separation;
+                            a.y -= ny * separation;
+                        }
+                        if (!isStunned(b, now)) {
+                            b.x += nx * separation;
+                            b.y += ny * separation;
+                        }
                     }
 
                     const aVelocity = a.vx * nx + a.vy * ny;
@@ -1490,19 +2254,21 @@
                     const impulse = bVelocity - aVelocity;
 
                     if (!noPushPair && !isStunned(a, now)) {
-                        a.vx += impulse * nx;
-                        a.vy += impulse * ny;
+                        a.vx += impulse * nx + tangentX * randomSide * scaledSpeed(18);
+                        a.vy += impulse * ny + tangentY * randomSide * scaledSpeed(18);
                     }
                     if (!noPushPair && !isStunned(b, now)) {
-                        b.vx -= impulse * nx;
-                        b.vy -= impulse * ny;
+                        b.vx -= impulse * nx + tangentX * randomSide * scaledSpeed(18);
+                        b.vy -= impulse * ny + tangentY * randomSide * scaledSpeed(18);
                     }
 
                     if (!noPushPair) {
                         const aCharge = a.definition.skill.effects || {};
                         const bCharge = b.definition.skill.effects || {};
-                        setVelocitySpeed(a, a.chargeUntil > now ? Math.max(aCharge.minSpeed, a.speed * aCharge.speedMultiplier) : a.speed);
-                        setVelocitySpeed(b, b.chargeUntil > now ? Math.max(bCharge.minSpeed, b.speed * bCharge.speedMultiplier) : b.speed);
+                        setVelocitySpeed(a, a.chargeUntil > now ? Math.max(aCharge.minSpeed, moveSpeedOf(a, now) * aCharge.speedMultiplier) : moveSpeedOf(a, now));
+                        setVelocitySpeed(b, b.chargeUntil > now ? Math.max(bCharge.minSpeed, moveSpeedOf(b, now) * bCharge.speedMultiplier) : moveSpeedOf(b, now));
+                        jitterVelocity(a, (Math.random() - 0.5) * 0.28, moveSpeedOf(a, now));
+                        jitterVelocity(b, (Math.random() - 0.5) * 0.28, moveSpeedOf(b, now));
                         effectRing((a.x + b.x) / 2, (a.y + b.y) / 2, battle.ballSize * 1.15, "#1c1b1b");
                         if (now - (battle.lastImpactAt || 0) > 90) {
                             battle.lastImpactAt = now;
@@ -1527,12 +2293,15 @@
 
         function updatePhysics(dt, now) {
             updateSummons(dt);
+            updateBombs(now);
 
             battle.fighters.forEach((fighter) => {
+                sanitizeFighterState(fighter);
                 if (fighter.dead) {
                     return;
                 }
 
+                resolveBackstab(fighter, now);
                 restoreFromOffMap(fighter, now);
 
                 if (fighter.offMapUntil > now) {
@@ -1545,12 +2314,17 @@
                     return;
                 }
 
+                updateRangedAttacks(fighter, now);
+
                 fighter.skillCooldown -= dt;
                 if (fighter.skillCooldown <= 0) {
                     useSkill(fighter, now);
                 }
 
                 if (fighter.chargeUntil > now) {
+                    if (Math.random() < 0.18) {
+                        chargeGhost(fighter);
+                    }
                     if (Math.random() < 0.08) {
                         burst(fighter.x, fighter.y, fighter.definition.color, 2);
                     }
@@ -1559,7 +2333,7 @@
                 } else if (fighter.definition.movementPattern === "corners") {
                     steerToCorner(fighter, dt, now);
                 } else {
-                    setVelocitySpeed(fighter, fighter.speed);
+                    maintainMotion(fighter, now);
                 }
 
                 fighter.x += fighter.vx * dt;
@@ -1568,8 +2342,14 @@
             });
 
             handleCollisions(now);
+            battle.fighters.forEach((fighter) => {
+                if (!fighter.dead && fighter.offMapUntil <= now) {
+                    handleWallBounce(fighter);
+                }
+            });
             updatePuddles(now);
             updatePoisons(now);
+            updateIceZones(now);
         }
 
         function checkWinner(now) {
@@ -1661,11 +2441,13 @@
                 cancelAnimationFrame(animationFrameId);
             }
 
-            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label, .impact-star, .puddle-zone, .poison-field, .arena-flash").forEach((node) => node.remove());
+            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label, .bomb-timer, .impact-star, .puddle-zone, .poison-field, .ice-field, .arena-flash, .diet-aura, .ground-shockwave, .ground-crack, .ice-crystal, .frost-ring, .charge-ghost, .speed-line, .poison-drop, .poison-mist-cloud, .summon-portal, .summon-sparkle, .heart-particle, .glitch-line, .glitch-block, .cloud-particle, .slow-spiral, .siren-light, .arrest-net, .stealth-ghost, .blade-flash, .dust-puff, .bomb-pulse-ring, .explosion-ember, .explosion-flash-ring").forEach((node) => node.remove());
             battle.fighters = selectedCharacters.map((definition, index) => createFighter(definition, index, selectedCharacters.length));
             battle.pairHits = new Map();
             battle.activePuddles = [];
             battle.activePoisons = [];
+            battle.activeBombs = [];
+            battle.activeIceZones = [];
 
             activeEffects.rings = 0;
             activeEffects.stars = 0;
