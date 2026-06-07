@@ -730,6 +730,7 @@
                 statBonusAttack: 0,
                 statBonusSpeedRatio: 0,
                 statDamageReduction: 0,
+                statDamageReductionCap: 0,
                 skillCooldown: definition.skill.cooldown,
                 stunnedUntil: 0,
                 savedVelocity: null,
@@ -934,6 +935,10 @@
                 }
                 if (fighter.definition.id === "song-geonuk" && fighter.dietUses > 0) {
                     bonusParts.push(`다이어트 ${fighter.dietUses}회`);
+                    const cap = fighter.statDamageReductionCap || fighter.definition.skill.effects.maxDamageReduction || 0;
+                    if (cap > 0) {
+                        bonusParts.push(`감소 ${Math.round(fighter.statDamageReduction * 100)}% / ${Math.round(cap * 100)}%`);
+                    }
                 }
                 if (fighter.definition.id === "lee-seunghyun") {
                     bonusParts.push(`사용 ${fighter.seunghyunSkillUses}회`);
@@ -1108,6 +1113,22 @@
             }
         }
 
+        function addDamageReduction(fighter, gain, cap) {
+            if (!fighter || !Number.isFinite(gain) || gain <= 0) {
+                return;
+            }
+
+            if (!Number.isFinite(fighter.statDamageReduction)) {
+                fighter.statDamageReduction = 0;
+            }
+
+            const maxCap = Number.isFinite(cap) && cap > 0 ? cap : 0;
+            fighter.statDamageReductionCap = Math.max(fighter.statDamageReductionCap || 0, maxCap);
+            fighter.statDamageReduction = maxCap > 0
+                ? Math.min(maxCap, fighter.statDamageReduction + gain)
+                : fighter.statDamageReduction + gain;
+        }
+
         function sanitizeFighterState(fighter) {
             if (!fighter) {
                 return;
@@ -1189,7 +1210,9 @@
                 && source.definition.id === "song-geonuk"
                 && source.dietUses >= (source.definition.skill.effects.pierceBasicAfterUses || Infinity);
 
-            if (kind === "basic" && target.definition.evadesBasic && !piercesBasicIgnore) {
+            const isBasicLike = kind === "basic" || kind === "ranged";
+
+            if (isBasicLike && target.definition.evadesBasic && !piercesBasicIgnore) {
                 floatText("DODGE", target.x, target.y - battle.ballSize / 2, target.definition.color);
                 effectRing(target.x, target.y, battle.ballSize * 1.15, target.definition.color);
                 const healRatio = target.definition.passive?.effects?.healOnBasicEvadeRatio || 0;
@@ -1197,7 +1220,7 @@
                 return 0;
             }
 
-            if (kind === "basic" && target.definition.immuneToBasic && !piercesBasicIgnore) {
+            if (isBasicLike && target.definition.immuneToBasic && !piercesBasicIgnore) {
                 floatText("IMMUNE", target.x, target.y - battle.ballSize / 2, target.definition.color);
                 effectRing(target.x, target.y, battle.ballSize * 1.2, target.definition.color);
                 return 0;
@@ -1571,7 +1594,7 @@
                 fighter.statBonusAttack += effects.attackGain || 0;
                 fighter.speed *= effects.speedMultiplier || 1;
                 fighter.statBonusSpeedRatio = fighter.speed / fighter.baseSpeed - 1;
-                fighter.statDamageReduction += effects.damageReductionGain || 0;
+                addDamageReduction(fighter, effects.damageReductionGain || 0, effects.maxDamageReduction || 0);
                 setVelocitySpeed(fighter, fighter.speed);
                 burst(fighter.x, fighter.y, copiedColor, 7);
                 effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, copiedColor);
@@ -1680,6 +1703,9 @@
             } else if (copiedId === "kang-hyunwoo") {
                 const direction = normalize(fighter.x - copiedTarget.x, fighter.y - copiedTarget.y);
                 dashWithFallback(fighter, direction, (effects.dashDistance || 115) * arenaScale());
+                applyDamage(copiedTarget, 15, fighter, "skill");
+                effectRing(copiedTarget.x, copiedTarget.y, battle.ballSize * 1.2, copiedColor);
+                impactStar(copiedTarget.x, copiedTarget.y, copiedColor);
                 megaBurst(fighter.x, fighter.y, copiedColor, 5);
                 floatText("대시복사", fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
             } else if (copiedId === "lim-shingyu") {
@@ -1930,7 +1956,7 @@
                 fighter.statBonusAttack += effects.attackGain;
                 fighter.speed *= effects.speedMultiplier;
                 fighter.statBonusSpeedRatio = fighter.speed / fighter.baseSpeed - 1;
-                fighter.statDamageReduction += effects.damageReductionGain || 0;
+                addDamageReduction(fighter, effects.damageReductionGain || 0, effects.maxDamageReduction || 0);
                 setVelocitySpeed(fighter, fighter.speed);
                 effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, fighter.definition.color);
                 burst(fighter.x, fighter.y, "#4ade80", 8);
@@ -2119,6 +2145,11 @@
                 const effects = fighter.definition.skill.effects;
                 let direction = target ? normalize(fighter.x - target.x, fighter.y - target.y) : normalize(Math.random() - 0.5, Math.random() - 0.5);
                 const moved = dashWithFallback(fighter, direction, effects.dashDistance * arenaScale());
+                if (target && !target.dead) {
+                    applyDamage(target, effects.dashDamage || 15, fighter, "skill");
+                    effectRing(target.x, target.y, battle.ballSize * 1.2, fighter.definition.color);
+                    impactStar(target.x, target.y, fighter.definition.color);
+                }
                 dustKick(fighter.x, fighter.y, "#a8a29e");
                 megaBurst(fighter.x, fighter.y, fighter.definition.color, 4);
                 effectRing(fighter.x, fighter.y, battle.ballSize * 1.35, fighter.definition.color);

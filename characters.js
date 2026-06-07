@@ -9,11 +9,11 @@
         jihoon: "JH",
         mom: "엄마",
         heoyul: "HY",
-        heojaemin: "HM",
+        heojaemin: "JM",
         junmo: "JM",
-        haejin: "CH",
+        haejin: "HJ",
         kanghyunwoo: "KH",
-        shingyu: "IS"
+        shingyu: "SG"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -21,7 +21,7 @@
             id: "song-geonuk",
             name: "송건욱",
             shortName: "건욱",
-            maxHp: 660,
+            maxHp: 680,
             baseAttack: 28,
             speedLabel: "느림",
             speed: 165,
@@ -34,12 +34,13 @@
             skill: {
                 name: "다이어트",
                 cooldown: 7,
-                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 6 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 2% 감소합니다. 3회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
+                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 6 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 4% 감소합니다. 최대 피해 감소 20%. 3회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
                 effects: {
                     hpCostRatio: 0.055,
                     attackGain: 6,
                     speedMultiplier: 1.155,
-                    damageReductionGain: 0.02,
+                    damageReductionGain: 0.04,
+                    maxDamageReduction: 0.2,
                     pierceBasicAfterUses: 3
                 }
             },
@@ -208,7 +209,7 @@
             skill: {
                 name: "엄마 빌려오기",
                 cooldown: 24,
-                description: "체력 175, 기본 공격력 45, 이동속도 매우 빠름의 엄마를 소환합니다. 엄마는 현우를 공격하지 않으며, 초당 25씩 체력이 감소하고, 엄마가 입힌 피해의 30%만큼 이현우가, 50%만큼 엄마가 회복합니다.",
+                description: "체력 225, 기본 공격력 45, 이동속도 매우 빠름의 엄마를 소환합니다. 엄마는 현우를 공격하지 않으며, 초당 25씩 체력이 감소하고, 엄마가 입힌 피해의 30%만큼 이현우가, 50%만큼 엄마가 회복합니다.",
                 effects: {
                     summon: {
                         id: "lee-hyunwoo-mom",
@@ -424,7 +425,7 @@
             name: "강현우",
             shortName: "강현우",
             maxHp: 288,
-            baseAttack: 5,
+            baseAttack: 4,
             speedLabel: "이동 불가",
             speed: 0,
             colorName: "연두색",
@@ -435,26 +436,27 @@
             traits: ["원거리 딜러", "제자리 포탑", "시간 성장"],
             passive: {
                 name: "배짱이새끼",
-                description: "움직이지 못하는 대신 가까운 적을 0.25초마다 공격하며 입힌 피해량의 30%만큼 회복합니다. 게임 시간 10초마다 기본 공격 피해량이 7 증가합니다.",
+                description: "움직이지 못하는 대신 가까운 적을 0.25초마다 공격하며 입힌 피해량의 30%만큼 회복합니다. 게임 시간 10초마다 기본 공격 피해량이 4 증가합니다.",
                 effects: {
                     rangedAttack: true,
                     interval: 0.25,
-                    damage: 5,
+                    damage: 4,
                     healRatio: 0.3,
                     growthInterval: 10,
-                    growthDamage: 7
+                    growthDamage: 4
                 }
             },
             skill: {
                 name: "대시",
-                cooldown: 1,
-                description: "적이 없는 방향으로 회피합니다.",
+                cooldown: 1.5,
+                description: "적이 없는 방향으로 회피하며, 가장 가까운 적에게 10의 피해를 줍니다.",
                 effects: {
-                    dashDistance: 115
+                    dashDistance: 115,
+                    dashDamage: 10
                 }
             },
             cooldownOnBasicHit: 0,
-            cooldownOnDamageTaken: 1,
+            cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
             contactAttackDisabled: true,
             immobile: true,
