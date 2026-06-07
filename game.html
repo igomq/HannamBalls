@@ -159,10 +159,19 @@
             opacity: 0.35;
         }
 
+        .fighter-ball.is-offmap {
+            opacity: 0;
+            transform: translate(-140px, -140px) !important;
+        }
+
         .effect-ring,
         .effect-burst,
         .damage-float,
-        .skill-label {
+        .skill-label,
+        .impact-star,
+        .puddle-zone,
+        .poison-field,
+        .arena-flash {
             position: absolute;
             pointer-events: none;
             z-index: 20;
@@ -171,6 +180,7 @@
         .effect-ring {
             border: 4px solid currentColor;
             border-radius: 9999px;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.65);
             animation: ring-pop 520ms ease-out forwards;
         }
 
@@ -179,7 +189,8 @@
             height: 14px;
             background: currentColor;
             border: 2px solid #1c1b1b;
-            animation: burst-pop 560ms ease-out forwards;
+            box-shadow: 2px 2px 0px 0px #1c1b1b;
+            animation: burst-pop 460ms ease-out forwards;
         }
 
         .damage-float {
@@ -200,6 +211,37 @@
             font: 700 13px "JetBrains Mono", monospace;
             animation: skill-label 720ms ease-out forwards;
             white-space: nowrap;
+        }
+
+        .impact-star {
+            width: 24px;
+            height: 24px;
+            background: currentColor;
+            border: 3px solid #1c1b1b;
+            clip-path: polygon(50% 0%, 61% 34%, 98% 35%, 68% 56%, 79% 91%, 50% 69%, 21% 91%, 32% 56%, 2% 35%, 39% 34%);
+            animation: impact-star 520ms ease-out forwards;
+        }
+
+        .puddle-zone {
+            border-radius: 9999px;
+            border: 2px solid rgba(28, 27, 27, 0.75);
+            background: rgba(139, 47, 35, 0.38);
+            z-index: 3;
+        }
+
+        .poison-field {
+            inset: 0;
+            background: rgba(139, 47, 35, 0.24);
+            border: 6px solid rgba(139, 47, 35, 0.75);
+            z-index: 4;
+        }
+
+        .arena-flash {
+            inset: 0;
+            background: currentColor;
+            opacity: 0.16;
+            z-index: 25;
+            animation: arena-flash 220ms ease-out forwards;
         }
 
         @keyframes ring-pop {
@@ -250,6 +292,50 @@
             }
         }
 
+        @keyframes impact-star {
+            from {
+                opacity: 1;
+                transform: translate(-50%, -50%) rotate(0deg) scale(0.4);
+            }
+
+            to {
+                opacity: 0;
+                transform: translate(-50%, -50%) rotate(160deg) scale(2);
+            }
+        }
+
+        @keyframes puddle-pulse {
+            from {
+                transform: translate(-50%, -50%) scale(0.94);
+                opacity: 0.78;
+            }
+
+            to {
+                transform: translate(-50%, -50%) scale(1.04);
+                opacity: 0.48;
+            }
+        }
+
+        @keyframes poison-throb {
+            0% {
+                opacity: 0.72;
+            }
+
+            100% {
+                opacity: 0.36;
+            }
+        }
+
+        @keyframes arena-flash {
+            from {
+                opacity: 0.28;
+            }
+
+            to {
+                opacity: 0;
+            }
+        }
+
         .modal-backdrop {
             background: rgba(28, 27, 27, 0.54);
         }
@@ -295,10 +381,12 @@
                 선택
             </a>
             <div class="text-center">
-                <h1 id="match-title" class="font-headline-md-mobile text-headline-md-mobile md:font-headline-md md:text-headline-md">
+                <h1 id="match-title"
+                    class="font-headline-md-mobile text-headline-md-mobile md:font-headline-md md:text-headline-md">
                     전투 준비
                 </h1>
-            <div id="elapsed-time" class="font-label-numeric text-label-numeric text-on-surface-variant mt-1">TIME 00:00.0</div>
+                <div id="elapsed-time" class="font-label-numeric text-label-numeric text-on-surface-variant mt-1">TIME
+                    00:00.0</div>
             </div>
             <button id="restart-button"
                 class="px-3 py-2 bg-primary text-on-primary brutal-border-thin hard-shadow-sm btn-brutal font-label-numeric text-label-numeric flex items-center gap-1">
@@ -316,7 +404,9 @@
                 </div>
             </div>
 
-            <div id="hud" class="w-full md:w-[320px] md:max-h-[600px] md:overflow-y-auto grid grid-cols-2 md:grid-cols-1 gap-3 md:gap-4 pb-2"></div>
+            <div id="hud"
+                class="w-full md:w-[320px] md:max-h-[600px] md:overflow-y-auto grid grid-cols-2 md:grid-cols-1 gap-3 md:gap-4 pb-2">
+            </div>
         </div>
     </main>
 
@@ -364,7 +454,16 @@
             isRunning: false,
             isFinished: false,
             lastTime: 0,
-            pairHits: new Map()
+            pairHits: new Map(),
+            activePuddles: [],
+            activePoisons: []
+        };
+        const EFFECT_LIMITS = {
+            bursts: 70,
+            rings: 14,
+            floatTexts: 18,
+            stars: 12,
+            flashes: 1
         };
 
         function escapeHtml(value) {
@@ -418,6 +517,19 @@
             return `<span class="font-headline-md text-headline-md">${escapeHtml(definition.avatarText)}</span>`;
         }
 
+        function passiveHtml(definition) {
+            if (!definition.passive) {
+                return "";
+            }
+
+            return `
+                <div class="bg-secondary-fixed brutal-border-thin p-2">
+                    <p class="font-label-numeric text-label-numeric text-on-secondary-fixed">패시브: ${escapeHtml(definition.passive.name)}</p>
+                    <p class="text-on-surface-variant mt-1">${escapeHtml(definition.passive.description)}</p>
+                </div>
+            `;
+        }
+
         function createFighter(definition, index, total) {
             const element = document.createElement("div");
             element.className = "fighter-ball";
@@ -441,11 +553,20 @@
                 maxHp: definition.maxHp,
                 attack: definition.baseAttack,
                 speed: definition.speed,
+                baseSpeed: definition.speed,
+                statBonusAttack: 0,
+                statBonusSpeedRatio: 0,
+                statDamageReduction: 0,
                 skillCooldown: definition.skill.cooldown,
                 stunnedUntil: 0,
                 savedVelocity: null,
                 chargeUntil: 0,
                 chargeHits: new Set(),
+                invulnerableUntil: 0,
+                offMapUntil: 0,
+                nextPuddleAt: 0,
+                nextDotFloatAt: 0,
+                cornerIndex: index % 4,
                 dead: false,
                 hudElement: null
             };
@@ -491,6 +612,9 @@
                     <div class="status-text font-label-numeric text-label-numeric text-on-surface-variant">
                         CD ${escapeHtml(fighter.definition.skill.name)} ${fighter.definition.skill.cooldown.toFixed(1)} / ${fighter.definition.skill.cooldown.toFixed(1)}초
                     </div>
+                    <div class="stat-bonus-text hidden font-label-numeric text-label-numeric text-primary">
+                        ATK +0 / SPD +0%
+                    </div>
                 </div>
             `).join("");
 
@@ -519,6 +643,7 @@
                 fighter.hudElement.querySelector(".skill-fill").style.width = `${skillReady * 100}%`;
 
                 const status = fighter.hudElement.querySelector(".status-text");
+                const statBonus = fighter.hudElement.querySelector(".stat-bonus-text");
                 if (fighter.dead) {
                     status.textContent = "탈락";
                     status.style.color = "#ba1a1a";
@@ -533,6 +658,13 @@
                         : `CD ${fighter.definition.skill.name} ${remaining.toFixed(1)} / ${cooldown.toFixed(1)}초`;
                     status.style.color = "";
                 }
+
+                if (fighter.statBonusAttack > 0 || fighter.statBonusSpeedRatio > 0 || fighter.statDamageReduction > 0) {
+                    statBonus.classList.remove("hidden");
+                    statBonus.textContent = `ATK +${Math.round(fighter.statBonusAttack)} / SPD +${Math.round(fighter.statBonusSpeedRatio * 100)}% / DMG -${Math.round(fighter.statDamageReduction * 100)}%`;
+                } else {
+                    statBonus.classList.add("hidden");
+                }
             });
         }
 
@@ -540,11 +672,16 @@
             battle.fighters.forEach((fighter) => {
                 fighter.element.classList.toggle("is-stunned", !fighter.dead && isStunned(fighter, now));
                 fighter.element.classList.toggle("is-dead", fighter.dead);
+                fighter.element.classList.toggle("is-offmap", !fighter.dead && fighter.offMapUntil > now);
                 fighter.element.style.transform = `translate(${fighter.x - battle.ballSize / 2}px, ${fighter.y - battle.ballSize / 2}px)`;
             });
         }
 
         function effectRing(x, y, size, color) {
+            if (arena.querySelectorAll(".effect-ring").length >= EFFECT_LIMITS.rings) {
+                return;
+            }
+
             const ring = document.createElement("div");
             ring.className = "effect-ring";
             ring.style.left = `${x}px`;
@@ -553,14 +690,43 @@
             ring.style.height = `${size}px`;
             ring.style.color = color;
             arena.appendChild(ring);
-            setTimeout(() => ring.remove(), 600);
+            setTimeout(() => ring.remove(), 560);
+        }
+
+        function screenFlash(color) {
+            if (arena.querySelectorAll(".arena-flash").length >= EFFECT_LIMITS.flashes) {
+                return;
+            }
+
+            const flash = document.createElement("div");
+            flash.className = "arena-flash";
+            flash.style.color = color;
+            arena.appendChild(flash);
+            setTimeout(() => flash.remove(), 240);
+        }
+
+        function impactStar(x, y, color) {
+            if (arena.querySelectorAll(".impact-star").length >= EFFECT_LIMITS.stars) {
+                return;
+            }
+
+            const star = document.createElement("div");
+            star.className = "impact-star";
+            star.style.left = `${x}px`;
+            star.style.top = `${y}px`;
+            star.style.color = color;
+            arena.appendChild(star);
+            setTimeout(() => star.remove(), 560);
         }
 
         function burst(x, y, color, count = 8) {
-            for (let index = 0; index < count; index += 1) {
+            const existing = arena.querySelectorAll(".effect-burst").length;
+            const allowed = Math.max(0, Math.min(count, EFFECT_LIMITS.bursts - existing, 8));
+
+            for (let index = 0; index < allowed; index += 1) {
                 const shard = document.createElement("div");
-                const angle = (Math.PI * 2 * index) / count;
-                const distance = 36 + Math.random() * 42;
+                const angle = (Math.PI * 2 * index) / allowed;
+                const distance = 28 + Math.random() * 28;
                 shard.className = "effect-burst";
                 shard.style.left = `${x}px`;
                 shard.style.top = `${y}px`;
@@ -568,11 +734,21 @@
                 shard.style.setProperty("--dx", `${Math.cos(angle) * distance}px`);
                 shard.style.setProperty("--dy", `${Math.sin(angle) * distance}px`);
                 arena.appendChild(shard);
-                setTimeout(() => shard.remove(), 620);
+                setTimeout(() => shard.remove(), 500);
             }
         }
 
+        function megaBurst(x, y, color, count = 8) {
+            burst(x, y, color, count);
+            effectRing(x, y, battle.ballSize * 1.8, color);
+            impactStar(x, y, color);
+        }
+
         function floatText(text, x, y, color = "#ba1a1a") {
+            if (arena.querySelectorAll(".damage-float").length >= EFFECT_LIMITS.floatTexts) {
+                return;
+            }
+
             const label = document.createElement("div");
             label.className = "damage-float";
             label.textContent = text;
@@ -599,9 +775,25 @@
             }
         }
 
+        function healFighter(fighter, amount) {
+            if (fighter.dead || amount <= 0 || fighter.hp >= fighter.maxHp) {
+                return;
+            }
+
+            const healed = Math.min(amount, fighter.maxHp - fighter.hp);
+            fighter.hp += healed;
+            floatText(`+${Math.round(healed)}`, fighter.x, fighter.y - battle.ballSize / 2, "#006d36");
+        }
+
         function applyDamage(target, amount, source, kind) {
             const now = performance.now();
             if (target.dead || amount <= 0) {
+                return 0;
+            }
+
+            if (target.invulnerableUntil > now || target.offMapUntil > now) {
+                floatText("MISS", target.x, target.y - battle.ballSize / 2, target.definition.color);
+                effectRing(target.x, target.y, battle.ballSize * 1.1, target.definition.color);
                 return 0;
             }
 
@@ -611,9 +803,26 @@
                 return 0;
             }
 
-            const actual = Math.min(target.hp, amount);
+            const reducedAmount = amount * Math.max(0.4, 1 - (target.statDamageReduction || 0));
+            const actual = Math.min(target.hp, reducedAmount);
             target.hp -= actual;
-            floatText(`-${Math.round(actual)}`, target.x, target.y - battle.ballSize / 2);
+            const isDot = kind === "poison" || (kind === "basic" && source && source.definition.id === "lee-seunghyun");
+            const canShowDot = !isDot || now >= target.nextDotFloatAt;
+
+            if (canShowDot) {
+                floatText(`-${Math.round(actual)}`, target.x, target.y - battle.ballSize / 2);
+                if (isDot) {
+                    target.nextDotFloatAt = now + 850;
+                }
+            }
+
+            if (!isDot) {
+                impactStar(target.x, target.y, source ? source.definition.color : "#ba1a1a");
+            }
+
+            if (kind === "skill") {
+                effectRing(target.x, target.y, battle.ballSize * 1.35, source ? source.definition.color : "#ba1a1a");
+            }
 
             if (!isStunned(target, now)) {
                 reduceCooldown(target, target.definition.cooldownOnDamageTaken);
@@ -660,27 +869,184 @@
             fighter.stunnedUntil = 0;
         }
 
+        function arenaCorners() {
+            const radius = battle.ballSize / 2;
+            return [
+                { x: radius, y: radius },
+                { x: battle.arenaSize - radius, y: radius },
+                { x: battle.arenaSize - radius, y: battle.arenaSize - radius },
+                { x: radius, y: battle.arenaSize - radius }
+            ];
+        }
+
+        function steerToCorner(fighter, dt, now) {
+            const corners = arenaCorners();
+            const target = corners[fighter.cornerIndex % corners.length];
+            const dx = target.x - fighter.x;
+            const dy = target.y - fighter.y;
+            const distance = Math.hypot(dx, dy);
+
+            if (distance < battle.ballSize * 0.35) {
+                fighter.cornerIndex = (fighter.cornerIndex + 1) % corners.length;
+            }
+
+            const nextTarget = corners[fighter.cornerIndex % corners.length];
+            const direction = normalize(nextTarget.x - fighter.x, nextTarget.y - fighter.y);
+            fighter.vx = direction.x * fighter.speed;
+            fighter.vy = direction.y * fighter.speed;
+
+            if (fighter.passiveDropEnabled !== false && now >= fighter.nextPuddleAt) {
+                createPuddle(fighter, now);
+                fighter.nextPuddleAt = now + fighter.definition.passive.effects.dropInterval * 1000;
+            }
+        }
+
+        function createPuddle(fighter, now) {
+            if (!fighter.definition.passive) {
+                return;
+            }
+
+            const effects = fighter.definition.passive.effects;
+            const ownPuddles = battle.activePuddles.filter((puddle) => puddle.source === fighter);
+            if (ownPuddles.length >= effects.maxActivePuddles) {
+                const oldest = ownPuddles[0];
+                oldest.expiresAt = now;
+                oldest.element.remove();
+                battle.activePuddles = battle.activePuddles.filter((puddle) => puddle !== oldest);
+            }
+
+            const puddle = document.createElement("div");
+            const size = effects.puddleRadius * 2;
+            puddle.className = "puddle-zone";
+            puddle.style.left = `${fighter.x}px`;
+            puddle.style.top = `${fighter.y}px`;
+            puddle.style.width = `${size}px`;
+            puddle.style.height = `${size}px`;
+            arena.appendChild(puddle);
+
+            battle.activePuddles.push({
+                source: fighter,
+                x: fighter.x,
+                y: fighter.y,
+                radius: effects.puddleRadius,
+                damage: effects.puddleDamage,
+                healRatio: effects.healRatio,
+                tickInterval: effects.puddleTickInterval,
+                nextTickAt: now + effects.puddleTickInterval * 1000,
+                expiresAt: now + effects.puddleDuration * 1000,
+                element: puddle
+            });
+        }
+
+        function updatePuddles(now) {
+            battle.activePuddles = battle.activePuddles.filter((puddle) => {
+                if (now >= puddle.expiresAt || puddle.source.dead) {
+                    puddle.element.remove();
+                    return false;
+                }
+
+                if (now < puddle.nextTickAt) {
+                    return true;
+                }
+
+                puddle.nextTickAt = now + puddle.tickInterval * 1000;
+                battle.fighters.forEach((target) => {
+                    if (target === puddle.source || target.dead || target.offMapUntil > now) {
+                        return;
+                    }
+
+                    if (Math.hypot(target.x - puddle.x, target.y - puddle.y) <= puddle.radius + battle.ballSize * 0.35) {
+                        const dealt = applyDamage(target, puddle.damage, puddle.source, "basic");
+                        if (dealt > 0) {
+                            reduceCooldown(puddle.source, puddle.source.definition.cooldownOnBasicHit);
+                            healFighter(puddle.source, dealt * puddle.healRatio);
+                        }
+                    }
+                });
+
+                return true;
+            });
+        }
+
+        function createPoisonField(source, now) {
+            const effects = source.definition.skill.effects;
+            const field = document.createElement("div");
+            field.className = "poison-field";
+            arena.appendChild(field);
+            battle.activePoisons.push({
+                source,
+                damage: effects.poisonDps * effects.tickInterval,
+                tickInterval: effects.tickInterval,
+                nextTickAt: now + effects.tickInterval * 1000,
+                expiresAt: now + effects.duration * 1000,
+                element: field
+            });
+        }
+
+        function updatePoisons(now) {
+            battle.activePoisons = battle.activePoisons.filter((poison) => {
+                if (now >= poison.expiresAt || poison.source.dead) {
+                    poison.element.remove();
+                    return false;
+                }
+
+                if (now < poison.nextTickAt) {
+                    return true;
+                }
+
+                poison.nextTickAt = now + poison.tickInterval * 1000;
+                battle.fighters.forEach((target) => {
+                    if (target === poison.source || target.dead || target.offMapUntil > now) {
+                        return;
+                    }
+
+                    applyDamage(target, poison.damage, poison.source, "poison");
+                });
+
+                return true;
+            });
+        }
+
+        function restoreFromOffMap(fighter, now) {
+            if (fighter.offMapUntil === 0 || fighter.offMapUntil > now) {
+                return;
+            }
+
+            const corners = arenaCorners();
+            const corner = corners[fighter.cornerIndex % corners.length];
+            fighter.x = corner.x;
+            fighter.y = corner.y;
+            fighter.invulnerableUntil = 0;
+            fighter.offMapUntil = 0;
+            megaBurst(fighter.x, fighter.y, fighter.definition.color, 4);
+        }
+
         function useSkill(fighter, now) {
             const id = fighter.definition.id;
             skillLabel(fighter.definition.skill.name, fighter);
+            screenFlash(fighter.definition.color);
+            megaBurst(fighter.x, fighter.y, fighter.definition.color, id === "lee-seunghyun" ? 4 : 8);
 
             if (id === "song-geonuk") {
                 const effects = fighter.definition.skill.effects;
                 const lost = Math.max(1, fighter.hp * effects.hpCostRatio);
                 fighter.hp = Math.max(1, fighter.hp - lost);
                 fighter.attack += effects.attackGain;
+                fighter.statBonusAttack += effects.attackGain;
                 fighter.speed *= effects.speedMultiplier;
+                fighter.statBonusSpeedRatio = fighter.speed / fighter.baseSpeed - 1;
+                fighter.statDamageReduction += effects.damageReductionGain || 0;
                 setVelocitySpeed(fighter, fighter.speed);
                 effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, fighter.definition.color);
-                burst(fighter.x, fighter.y, "#4ade80", 10);
-                floatText(`ATK+${effects.attackGain} SPD+`, fighter.x, fighter.y, "#006d36");
+                burst(fighter.x, fighter.y, "#4ade80", 8);
+                floatText(`ATK+${effects.attackGain} DEF+`, fighter.x, fighter.y, "#006d36");
             }
 
             if (id === "yoo-seungchan") {
                 const effects = fighter.definition.skill.effects;
                 const radius = Math.min(effects.radius, battle.arenaSize * 0.38);
                 effectRing(fighter.x, fighter.y, radius * 2, fighter.definition.color);
-                burst(fighter.x, fighter.y, fighter.definition.color, 14);
+                burst(fighter.x, fighter.y, fighter.definition.color, 10);
                 battle.fighters.forEach((target) => {
                     if (target === fighter || target.dead) {
                         return;
@@ -696,7 +1062,7 @@
             if (id === "han-yejun") {
                 const effects = fighter.definition.skill.effects;
                 effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.2, fighter.definition.color);
-                burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 22);
+                burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 12);
                 battle.fighters.forEach((target) => {
                     if (target !== fighter && !target.dead) {
                         applyDamage(target, effects.damage, fighter, "skill");
@@ -712,6 +1078,18 @@
                 setVelocitySpeed(fighter, Math.max(effects.minSpeed, fighter.speed * effects.speedMultiplier));
                 effectRing(fighter.x, fighter.y, battle.ballSize * 1.4, fighter.definition.color);
                 burst(fighter.x, fighter.y, fighter.definition.color, 8);
+            }
+
+            if (id === "lee-seunghyun") {
+                const effects = fighter.definition.skill.effects;
+                fighter.offMapUntil = now + effects.offMapDuration * 1000;
+                fighter.invulnerableUntil = fighter.offMapUntil;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                createPoisonField(fighter, now);
+                effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.35, fighter.definition.color);
+                burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 6);
+                floatText("MAP OUT", fighter.x, fighter.y, fighter.definition.color);
             }
 
             fighter.skillCooldown = fighter.definition.skill.cooldown;
@@ -747,7 +1125,7 @@
         }
 
         function handleBasicAttack(attacker, defender, now) {
-            if (attacker.dead || defender.dead || isStunned(attacker, now)) {
+            if (attacker.dead || defender.dead || isStunned(attacker, now) || attacker.definition.contactAttackDisabled) {
                 return;
             }
 
@@ -766,11 +1144,14 @@
             charger.chargeHits.add(target.id);
             const effects = charger.definition.skill.effects;
             applyDamage(target, effects.damage, charger, "skill");
-            if (!isStunned(target, now)) {
+            if (target.definition.immuneToKnockback) {
+                floatText("NO PUSH", target.x, target.y, target.definition.color);
+                effectRing(target.x, target.y, battle.ballSize * 1.15, target.definition.color);
+            } else if (!isStunned(target, now)) {
                 target.vx = normalX * effects.knockback;
                 target.vy = normalY * effects.knockback;
             }
-            burst(target.x, target.y, charger.definition.color, 10);
+            burst(target.x, target.y, charger.definition.color, 16);
             effectRing(target.x, target.y, battle.ballSize * 1.3, charger.definition.color);
         }
 
@@ -781,7 +1162,7 @@
                 for (let second = first + 1; second < battle.fighters.length; second += 1) {
                     const a = battle.fighters[first];
                     const b = battle.fighters[second];
-                    if (a.dead || b.dead) {
+                    if (a.dead || b.dead || a.offMapUntil > now || b.offMapUntil > now) {
                         continue;
                     }
 
@@ -797,12 +1178,13 @@
                     const nx = dx / distance;
                     const ny = dy / distance;
                     const overlap = minDistance - distance;
+                    const noPushPair = a.definition.noPushCollision || b.definition.noPushCollision;
 
-                    if (!isStunned(a, now)) {
+                    if (!noPushPair && !isStunned(a, now)) {
                         a.x -= nx * overlap * 0.5;
                         a.y -= ny * overlap * 0.5;
                     }
-                    if (!isStunned(b, now)) {
+                    if (!noPushPair && !isStunned(b, now)) {
                         b.x += nx * overlap * 0.5;
                         b.y += ny * overlap * 0.5;
                     }
@@ -811,20 +1193,26 @@
                     const bVelocity = b.vx * nx + b.vy * ny;
                     const impulse = bVelocity - aVelocity;
 
-                    if (!isStunned(a, now)) {
+                    if (!noPushPair && !isStunned(a, now)) {
                         a.vx += impulse * nx;
                         a.vy += impulse * ny;
                     }
-                    if (!isStunned(b, now)) {
+                    if (!noPushPair && !isStunned(b, now)) {
                         b.vx -= impulse * nx;
                         b.vy -= impulse * ny;
                     }
 
-                    const aCharge = a.definition.skill.effects || {};
-                    const bCharge = b.definition.skill.effects || {};
-                    setVelocitySpeed(a, a.chargeUntil > now ? Math.max(aCharge.minSpeed, a.speed * aCharge.speedMultiplier) : a.speed);
-                    setVelocitySpeed(b, b.chargeUntil > now ? Math.max(bCharge.minSpeed, b.speed * bCharge.speedMultiplier) : b.speed);
-                    effectRing((a.x + b.x) / 2, (a.y + b.y) / 2, battle.ballSize, "#1c1b1b");
+                    if (!noPushPair) {
+                        const aCharge = a.definition.skill.effects || {};
+                        const bCharge = b.definition.skill.effects || {};
+                        setVelocitySpeed(a, a.chargeUntil > now ? Math.max(aCharge.minSpeed, a.speed * aCharge.speedMultiplier) : a.speed);
+                        setVelocitySpeed(b, b.chargeUntil > now ? Math.max(bCharge.minSpeed, b.speed * bCharge.speedMultiplier) : b.speed);
+                        effectRing((a.x + b.x) / 2, (a.y + b.y) / 2, battle.ballSize * 1.15, "#1c1b1b");
+                        if (now - (battle.lastImpactAt || 0) > 90) {
+                            battle.lastImpactAt = now;
+                            impactStar((a.x + b.x) / 2, (a.y + b.y) / 2, "#facc15");
+                        }
+                    }
 
                     handleChargeHit(a, b, nx, ny);
                     handleChargeHit(b, a, -nx, -ny);
@@ -835,7 +1223,7 @@
                         battle.pairHits.set(key, now);
                         handleBasicAttack(a, b, now);
                         handleBasicAttack(b, a, now);
-                        burst((a.x + b.x) / 2, (a.y + b.y) / 2, "#1c1b1b", 6);
+                        burst((a.x + b.x) / 2, (a.y + b.y) / 2, "#1c1b1b", 5);
                     }
                 }
             }
@@ -844,6 +1232,12 @@
         function updatePhysics(dt, now) {
             battle.fighters.forEach((fighter) => {
                 if (fighter.dead) {
+                    return;
+                }
+
+                restoreFromOffMap(fighter, now);
+
+                if (fighter.offMapUntil > now) {
                     return;
                 }
 
@@ -859,9 +1253,11 @@
                 }
 
                 if (fighter.chargeUntil > now) {
-                    if (Math.random() < 0.35) {
+                    if (Math.random() < 0.08) {
                         burst(fighter.x, fighter.y, fighter.definition.color, 2);
                     }
+                } else if (fighter.definition.movementPattern === "corners") {
+                    steerToCorner(fighter, dt, now);
                 } else {
                     setVelocitySpeed(fighter, fighter.speed);
                 }
@@ -872,6 +1268,8 @@
             });
 
             handleCollisions(now);
+            updatePuddles(now);
+            updatePoisons(now);
         }
 
         function checkWinner(now) {
@@ -935,9 +1333,11 @@
                     <div class="bg-surface-container-low brutal-border-thin p-2">SPD ${escapeHtml(definition.speedLabel)}</div>
                     <div class="bg-surface-container-low brutal-border-thin p-2">${escapeHtml(definition.colorName)}</div>
                 </div>
+                ${passiveHtml(definition)}
                 <p class="text-on-surface-variant">${escapeHtml(definition.skill.description)}</p>
                 <p class="font-label-numeric text-label-numeric">특성: ${escapeHtml(definition.traits.join(" / "))}</p>
                 ${definition.immuneToBasic ? '<p class="font-label-numeric text-label-numeric text-secondary">기본 공격 피해 면역</p>' : ''}
+                ${definition.immuneToKnockback ? '<p class="font-label-numeric text-label-numeric text-secondary">밀치기 면역</p>' : ''}
             `;
             document.getElementById("info-modal").classList.remove("hidden");
             document.getElementById("info-modal").classList.add("flex");
@@ -949,9 +1349,11 @@
         }
 
         function startBattle() {
-            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label").forEach((node) => node.remove());
+            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label, .impact-star, .puddle-zone, .poison-field, .arena-flash").forEach((node) => node.remove());
             battle.fighters = selectedCharacters.map((definition, index) => createFighter(definition, index, selectedCharacters.length));
             battle.pairHits = new Map();
+            battle.activePuddles = [];
+            battle.activePoisons = [];
             battle.startedAt = performance.now();
             battle.fightStartedAt = 0;
             battle.finishedAt = 0;

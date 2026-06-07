@@ -234,6 +234,19 @@
             return `<div class="${sizeClass} rounded-full flex items-center justify-center font-headline-md text-headline-md" style="background:${character.color}; color:${character.textColor};">${escapeHtml(character.avatarText)}</div>`;
         }
 
+        function passiveHtml(character) {
+            if (!character.passive) {
+                return "";
+            }
+
+            return `
+                <div class="bg-secondary-fixed brutal-border-thin p-2">
+                    <p class="font-label-numeric text-label-numeric text-on-secondary-fixed">패시브: ${escapeHtml(character.passive.name)}</p>
+                    <p class="text-on-surface-variant mt-1">${escapeHtml(character.passive.description)}</p>
+                </div>
+            `;
+        }
+
         function showInfo(character) {
             modalName.textContent = character.name;
             modalName.style.color = character.color;
@@ -245,9 +258,11 @@
                     <div class="bg-surface-container-low brutal-border-thin p-2">SPD ${escapeHtml(character.speedLabel)}</div>
                     <div class="bg-surface-container-low brutal-border-thin p-2">${escapeHtml(character.colorName)}</div>
                 </div>
+                ${passiveHtml(character)}
                 <p class="text-on-surface-variant">${escapeHtml(character.skill.description)}</p>
                 <p class="font-label-numeric text-label-numeric">특성: ${escapeHtml(character.traits.join(" / "))}</p>
                 ${character.immuneToBasic ? '<p class="font-label-numeric text-label-numeric text-secondary">기본 공격 피해 면역</p>' : ''}
+                ${character.immuneToKnockback ? '<p class="font-label-numeric text-label-numeric text-secondary">밀치기 면역</p>' : ''}
             `;
             modal.classList.remove("hidden");
             modal.classList.add("flex");

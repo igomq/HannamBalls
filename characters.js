@@ -3,7 +3,8 @@
         song: "GW",
         yuseung: "YS",
         hanye: "YJ",
-        woochan: "WC"
+        woochan: "WC",
+        seunghyun: "SH"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -11,8 +12,8 @@
             id: "song-geonuk",
             name: "송건욱",
             shortName: "건욱",
-            maxHp: 520,
-            baseAttack: 35,
+            maxHp: 630,
+            baseAttack: 32,
             speedLabel: "느림",
             speed: 165,
             colorName: "검은색",
@@ -23,12 +24,13 @@
             traits: ["성장형 공격력", "느린 시작"],
             skill: {
                 name: "다이어트",
-                cooldown: 8.5,
-                description: "현재 체력의 6.5%가 감소하는 대신, 기본 공격력이 10 증가하고 이동 속도가 5% 상승합니다.",
+                cooldown: 7.5,
+                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 10 증가하고 이동 속도가 5% 상승하며 받는 피해가 5% 감소합니다. (최대 40%)",
                 effects: {
-                    hpCostRatio: 0.065,
+                    hpCostRatio: 0.055,
                     attackGain: 10,
-                    speedMultiplier: 1.05
+                    speedMultiplier: 1.05,
+                    damageReductionGain: 0.05
                 }
             },
             cooldownOnBasicHit: 0,
@@ -39,8 +41,8 @@
             id: "yoo-seungchan",
             name: "유승찬",
             shortName: "승찬",
-            maxHp: 410,
-            baseAttack: 30,
+            maxHp: 490,
+            baseAttack: 24,
             speedLabel: "느림",
             speed: 165,
             colorName: "회색",
@@ -51,10 +53,10 @@
             traits: ["근거리 광역기", "쿨타임 순환"],
             skill: {
                 name: "쿵쾅!",
-                cooldown: 5,
-                description: "주변 적에게 140의 피해를 주고 1초간 행동 불가 상태로 만듭니다.",
+                cooldown: 6,
+                description: "주변 적에게 110의 피해를 주고 1초간 행동 불가 상태로 만듭니다.",
                 effects: {
-                    damage: 140,
+                    damage: 110,
                     stunSeconds: 1,
                     radius: 190
                 }
@@ -67,8 +69,8 @@
             id: "han-yejun",
             name: "한예준",
             shortName: "예준",
-            maxHp: 350,
-            baseAttack: 15,
+            maxHp: 345,
+            baseAttack: 10,
             speedLabel: "보통",
             speed: 215,
             colorName: "하늘색",
@@ -79,10 +81,10 @@
             traits: ["전체 빙결", "받을수록 빨라지는 스킬"],
             skill: {
                 name: "아이스 에이지",
-                cooldown: 12,
-                description: "모든 적을 1초간 행동 불가 상태로 만들고 200의 피해를 입힙니다.",
+                cooldown: 12.5,
+                description: "모든 적을 1초간 행동 불가 상태로 만들고 180의 피해를 입힙니다.",
                 effects: {
-                    damage: 200,
+                    damage: 180,
                     stunSeconds: 1
                 }
             },
@@ -94,10 +96,10 @@
             id: "lee-woochan",
             name: "이우찬",
             shortName: "우찬",
-            maxHp: 360,
+            maxHp: 315,
             baseAttack: 18,
             speedLabel: "빠름",
-            speed: 265,
+            speed: 275,
             colorName: "보라색",
             color: "#8127cf",
             textColor: "#ffffff",
@@ -107,9 +109,9 @@
             skill: {
                 name: "무지성 돌진",
                 cooldown: 4.8,
-                description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 55의 피해를 입히고 주변으로 밀쳐냅니다.",
+                description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 45의 피해를 입히고 주변으로 밀쳐냅니다.",
                 effects: {
-                    damage: 55,
+                    damage: 45,
                     durationMs: 480,
                     speedMultiplier: 2.45,
                     minSpeed: 430,
@@ -119,6 +121,52 @@
             cooldownOnBasicHit: 0.35,
             cooldownOnDamageTaken: 0,
             immuneToBasic: true
+        },
+        {
+            id: "lee-seunghyun",
+            name: "이승현",
+            shortName: "승현",
+            maxHp: 240,
+            baseAttack: 24,
+            speedLabel: "빠름",
+            speed: 255,
+            colorName: "적갈색",
+            color: "#8b2f23",
+            textColor: "#ffffff",
+            avatarSrc: "",
+            avatarText: placeholderFaces.seunghyun,
+            traits: ["모서리 이동", "장판 흡혈", "밀치기 면역"],
+            passive: {
+                name: "음침한 발자국",
+                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 100%만큼 체력을 회복합니다.",
+                effects: {
+                    puddleDamage: 24,
+                    puddleDuration: 2,
+                    puddleTickInterval: 0.55,
+                    puddleRadius: 62,
+                    healRatio: 1,
+                    dropInterval: 0.42,
+                    maxActivePuddles: 5
+                }
+            },
+            skill: {
+                name: "음침 물들이기",
+                cooldown: 19,
+                description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 3초 동안 지속되는 독 장판을 깔아 모든 적에게 초당 35의 독 피해를 입힙니다. 이 독 피해는 피해 흡수 효과를 받지 않습니다.",
+                effects: {
+                    poisonDps: 35,
+                    duration: 3,
+                    offMapDuration: 3,
+                    tickInterval: 0.5
+                }
+            },
+            cooldownOnBasicHit: 0.22,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: false,
+            immuneToKnockback: true,
+            contactAttackDisabled: true,
+            noPushCollision: true,
+            movementPattern: "corners"
         }
     ];
 
