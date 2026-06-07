@@ -480,6 +480,14 @@
             return { x: x / length, y: y / length };
         }
 
+        function arenaScale() {
+            return Math.max(0.55, Math.min(1.05, battle.arenaSize / 600));
+        }
+
+        function scaledSpeed(speed) {
+            return speed * arenaScale();
+        }
+
         function formatElapsed(ms) {
             const totalSeconds = Math.max(0, ms) / 1000;
             const minutes = Math.floor(totalSeconds / 60);
@@ -501,8 +509,9 @@
 
         function setVelocitySpeed(fighter, speed) {
             const direction = normalize(fighter.vx, fighter.vy);
-            fighter.vx = direction.x * speed;
-            fighter.vy = direction.y * speed;
+            const scaled = scaledSpeed(speed);
+            fighter.vx = direction.x * scaled;
+            fighter.vy = direction.y * scaled;
         }
 
         function isStunned(fighter, now) {
@@ -584,8 +593,8 @@
                 fighter.x = center + Math.cos(angle) * radius;
                 fighter.y = center + Math.sin(angle) * radius;
                 const direction = normalize(center - fighter.x, center - fighter.y);
-                fighter.vx = direction.x * fighter.speed * 1.45;
-                fighter.vy = direction.y * fighter.speed * 1.45;
+                fighter.vx = direction.x * scaledSpeed(fighter.speed) * 1.45;
+                fighter.vy = direction.y * scaledSpeed(fighter.speed) * 1.45;
                 fighter.element.style.width = `${battle.ballSize}px`;
                 fighter.element.style.height = `${battle.ballSize}px`;
             });
@@ -892,8 +901,8 @@
 
             const nextTarget = corners[fighter.cornerIndex % corners.length];
             const direction = normalize(nextTarget.x - fighter.x, nextTarget.y - fighter.y);
-            fighter.vx = direction.x * fighter.speed;
-            fighter.vy = direction.y * fighter.speed;
+            fighter.vx = direction.x * scaledSpeed(fighter.speed);
+            fighter.vy = direction.y * scaledSpeed(fighter.speed);
 
             if (fighter.passiveDropEnabled !== false && now >= fighter.nextPuddleAt) {
                 createPuddle(fighter, now);
@@ -1149,8 +1158,8 @@
                 floatText("NO PUSH", target.x, target.y, target.definition.color);
                 effectRing(target.x, target.y, battle.ballSize * 1.15, target.definition.color);
             } else if (!isStunned(target, now)) {
-                target.vx = normalX * effects.knockback;
-                target.vy = normalY * effects.knockback;
+                target.vx = normalX * scaledSpeed(effects.knockback);
+                target.vy = normalY * scaledSpeed(effects.knockback);
             }
             burst(target.x, target.y, charger.definition.color, 16);
             effectRing(target.x, target.y, battle.ballSize * 1.3, charger.definition.color);

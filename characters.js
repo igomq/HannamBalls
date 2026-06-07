@@ -126,8 +126,8 @@
             id: "lee-seunghyun",
             name: "이승현",
             shortName: "승현",
-            maxHp: 240,
-            baseAttack: 24,
+            maxHp: 220,
+            baseAttack: 22,
             speedLabel: "빠름",
             speed: 255,
             colorName: "적갈색",
@@ -138,21 +138,21 @@
             traits: ["모서리 이동", "장판 흡혈", "밀치기 면역"],
             passive: {
                 name: "음침한 발자국",
-                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 100%만큼 체력을 회복합니다.",
+                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 85%만큼 체력을 회복합니다.",
                 effects: {
-                    puddleDamage: 24,
+                    puddleDamage: 22,
                     puddleDuration: 2,
                     puddleTickInterval: 0.55,
                     puddleRadius: 62,
                     puddleRadiusRatio: 0.105,
-                    healRatio: 1,
+                    healRatio: 0.85,
                     dropInterval: 0.42,
                     maxActivePuddles: 5
                 }
             },
             skill: {
                 name: "음침 물들이기",
-                cooldown: 19,
+                cooldown: 22,
                 description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 3초 동안 지속되는 독 장판을 깔아 모든 적에게 초당 35의 독 피해를 입힙니다. 이 독 피해는 피해 흡수 효과를 받지 않습니다.",
                 effects: {
                     poisonDps: 35,
