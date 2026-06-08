@@ -161,17 +161,17 @@
             traits: ["기본 공격 면역", "고속 돌진", "돌진 중 저지불가"],
             skill: {
                 name: "무지성 돌진",
-                cooldown: 1.2,
-                description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 20의 피해를 입히고 주변으로 밀쳐냅니다. 돌진 중에는 스턴에 걸리지 않습니다.",
+                cooldown: 1.8,
+                description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 18의 피해를 입히고 주변으로 밀쳐냅니다. 돌진 중에는 스턴에 걸리지 않습니다.",
                 effects: {
-                    damage: 20,
-                    durationMs: 2523,
-                    speedMultiplier: 15.23,
+                    damage: 18,
+                    durationMs: 1523,
+                    speedMultiplier: 10,
                     minSpeed: 430,
                     knockback: 250
                 }
             },
-            cooldownOnBasicHit: 0.4,
+            cooldownOnBasicHit: 0.3,
             cooldownOnDamageTaken: 0,
             immuneToBasic: true,
             unstoppableWhileCharging: true,
@@ -369,14 +369,15 @@
             skill: {
                 name: "뭉개뭉개 구름",
                 cooldown: 10,
-                description: "주변 캐릭터들의 이동 속도를 크게 낮추고 45의 피해를 입히며, 5초간 본인의 이동 속도가 크게 증가합니다.",
+                description: "주변 캐릭터들의 이동 속도를 크게 낮추고 35의 피해를 입히고 입힌 파해량의 2배만큼 체력을 회복하며, 5초간 본인의 이동 속도가 크게 증가합니다.",
                 effects: {
-                    damage: 45,
+                    damage: 35,
                     radius: 210,
                     slowMultiplier: 0.45,
                     slowDuration: 3,
                     hasteMultiplier: 1.95,
-                    hasteDuration: 5
+                    hasteDuration: 5,
+                    healRatio: 2
                 }
             },
             cooldownOnBasicHit: 2,
@@ -414,8 +415,8 @@
                     stunSeconds: 3.5
                 }
             },
-            cooldownOnBasicHit: 0,
-            cooldownOnDamageTaken: 0,
+            cooldownOnBasicHit: 0.5,
+            cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
             avatarSrc: 'images/junmo.png'
         },
@@ -473,26 +474,26 @@
             traits: ["원거리 딜러", "제자리 포탑", "시간 성장"],
             passive: {
                 name: "배짱이새끼",
-                description: "움직이지 못하는 대신 가까운 적을 0.33초마다 공격하며 입힌 피해량의 30%만큼 회복합니다. 게임 시간 10초마다 기본 공격 피해량이 4 증가합니다.",
+                description: "움직이지 못하는 대신 가까운 적을 0.25초마다 공격하며 입힌 피해량의 30%만큼 회복합니다. 게임 시간 7초마다 기본 공격 피해량이 4 증가합니다.",
                 effects: {
                     rangedAttack: true,
-                    interval: 0.33,
+                    interval: 0.25,
                     damage: 2,
                     healRatio: 0.3,
-                    growthInterval: 10,
+                    growthInterval: 7,
                     growthDamage: 4
                 }
             },
             skill: {
                 name: "대시",
                 cooldown: 2,
-                description: "적이 없는 방향으로 회피하며, 가장 가까운 적에게 10의 피해를 줍니다.",
+                description: "적이 없는 방향으로 회피하며, 가장 가까운 적에게 7의 피해를 줍니다.",
                 effects: {
                     dashDistance: 115,
-                    dashDamage: 10
+                    dashDamage: 7
                 }
             }, 
-            cooldownOnBasicHit: 0,
+            cooldownOnBasicHit: 0.1,
             cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
             contactAttackDisabled: true,
