@@ -2,6 +2,7 @@
     const placeholderFaces = {
         song: "GW",
         yuseung: "YS",
+        jeongyuseung: "JY",
         hanye: "YJ",
         woochan: "WC",
         seunghyun: "SH",
@@ -21,7 +22,7 @@
             id: "song-geonuk",
             name: "송건욱",
             shortName: "건욱",
-            maxHp: 680,
+            maxHp: 690,
             baseAttack: 28,
             speedLabel: "느림",
             speed: 165,
@@ -45,7 +46,7 @@
                 }
             },
             cooldownOnBasicHit: 0,
-            cooldownOnDamageTaken: 0,
+            cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
             avatarSrc: 'images/geonuk.png'
         },
@@ -54,7 +55,7 @@
             name: "유승찬",
             shortName: "승찬",
             maxHp: 490,
-            baseAttack: 24,
+            baseAttack: 22,
             speedLabel: "느림",
             speed: 165,
             colorName: "회색",
@@ -65,15 +66,15 @@
             traits: ["근거리 광역기", "쿨타임 순환"],
             skill: {
                 name: "쿵쾅!",
-                cooldown: 6,
-                description: "주변 적에게 110의 피해를 주고 1초간 행동 불가 상태로 만듭니다.",
+                cooldown: 6.5,
+                description: "주변 적에게 100의 피해를 주고 1초간 행동 불가 상태로 만듭니다.",
                 effects: {
-                    damage: 110,
+                    damage: 100,
                     stunSeconds: 1,
                     radius: 190
                 }
             },
-            cooldownOnBasicHit: 1,
+            cooldownOnBasicHit: 0.5,
             cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
             avatarSrc: 'images/seungchan.png'
@@ -110,6 +111,41 @@
             avatarSrc: 'images/yejun.png'
         },
         {
+            id: "jeong-yuseung",
+            name: "정유승",
+            shortName: "유승",
+            maxHp: 360,
+            baseAttack: 9,
+            speedLabel: "매우빠름",
+            speed: 325,
+            colorName: "흰색",
+            color: "#f3ecd3ff",
+            textColor: "#1c1b1b",
+            avatarSrc: "",
+            avatarText: placeholderFaces.jeongyuseung,
+            traits: ["현재 체력 비례 기본 공격", "최고 체력 적 저격"],
+            passive: {
+                name: "돼지 도축",
+                description: "기본 공격 시 적 현재 체력의 7.5%만큼 피해를 추가로 입힙니다.",
+                effects: {
+                    basicCurrentHpBonusRatio: 0.075
+                }
+            },
+            skill: {
+                name: "음식 남기기",
+                cooldown: 7,
+                description: "현재 체력이 가장 높은 적에게 현재 체력의 35%만큼 피해를 입히고, 스킬 피해량의 50%만큼 회복합니다.",
+                effects: {
+                    currentHpDamageRatio: 0.35,
+                    healRatio: 0.5
+                }
+            },
+            cooldownOnBasicHit: 1,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: false,
+            avatarSrc: 'images/yuseung.png'
+        },
+        {
             id: "lee-woochan",
             name: "이우찬",
             shortName: "우찬",
@@ -122,11 +158,11 @@
             textColor: "#ffffff",
             avatarSrc: "",
             avatarText: placeholderFaces.woochan,
-            traits: ["기본 공격 면역", "고속 돌진"],
+            traits: ["기본 공격 면역", "고속 돌진", "돌진 중 저지불가"],
             skill: {
                 name: "무지성 돌진",
                 cooldown: 4.8,
-                description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 45의 피해를 입히고 주변으로 밀쳐냅니다.",
+                description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 45의 피해를 입히고 주변으로 밀쳐냅니다. 돌진 중에는 스턴에 걸리지 않습니다.",
                 effects: {
                     damage: 45,
                     durationMs: 660,
@@ -138,6 +174,7 @@
             cooldownOnBasicHit: 0.4,
             cooldownOnDamageTaken: 0,
             immuneToBasic: true,
+            unstoppableWhileCharging: true,
             avatarSrc: 'images/woochan.png'
         },
         {

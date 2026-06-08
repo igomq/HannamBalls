@@ -678,6 +678,10 @@
             return fighter.stunnedUntil > now;
         }
 
+        function isUnstoppable(fighter, now) {
+            return Boolean(fighter?.definition?.unstoppableWhileCharging && fighter.chargeUntil > now);
+        }
+
         function avatarContent(definition) {
             if (definition.avatarSrc) {
                 return `<img alt="${escapeHtml(definition.name)} 얼굴" class="w-full h-full object-cover" src="${escapeHtml(definition.avatarSrc)}">`;
@@ -1319,6 +1323,12 @@
                 return;
             }
 
+            if (isUnstoppable(target, now)) {
+                floatText("저지불가", target.x, target.y - battle.ballSize / 2, target.definition.color);
+                effectRing(target.x, target.y, battle.ballSize * 1.2, target.definition.color);
+                return;
+            }
+
             if (!isStunned(target, now)) {
                 target.savedVelocity = { vx: target.vx, vy: target.vy };
             }
@@ -1566,6 +1576,23 @@
             return enemies[Math.floor(Math.random() * enemies.length)];
         }
 
+        function highestCurrentHpEnemy(fighter) {
+            return livingEnemiesOf(fighter).reduce((highest, enemy) => {
+                if (!highest || enemy.hp > highest.hp) {
+                    return enemy;
+                }
+                return highest;
+            }, null);
+        }
+
+        function applyCurrentHpRatioDamage(target, ratio, source, kind = "skill") {
+            if (!target || target.dead || !Number.isFinite(ratio) || ratio <= 0) {
+                return 0;
+            }
+
+            return applyDamage(target, Math.max(0, target.hp * ratio), source, kind);
+        }
+
         function applyCopiedSkill(fighter, copiedFrom, now) {
             const copiedTarget = copiedFrom && copiedFrom !== fighter && !copiedFrom.dead && copiedFrom.offMapUntil <= now && !areAllies(fighter, copiedFrom)
                 ? copiedFrom
@@ -1628,6 +1655,16 @@
                         }
                     }
                 });
+            } else if (copiedId === "jeong-yuseung") {
+                const target = highestCurrentHpEnemy(fighter);
+                if (target) {
+                    const dealt = applyCurrentHpRatioDamage(target, effects.currentHpDamageRatio || 0.15, fighter, "skill");
+                    healFighter(fighter, dealt * (effects.healRatio || 0));
+                    effectRing(target.x, target.y, battle.ballSize * 1.55, copiedColor);
+                    burst(target.x, target.y, copiedColor, 6);
+                    impactStar(target.x, target.y, copiedColor);
+                    floatText("음식복사", target.x, target.y - battle.ballSize / 2, copiedColor);
+                }
             } else if (copiedId === "lee-woochan") {
                 fighter.chargeUntil = now + (effects.durationMs || 660);
                 fighter.chargeHits = new Set();
@@ -2003,6 +2040,21 @@
                 });
             }
 
+            if (id === "jeong-yuseung") {
+                const effects = fighter.definition.skill.effects;
+                const target = highestCurrentHpEnemy(fighter);
+                if (target) {
+                    const dealt = applyCurrentHpRatioDamage(target, effects.currentHpDamageRatio, fighter, "skill");
+                    healFighter(fighter, dealt * (effects.healRatio || 0));
+                    effectRing(target.x, target.y, battle.ballSize * 1.55, fighter.definition.color);
+                    burst(target.x, target.y, fighter.definition.color, 6);
+                    impactStar(target.x, target.y, fighter.definition.color);
+                    floatText("음식 남김", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+                } else {
+                    floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                }
+            }
+
             if (id === "lee-woochan") {
                 const effects = fighter.definition.skill.effects;
                 fighter.chargeUntil = now + effects.durationMs;
@@ -2206,8 +2258,13 @@
                 && attacker.dietUses >= (attacker.definition.skill.effects.pierceBasicAfterUses || Infinity)
                 && (defender.definition.evadesBasic || defender.definition.immuneToBasic);
             const attackAmount = piercesBasicIgnore ? attacker.definition.baseAttack : attacker.attack;
+            const passiveEffects = attacker.definition.passive?.effects || {};
+            const basicBonusDamage = Math.max(0, defender.hp * (passiveEffects.basicCurrentHpBonusRatio || 0));
             const dealt = applyDamage(defender, attackAmount, attacker, "basic");
             if (dealt > 0) {
+                if (basicBonusDamage > 0 && !defender.dead) {
+                    applyDamage(defender, basicBonusDamage, attacker, "passive");
+                }
                 reduceCooldown(attacker, attacker.definition.cooldownOnBasicHit);
             }
         }
