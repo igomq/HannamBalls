@@ -165,8 +165,8 @@
                 description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 20의 피해를 입히고 주변으로 밀쳐냅니다. 돌진 중에는 스턴에 걸리지 않습니다.",
                 effects: {
                     damage: 20,
-                    durationMs: 1523,
-                    speedMultiplier: 5.23,
+                    durationMs: 2523,
+                    speedMultiplier: 15.23,
                     minSpeed: 430,
                     knockback: 250
                 }
