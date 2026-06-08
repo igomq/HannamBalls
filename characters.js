@@ -96,13 +96,13 @@
             skill: {
                 name: "아이스 에이지",
                 cooldown: 12.5,
-                description: "모든 적을 1초간 행동 불가 상태로 만들고 140의 피해를 입힙니다. 잠깐 맵 절반이 얼음 구역이 되며, 구역 안 캐릭터는 스킬 피해량의 40%만큼 추가 피해를 입습니다. 이 구역 피해량의 15%만큼 회복합니다.",
+                description: "모든 적을 1초간 행동 불가 상태로 만들고 140의 피해를 입힙니다. 잠깐 맵 절반이 얼음 구역이 되며, 구역 안 캐릭터는 스킬 피해량의 25%만큼 추가 피해를 입습니다. 이 구역 피해량의 50%만큼 회복합니다.",
                 effects: {
                     damage: 140,
                     stunSeconds: 1,
                     iceZoneDuration: 2.4,
-                    iceZoneBonusRatio: 0.4,
-                    iceZoneHealRatio: 0.15
+                    iceZoneBonusRatio: 0.25,
+                    iceZoneHealRatio: 0.5
                 }
             },
             cooldownOnBasicHit: 0,
@@ -165,8 +165,8 @@
                 description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 45의 피해를 입히고 주변으로 밀쳐냅니다. 돌진 중에는 스턴에 걸리지 않습니다.",
                 effects: {
                     damage: 45,
-                    durationMs: 960,
-                    speedMultiplier: 3.75,
+                    durationMs: 1523,
+                    speedMultiplier: 5.23,
                     minSpeed: 430,
                     knockback: 250
                 }
@@ -342,7 +342,7 @@
                 description: "가장 가까운 캐릭터의 스킬을 훔쳐 사용하고 3초간 받는 피해가 감소합니다. 대신 이동속도가 5 감소합니다.",
                 effects: {
                     copyClosestSkill: true,
-                    damageReduction: 0.25,
+                    damageReduction: 0.4,
                     damageReductionDuration: 3,
                     speedLoss: 5
                 }
@@ -357,30 +357,30 @@
             name: "허재민",
             shortName: "재민",
             maxHp: 400,
-            baseAttack: 20,
-            speedLabel: "보통",
-            speed: 215,
+            baseAttack: 15,
+            speedLabel: "존나빠름",
+            speed: 450,
             colorName: "노란색",
             color: "#facc15",
             textColor: "#1c1b1b",
             avatarSrc: "",
             avatarText: placeholderFaces.heojaemin,
-            traits: ["광역 둔화", "자가 가속", "쿨타임 순환"],
+            traits: ["초스피드", "광역 둔화", "자가 가속", "쿨타임 순환"],
             skill: {
                 name: "뭉개뭉개 구름",
                 cooldown: 10,
                 description: "주변 캐릭터들의 이동 속도를 크게 낮추고 45의 피해를 입히며, 5초간 본인의 이동 속도가 크게 증가합니다.",
                 effects: {
                     damage: 45,
-                    radius: 180,
+                    radius: 210,
                     slowMultiplier: 0.45,
                     slowDuration: 3,
-                    hasteMultiplier: 1.65,
+                    hasteMultiplier: 1.95,
                     hasteDuration: 5
                 }
             },
-            cooldownOnBasicHit: 1,
-            cooldownOnDamageTaken: 1,
+            cooldownOnBasicHit: 2,
+            cooldownOnDamageTaken: 2,
             immuneToBasic: false,
             avatarSrc: 'images/jaemin.png'
         },
