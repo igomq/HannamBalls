@@ -1593,6 +1593,14 @@
             return applyDamage(target, Math.max(0, target.hp * ratio), source, kind);
         }
 
+        function applyMaxHpRatioDamage(target, ratio, source, kind = "skill") {
+            if (!target || target.dead || !Number.isFinite(ratio) || ratio <= 0) {
+                return 0;
+            }
+
+            return applyDamage(target, Math.max(0, target.maxHp * ratio), source, kind);
+        }
+
         function applyCopiedSkill(fighter, copiedFrom, now) {
             const copiedTarget = copiedFrom && copiedFrom !== fighter && !copiedFrom.dead && copiedFrom.offMapUntil <= now && !areAllies(fighter, copiedFrom)
                 ? copiedFrom
@@ -1658,7 +1666,7 @@
             } else if (copiedId === "jeong-yuseung") {
                 const target = highestCurrentHpEnemy(fighter);
                 if (target) {
-                    const dealt = applyCurrentHpRatioDamage(target, effects.currentHpDamageRatio || 0.15, fighter, "skill");
+                    const dealt = applyMaxHpRatioDamage(target, effects.maxHpDamageRatio || effects.currentHpDamageRatio || 0.15, fighter, "skill");
                     healFighter(fighter, dealt * (effects.healRatio || 0));
                     effectRing(target.x, target.y, battle.ballSize * 1.55, copiedColor);
                     burst(target.x, target.y, copiedColor, 6);
@@ -2044,7 +2052,7 @@
                 const effects = fighter.definition.skill.effects;
                 const target = highestCurrentHpEnemy(fighter);
                 if (target) {
-                    const dealt = applyCurrentHpRatioDamage(target, effects.currentHpDamageRatio, fighter, "skill");
+                    const dealt = applyMaxHpRatioDamage(target, effects.maxHpDamageRatio || effects.currentHpDamageRatio, fighter, "skill");
                     healFighter(fighter, dealt * (effects.healRatio || 0));
                     effectRing(target.x, target.y, battle.ballSize * 1.55, fighter.definition.color);
                     burst(target.x, target.y, fighter.definition.color, 6);

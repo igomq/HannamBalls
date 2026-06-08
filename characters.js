@@ -133,10 +133,10 @@
             },
             skill: {
                 name: "음식 남기기",
-                cooldown: 7,
-                description: "현재 체력이 가장 높은 적에게 현재 체력의 35%만큼 피해를 입히고, 스킬 피해량의 50%만큼 회복합니다.",
+                cooldown: 9,
+                description: "현재 체력이 가장 높은 적에게 최대 체력의 13%만큼 피해를 입히고, 스킬 피해량의 50%만큼 회복합니다.",
                 effects: {
-                    currentHpDamageRatio: 0.35,
+                    maxHpDamageRatio: 0.13,
                     healRatio: 0.5
                 }
             },
