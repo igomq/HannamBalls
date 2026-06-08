@@ -35,9 +35,9 @@
             skill: {
                 name: "다이어트",
                 cooldown: 7,
-                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 6 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 4% 감소합니다. 최대 피해 감소 20%. 3회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
+                description: "현재 체력의 4.5%가 감소하는 대신, 기본 공격력이 6 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 4% 감소합니다. 최대 피해 감소 20%. 3회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
                 effects: {
-                    hpCostRatio: 0.055,
+                    hpCostRatio: 0.045,
                     attackGain: 6,
                     speedMultiplier: 1.155,
                     damageReductionGain: 0.04,
@@ -46,7 +46,7 @@
                 }
             },
             cooldownOnBasicHit: 0,
-            cooldownOnDamageTaken: 0.5,
+            cooldownOnDamageTaken: 1,
             immuneToBasic: false,
             avatarSrc: 'images/geonuk.png'
         },
@@ -71,7 +71,7 @@
                 effects: {
                     damage: 100,
                     stunSeconds: 1,
-                    radius: 190
+                    radius: 175
                 }
             },
             cooldownOnBasicHit: 0.5,
@@ -165,8 +165,8 @@
                 description: "앞으로 매우 빠르게 돌진하면서 경로에 있는 적에게 45의 피해를 입히고 주변으로 밀쳐냅니다. 돌진 중에는 스턴에 걸리지 않습니다.",
                 effects: {
                     damage: 45,
-                    durationMs: 660,
-                    speedMultiplier: 2.75,
+                    durationMs: 960,
+                    speedMultiplier: 3.75,
                     minSpeed: 430,
                     knockback: 250
                 }
@@ -462,7 +462,7 @@
             name: "강현우",
             shortName: "강현우",
             maxHp: 288,
-            baseAttack: 4,
+            baseAttack: 2,
             speedLabel: "이동 불가",
             speed: 0,
             colorName: "연두색",
@@ -473,11 +473,11 @@
             traits: ["원거리 딜러", "제자리 포탑", "시간 성장"],
             passive: {
                 name: "배짱이새끼",
-                description: "움직이지 못하는 대신 가까운 적을 0.25초마다 공격하며 입힌 피해량의 30%만큼 회복합니다. 게임 시간 10초마다 기본 공격 피해량이 4 증가합니다.",
+                description: "움직이지 못하는 대신 가까운 적을 0.33초마다 공격하며 입힌 피해량의 30%만큼 회복합니다. 게임 시간 10초마다 기본 공격 피해량이 4 증가합니다.",
                 effects: {
                     rangedAttack: true,
-                    interval: 0.25,
-                    damage: 4,
+                    interval: 0.33,
+                    damage: 2,
                     healRatio: 0.3,
                     growthInterval: 10,
                     growthDamage: 4
@@ -485,13 +485,13 @@
             },
             skill: {
                 name: "대시",
-                cooldown: 1.5,
+                cooldown: 2,
                 description: "적이 없는 방향으로 회피하며, 가장 가까운 적에게 10의 피해를 줍니다.",
                 effects: {
                     dashDistance: 115,
                     dashDamage: 10
                 }
-            },
+            }, 
             cooldownOnBasicHit: 0,
             cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
