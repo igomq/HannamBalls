@@ -2230,6 +2230,7 @@
         function handleWallBounce(fighter) {
             const radius = battle.ballSize / 2;
             let bounced = false;
+            const now = performance.now();
 
             if (fighter.x < radius) {
                 fighter.x = radius;
@@ -2252,7 +2253,13 @@
             }
 
             if (bounced) {
-                jitterVelocity(fighter, (Math.random() - 0.5) * 0.75, moveSpeedOf(fighter));
+                const chargeEffects = fighter.definition.id === "lee-woochan" && fighter.chargeUntil > now
+                    ? fighter.definition.skill.effects
+                    : null;
+                const bounceSpeed = chargeEffects
+                    ? Math.max(chargeEffects.minSpeed, moveSpeedOf(fighter, now) * chargeEffects.speedMultiplier)
+                    : moveSpeedOf(fighter, now);
+                jitterVelocity(fighter, (Math.random() - 0.5) * 0.75, bounceSpeed);
                 effectRing(fighter.x, fighter.y, battle.ballSize * 0.8, fighter.definition.color);
             }
         }
