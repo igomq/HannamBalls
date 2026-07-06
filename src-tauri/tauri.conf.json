@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "identifier": "com.hannamballs.game",
   "build": {
+    "beforeBuildCommand": "pnpm build",
+    "beforeDevCommand": "pnpm build",
     "frontendDist": "../dist"
   },
   "app": {

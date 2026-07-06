@@ -1,0 +1,385 @@
+<!-- 볼 선택 화면 -->
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>한남볼파이트</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect">
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@500&amp;family=JetBrains+Mono:wght@700&amp;family=Plus+Jakarta+Sans:wght@700;800&amp;display=swap"
+        rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="./characters.js"></script>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#006d36",
+                        "on-secondary-container": "#fffbff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary-fixed": "#f0dbff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#adc6ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#e5e2e1",
+                        "on-primary-fixed-variant": "#005227",
+                        "tertiary-container": "#aac4ff",
+                        "surface-container-high": "#eae7e7",
+                        "on-secondary-fixed": "#2c0051",
+                        "surface-bright": "#fcf9f8",
+                        "primary": "#006d36",
+                        "secondary": "#8127cf",
+                        "primary-fixed": "#6dfe9c",
+                        "error": "#ba1a1a",
+                        "on-primary": "#ffffff",
+                        "on-background": "#1c1b1b",
+                        "surface-variant": "#e5e2e1",
+                        "secondary-fixed-dim": "#ddb7ff",
+                        "on-primary-fixed": "#00210c",
+                        "on-tertiary-fixed-variant": "#004395",
+                        "tertiary-fixed": "#d8e2ff",
+                        "inverse-primary": "#4de082",
+                        "outline-variant": "#bccabb",
+                        "surface-container-low": "#f6f3f2",
+                        "on-tertiary-fixed": "#001a42",
+                        "background": "#fcf9f8",
+                        "secondary-container": "#9c48ea",
+                        "surface": "#fcf9f8",
+                        "inverse-surface": "#313030",
+                        "primary-fixed-dim": "#4de082",
+                        "surface-dim": "#dcd9d9",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "primary-container": "#4ade80",
+                        "inverse-on-surface": "#f3f0ef",
+                        "on-secondary-fixed-variant": "#6900b3",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#005e2d",
+                        "surface-container": "#f0eded",
+                        "on-surface": "#1c1b1b",
+                        "outline": "#6d7b6d",
+                        "on-tertiary-container": "#004da8",
+                        "on-surface-variant": "#3d4a3e",
+                        "tertiary": "#005ac2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "bar-height": "32px",
+                        "border-width-thick": "4px",
+                        "arena-margin": "24px",
+                        "border-width-thin": "2px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-md-mobile": ["Plus Jakarta Sans"],
+                        "label-numeric": ["JetBrains Mono"],
+                        "body-base": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                        "label-numeric": ["14px", { "lineHeight": "1.0", "fontWeight": "700" }],
+                        "body-base": ["16px", { "lineHeight": "1.5", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hard-shadow {
+            box-shadow: 4px 4px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .hard-shadow-sm {
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .brutal-border-thick {
+            border: 4px solid #1c1b1b;
+        }
+
+        .brutal-border-thin {
+            border: 2px solid #1c1b1b;
+        }
+
+        .btn-brutal {
+            transition: all 0.1s ease;
+        }
+
+        .btn-brutal:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+        }
+
+        .ball-avatar {
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .ball-card:hover .ball-avatar {
+            transform: scale(1.1);
+        }
+
+        .ball-card.is-selected {
+            outline: 4px solid #4ade80;
+            outline-offset: -8px;
+        }
+
+        .selected-chip {
+            min-width: 148px;
+        }
+
+        .modal-backdrop {
+            background: rgba(28, 27, 27, 0.54);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-background text-on-background min-h-screen flex flex-col font-body-base overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+    <main
+        class="flex-grow flex flex-col items-center justify-center p-4 md:p-8 w-full max-w-screen-xl mx-auto pb-24 md:pb-8">
+        <div class="w-full max-w-3xl mb-8 text-center pt-8">
+            <h1 class="text-display-lg font-display-lg mb-2">한남볼파이트</h1>
+            <p class="text-body-base text-on-surface-variant">아레나에 참여할 볼을 선택하세요.</p>
+        </div>
+
+        <div class="w-full max-w-4xl bg-surface brutal-border-thick hard-shadow p-6 md:p-10 mb-5 relative">
+            <div id="character-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+        </div>
+
+        <div class="w-full max-w-4xl mb-10">
+            <div class="flex items-center justify-between gap-4 mb-3">
+                <h2 class="font-headline-md-mobile text-headline-md-mobile">추가한 캐릭터</h2>
+                <span id="selected-count"
+                    class="font-label-numeric text-label-numeric text-on-surface-variant">0명</span>
+            </div>
+            <div id="selected-list"
+                class="min-h-20 bg-surface-container-lowest brutal-border-thin hard-shadow-sm p-3 flex gap-3 overflow-x-auto items-center">
+            </div>
+        </div>
+
+        <div class="w-full max-w-4xl flex justify-center">
+            <button id="start-button"
+                class="w-full md:w-auto px-12 py-4 bg-primary text-on-primary font-headline-md text-headline-md brutal-border-thick hard-shadow btn-brutal uppercase tracking-tighter flex items-center justify-center gap-2 hover:bg-surface-tint">
+                <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">swords</span>
+                전투 시작
+            </button>
+        </div>
+    </main>
+
+    <div id="info-modal" class="fixed inset-0 hidden items-center justify-center p-4 modal-backdrop z-50">
+        <div class="w-full max-w-md bg-surface brutal-border-thick hard-shadow p-6">
+            <div class="flex items-start justify-between gap-4 mb-4">
+                <div>
+                    <h2 id="modal-name" class="font-headline-md text-headline-md"></h2>
+                    <p id="modal-skill" class="font-label-numeric text-label-numeric text-secondary mt-1"></p>
+                </div>
+                <button id="modal-close"
+                    class="w-9 h-9 bg-surface-container-lowest brutal-border-thin hard-shadow-sm btn-brutal flex items-center justify-center"
+                    title="닫기">
+                    <span class="material-symbols-outlined text-[20px]">close</span>
+                </button>
+            </div>
+            <div id="modal-body" class="space-y-3 text-body-base"></div>
+        </div>
+    </div>
+
+    <script>
+        const characters = window.HannamBalls.getCharacters();
+        const selectedIds = JSON.parse(localStorage.getItem("hannamBallsSelection") || "[]")
+            .filter((id) => characters.some((character) => character.id === id));
+
+        const grid = document.getElementById("character-grid");
+        const selectedList = document.getElementById("selected-list");
+        const selectedCount = document.getElementById("selected-count");
+        const startButton = document.getElementById("start-button");
+        const modal = document.getElementById("info-modal");
+        const modalName = document.getElementById("modal-name");
+        const modalSkill = document.getElementById("modal-skill");
+        const modalBody = document.getElementById("modal-body");
+
+        function saveSelection() {
+            localStorage.setItem("hannamBallsSelection", JSON.stringify(selectedIds));
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+        function avatarHtml(character, sizeClass) {
+            if (character.avatarSrc) {
+                return `<img alt="${escapeHtml(character.name)} 얼굴" class="w-full h-full object-cover" src="${escapeHtml(character.avatarSrc)}">`;
+            }
+
+            return `<div class="${sizeClass} rounded-full flex items-center justify-center font-headline-md text-headline-md" style="background:${character.color}; color:${character.textColor};">${escapeHtml(character.avatarText)}</div>`;
+        }
+
+        function passiveHtml(character) {
+            if (!character.passive) {
+                return "";
+            }
+
+            return `
+                <div class="bg-secondary-fixed brutal-border-thin p-2">
+                    <p class="font-label-numeric text-label-numeric text-on-secondary-fixed">패시브: ${escapeHtml(character.passive.name)}</p>
+                    <p class="text-on-surface-variant mt-1">${escapeHtml(character.passive.description)}</p>
+                </div>
+            `;
+        }
+
+        function showInfo(character) {
+            modalName.textContent = character.name;
+            modalName.style.color = character.color;
+            modalSkill.textContent = `${character.skill.name} / ${character.skill.cooldown}초`;
+            modalBody.innerHTML = `
+                <div class="grid grid-cols-2 gap-2 font-label-numeric text-label-numeric">
+                    <div class="bg-surface-container-low brutal-border-thin p-2">HP ${character.maxHp}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">ATK ${character.baseAttack}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">SPD ${escapeHtml(character.speedLabel)}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">${escapeHtml(character.colorName)}</div>
+                </div>
+                ${passiveHtml(character)}
+                <p class="text-on-surface-variant">${escapeHtml(character.skill.description)}</p>
+                <p class="font-label-numeric text-label-numeric">특성: ${escapeHtml(character.traits.join(" / "))}</p>
+                ${character.immuneToBasic ? '<p class="font-label-numeric text-label-numeric text-secondary">기본 공격 피해 면역</p>' : ''}
+                ${character.immuneToKnockback ? '<p class="font-label-numeric text-label-numeric text-secondary">밀치기 면역</p>' : ''}
+            `;
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+        }
+
+        function hideInfo() {
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function addCharacter(id) {
+            selectedIds.push(id);
+            saveSelection();
+            render();
+        }
+
+        function removeSelectionAt(index) {
+            selectedIds.splice(index, 1);
+            saveSelection();
+            render();
+        }
+
+        function renderCards() {
+            grid.innerHTML = characters.map((character) => {
+                const selectedCount = selectedIds.filter((id) => id === character.id).length;
+                return `
+                    <div class="ball-card ${selectedCount > 0 ? "is-selected" : ""} flex flex-col items-center bg-surface-container-lowest brutal-border-thin hard-shadow-sm p-4 relative overflow-hidden group cursor-pointer"
+                        data-id="${character.id}">
+                        <div class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity" style="background:${character.color};"></div>
+                        ${selectedCount > 0 ? `<div class="absolute top-2 right-2 z-20 bg-primary text-on-primary brutal-border-thin hard-shadow-sm font-label-numeric text-label-numeric px-2 py-1">x${selectedCount}</div>` : ""}
+                        <div class="w-24 h-24 rounded-full border-[3px] mb-4 ball-avatar bg-surface-container-highest overflow-hidden flex items-center justify-center relative z-10"
+                            style="border-color:${character.color};">
+                            ${avatarHtml(character, "w-16 h-16")}
+                        </div>
+                        <div class="flex items-center gap-1 justify-center mb-1 relative z-10">
+                            <h3 class="text-label-numeric font-label-numeric">${escapeHtml(character.name)}</h3>
+                            <button type="button" class="info-button flex items-center hover:text-primary" data-info-id="${character.id}" title="정보 보기">
+                                <span class="material-symbols-outlined text-[16px]">info</span>
+                            </button>
+                        </div>
+                        <p class="text-xs font-body-base text-on-surface-variant mb-4 text-center relative z-10">HP: ${character.maxHp} / ATK: ${character.baseAttack}</p>
+                        <button type="button"
+                            class="add-button w-full py-2 bg-primary text-on-primary font-label-numeric text-label-numeric brutal-border-thin hard-shadow-sm btn-brutal uppercase tracking-wider relative z-10">
+                            추가
+                        </button>
+                    </div>
+                `;
+            }).join("");
+
+            grid.querySelectorAll(".ball-card").forEach((card) => {
+                card.addEventListener("click", () => addCharacter(card.dataset.id));
+            });
+
+            grid.querySelectorAll(".info-button").forEach((button) => {
+                button.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    showInfo(characters.find((character) => character.id === button.dataset.infoId));
+                });
+            });
+        }
+
+        function renderSelected() {
+            selectedCount.textContent = `${selectedIds.length}명`;
+            if (selectedIds.length === 0) {
+                selectedList.innerHTML = `<p class="text-on-surface-variant">캐릭터 카드를 클릭해서 추가하세요.</p>`;
+                return;
+            }
+
+            selectedList.innerHTML = selectedIds.map((id, index) => {
+                const character = characters.find((item) => item.id === id);
+                return `
+                    <button type="button" class="selected-chip flex items-center gap-3 bg-surface brutal-border-thin hard-shadow-sm btn-brutal p-2 shrink-0"
+                        data-remove-index="${index}" title="클릭하면 제거">
+                        <span class="w-10 h-10 rounded-full border-[3px] overflow-hidden flex items-center justify-center shrink-0"
+                            style="border-color:${character.color};">
+                            ${avatarHtml(character, "w-7 h-7 text-xs")}
+                        </span>
+                        <span class="font-label-numeric text-label-numeric text-left">${escapeHtml(character.name)}</span>
+                    </button>
+                `;
+            }).join("");
+
+            selectedList.querySelectorAll("[data-remove-index]").forEach((chip) => {
+                chip.addEventListener("click", () => removeSelectionAt(Number(chip.dataset.removeIndex)));
+            });
+        }
+
+        function render() {
+            renderCards();
+            renderSelected();
+        }
+
+        startButton.addEventListener("click", () => {
+            if (selectedIds.length < 2) {
+                alert("최소 2명의 캐릭터를 추가해야 전투를 시작할 수 있습니다.");
+                return;
+            }
+
+            saveSelection();
+            window.location.href = "./game.html";
+        });
+
+        document.getElementById("modal-close").addEventListener("click", hideInfo);
+        modal.addEventListener("click", (event) => {
+            if (event.target === modal) {
+                hideInfo();
+            }
+        });
+        window.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                hideInfo();
+            }
+        });
+
+        render();
+    </script>
+</body>
+
+</html>
