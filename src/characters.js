@@ -356,8 +356,8 @@
             id: "heo-jaemin",
             name: "허재민",
             shortName: "재민",
-            maxHp: 420,
-            baseAttack: 25,
+            maxHp: 335,
+            baseAttack: 22,
             speedLabel: "존나빠름",
             speed: 460,
             colorName: "노란색",
@@ -369,19 +369,19 @@
             skill: {
                 name: "뭉개뭉개 구름",
                 cooldown: 10,
-                description: "주변 캐릭터들의 이동 속도를 크게 낮추고 75의 피해를 입히고 입힌 파해량의 2배만큼 체력을 회복하며, 5초간 본인의 이동 속도가 크게 증가합니다.",
+                description: "주변 캐릭터들의 이동 속도를 크게 낮추고 25의 피해를 입히고 입힌 파해량의 69% 만큼 체력을 회복하며, 5초간 본인의 이동 속도가 크게 증가합니다.",
                 effects: {
-                    damage: 75,
-                    radius: 260,
-                    slowMultiplier: 0.45,
-                    slowDuration: 3,
-                    hasteMultiplier: 1.95,
-                    hasteDuration: 5,
-                    healRatio: 2
+                    damage: 25,
+                    radius: 215,
+                    slowMultiplier: 0.4,
+                    slowDuration: 2,
+                    hasteMultiplier: 1.65,
+                    hasteDuration: 4,
+                    healRatio: 0.69
                 }
             },
-            cooldownOnBasicHit: 2,
-            cooldownOnDamageTaken: 2,
+            cooldownOnBasicHit: 1,
+            cooldownOnDamageTaken: 1,
             immuneToBasic: false,
             avatarSrc: 'images/jaemin.png'
         },

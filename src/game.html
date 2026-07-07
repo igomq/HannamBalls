@@ -1249,10 +1249,10 @@
 
             const postHp = target.hp - damageToHp;
 
-            // 이승현 체력 50% 미만 첫 보호막 트리거
-            if (target.definition.id === "lee-seunghyun" && !target.shieldTriggered && postHp < target.maxHp * 0.5 && target.hp >= target.maxHp * 0.5) {
+            // 이승현 체력 첫 보호막 트리거
+            if (target.definition.id === "lee-seunghyun" && !target.shieldTriggered && postHp < target.maxHp * target.definition.shieldThresholdRatio && target.hp >= target.maxHp * target.definition.shieldThresholdRatio) {
                 target.shieldTriggered = true;
-                const shieldAmount = target.maxHp * 0.3;
+                const shieldAmount = target.maxHp * target.definition.shieldRatio;
                 target.shield = (target.shield || 0) + shieldAmount;
                 floatText("보호막!", target.x, target.y - battle.ballSize / 2, "#38bdf8");
                 megaBurst(target.x, target.y, "#38bdf8", 6);
@@ -2136,6 +2136,8 @@
                 cloudPuff(fighter.x, fighter.y, radius, fighter.definition.color);
                 burst(fighter.x, fighter.y, fighter.definition.color, 8);
                 floatText("☁️구름가속", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+
+                let dealt = 0;
                 battle.fighters.forEach((target) => {
                     if (target === fighter || target.dead || areAllies(fighter, target)) {
                         return;
@@ -2145,13 +2147,15 @@
                     if (Math.sqrt(dx * dx + dy * dy) <= radius) {
                         target.slowMultiplier = effects.slowMultiplier;
                         target.slowUntil = now + effects.slowDuration * 1000;
-                        applyDamage(target, effects.damage, fighter, "skill");
+                        dealt += applyDamage(target, effects.damage, fighter, "skill");
                         floatText("🌀느려짐", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
                         slowSpiral(target.x, target.y, fighter.definition.color);
                         impactStar(target.x, target.y, fighter.definition.color);
                         effectRing(target.x, target.y, battle.ballSize * 1.25, fighter.definition.color);
                     }
                 });
+
+                healFighter(fighter, dealt * effects.healRatio);
             }
 
             if (id === "kim-junmo") {
