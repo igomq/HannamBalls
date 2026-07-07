@@ -393,4 +393,27 @@
             setTimeout(() => em.remove(), 660);
         }
     };
+
+    // 김동하 - 꽃미남 꽃 장판 파티클
+    window.flowerZoneParticles = function (x, y, radius, color) {
+        const emojis = ["🌸", "🌹", "🌺", "🌷"];
+        for (let i = 0; i < 4; i++) {
+            const p = document.createElement("div");
+            const a = Math.random() * Math.PI * 2;
+            const dist = Math.random() * radius * 0.85;
+            p.className = "heart-particle";
+            p.style.left = `${x}px`;
+            p.style.top = `${y}px`;
+            const targetX = Math.cos(a) * dist;
+            const targetY = Math.sin(a) * dist;
+            p.style.setProperty("--hx", `${targetX}px`);
+            p.style.setProperty("--hy", `${targetY}px`);
+            p.style.fontSize = `${10 + Math.random() * 8}px`;
+            p.style.color = color;
+            p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+            _arena.appendChild(p);
+            setTimeout(() => p.remove(), 800);
+        }
+    };
 })();
+

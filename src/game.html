@@ -485,7 +485,8 @@
             activePuddles: [],
             activePoisons: [],
             activeBombs: [],
-            activeIceZones: []
+            activeIceZones: [],
+            activeFlowerZones: []
         };
         const EFFECT_LIMITS = {
             bursts: 70,
@@ -1196,6 +1197,12 @@
                 return 0;
             }
 
+            if (source && source.charmedBy && target === source.charmedBy) {
+                healFighter(target, amount);
+                floatText("매혹 흡수", target.x, target.y - battle.ballSize / 2, target.definition.color);
+                return 0;
+            }
+
             if (!Number.isFinite(target.hp)) {
                 target.hp = Math.max(1, target.maxHp);
             }
@@ -1459,19 +1466,86 @@
             });
         }
 
+        function createFlowerZone(fighter, now) {
+            const effects = fighter.definition.passive.effects;
+            const flower = document.createElement("div");
+            const radius = effects.radius || 65;
+            const size = radius * 2;
+            flower.className = "flower-zone";
+            flower.style.left = `${fighter.x}px`;
+            flower.style.top = `${fighter.y}px`;
+            flower.style.width = `${size}px`;
+            flower.style.height = `${size}px`;
+            arena.appendChild(flower);
+
+            battle.activeFlowerZones.push({
+                source: fighter,
+                x: fighter.x,
+                y: fighter.y,
+                radius,
+                damagePerSecond: effects.damagePerSecond || 22,
+                tickInterval: effects.tickInterval || 0.2,
+                nextTickAt: now + (effects.tickInterval || 0.2) * 1000,
+                expiresAt: now + (effects.duration || 2) * 1000,
+                element: flower
+            });
+
+            if (window.flowerZoneParticles) {
+                window.flowerZoneParticles(fighter.x, fighter.y, radius, fighter.definition.color);
+            }
+        }
+
+        function updateFlowerZones(now) {
+            battle.activeFlowerZones = battle.activeFlowerZones.filter((flower) => {
+                if (now >= flower.expiresAt || flower.source.dead) {
+                    flower.element.remove();
+                    return false;
+                }
+
+                if (now < flower.nextTickAt) {
+                    return true;
+                }
+
+                flower.nextTickAt = now + flower.tickInterval * 1000;
+
+                if (window.flowerZoneParticles && Math.random() < 0.45) {
+                    window.flowerZoneParticles(flower.x, flower.y, flower.radius, flower.source.definition.color);
+                }
+
+                battle.fighters.forEach((target) => {
+                    if (target === flower.source || target.dead || target.offMapUntil > now || areAllies(flower.source, target)) {
+                        return;
+                    }
+
+                    const dx = target.x - flower.x;
+                    const dy = target.y - flower.y;
+                    if (Math.sqrt(dx * dx + dy * dy) <= flower.radius + battle.ballSize * 0.35) {
+                        const damage = flower.damagePerSecond * flower.tickInterval;
+                        applyDamage(target, damage, flower.source, "passive");
+                    }
+                });
+
+                return true;
+            });
+        }
+
         function createPoisonField(source, now, copiedEffects = null) {
             const effects = copiedEffects || source.definition.skill.effects;
             const field = document.createElement("div");
             field.className = "poison-field";
             arena.appendChild(field);
-            battle.activePoisons.push({
+            const poisonObj = {
                 source,
                 damage: effects.poisonDps * effects.tickInterval,
                 tickInterval: effects.tickInterval,
                 nextTickAt: now + effects.tickInterval * 1000,
                 expiresAt: now + effects.duration * 1000,
                 element: field
-            });
+            };
+            if (source.charmedBy) {
+                poisonObj.charmedBy = source.charmedBy;
+            }
+            battle.activePoisons.push(poisonObj);
         }
 
         function updatePoisons(now) {
@@ -1491,7 +1565,12 @@
                         return;
                     }
 
+                    const originalCharmedBy = poison.source.charmedBy;
+                    if (poison.charmedBy) poison.source.charmedBy = poison.charmedBy;
+
                     applyDamage(target, poison.damage, poison.source, "poison");
+
+                    poison.source.charmedBy = originalCharmedBy;
                 });
 
                 return true;
@@ -1701,6 +1780,9 @@
                 fighter.followUntil = now + (effects.duration || 5) * 1000;
                 fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
                 fighter.followEffects = effects;
+                if (fighter.charmedBy) {
+                    fighter.followCharmedBy = fighter.charmedBy;
+                }
                 effectRing(copiedTarget.x, copiedTarget.y, battle.ballSize * 1.5, copiedColor);
                 floatText("따라감", copiedTarget.x, copiedTarget.y - battle.ballSize / 2, copiedColor);
             } else if (copiedId === "heo-yul") {
@@ -1739,6 +1821,9 @@
                     behindDistance: effects.behindDistance || 92,
                     healRatio: effects.healRatio || 0
                 };
+                if (fighter.charmedBy) {
+                    fighter.backstabCharmedBy = fighter.charmedBy;
+                }
                 fighter.offMapUntil = fighter.backstab.returnAt;
                 fighter.invulnerableUntil = fighter.offMapUntil;
                 fighter.vx = 0;
@@ -1755,6 +1840,23 @@
                 floatText("대시복사", fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
             } else if (copiedId === "lim-shingyu") {
                 plantBomb(fighter, copiedTarget, now, effects);
+            } else if (copiedId === "kim-dongha") {
+                const target = nearestEnemy(fighter);
+                if (target) {
+                    heartChase(fighter.x, fighter.y, target.x, target.y, fighter.definition.color);
+                    floatText("💕매혹", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+                    effectRing(target.x, target.y, battle.ballSize * 1.5, fighter.definition.color);
+
+                    target.charmedBy = fighter;
+                    target.backstabCharmedBy = fighter;
+                    target.followCharmedBy = fighter;
+
+                    useSkill(target, now);
+
+                    target.charmedBy = null;
+                } else {
+                    floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                }
             } else {
                 applyDamage(copiedTarget, 75, fighter, "skill");
                 stun(copiedTarget, 0.8, now);
@@ -1795,14 +1897,18 @@
             label.className = "bomb-timer";
             label.style.color = source.definition.color;
             arena.appendChild(label);
-            battle.activeBombs.push({
+            const bombObj = {
                 source,
                 target,
                 explodeAt: now + effects.delay * 1000,
                 effects,
                 label
-            });
-            updateBombLabel(battle.activeBombs[battle.activeBombs.length - 1], now);
+            };
+            if (source.charmedBy) {
+                bombObj.charmedBy = source.charmedBy;
+            }
+            battle.activeBombs.push(bombObj);
+            updateBombLabel(bombObj, now);
             floatText("폭탄임신", target.x, target.y - battle.ballSize / 2, source.definition.color);
             effectRing(target.x, target.y, battle.ballSize * 1.75, source.definition.color);
             burst(target.x, target.y, source.definition.color, 6);
@@ -1825,6 +1931,10 @@
                 megaBurst(target.x, target.y, source.definition.color, 8);
                 effectRing(target.x, target.y, effects.radius * 2, source.definition.color);
                 floatText("💥펑!", target.x, target.y - battle.ballSize / 2, source.definition.color);
+
+                const originalCharmedBy = source.charmedBy;
+                if (bomb.charmedBy) source.charmedBy = bomb.charmedBy;
+
                 applyDamage(target, effects.targetDamage, source, "skill");
                 stun(target, effects.stunSeconds, now);
                 battle.fighters.forEach((enemy) => {
@@ -1839,6 +1949,8 @@
                         impactStar(enemy.x, enemy.y, source.definition.color);
                     }
                 });
+
+                source.charmedBy = originalCharmedBy;
                 return false;
             });
         }
@@ -1894,10 +2006,17 @@
                 fighter.y = Math.max(battle.ballSize / 2, Math.min(battle.arenaSize - battle.ballSize / 2, target.y - direction.y * distance));
                 fighter.vx = direction.x * scaledSpeed(fighter.speed);
                 fighter.vy = direction.y * scaledSpeed(fighter.speed);
+
+                const originalCharmedBy = fighter.charmedBy;
+                if (fighter.backstabCharmedBy) fighter.charmedBy = fighter.backstabCharmedBy;
+
                 const dealt = applyDamage(target, fighter.backstab.damage, fighter, "skill");
                 if (dealt > 0 && fighter.backstab.healRatio) {
                     healFighter(fighter, dealt * fighter.backstab.healRatio);
                 }
+
+                fighter.charmedBy = originalCharmedBy;
+
                 stealthReveal(fighter.x, fighter.y, fighter.definition.color);
                 megaBurst(fighter.x, fighter.y, fighter.definition.color, 5);
                 effectRing(target.x, target.y, battle.ballSize * 1.65, fighter.definition.color);
@@ -1909,6 +2028,7 @@
                 fighter.vy = direction.y * scaledSpeed(fighter.speed);
             }
             fighter.backstab = null;
+            fighter.backstabCharmedBy = null;
             return true;
         }
 
@@ -1919,6 +2039,9 @@
                 ownerId: owner.id,
                 isSummon: true
             });
+            if (owner.charmedBy) {
+                summon.charmedBy = owner.charmedBy;
+            }
             const angle = Math.atan2(owner.vy || 1, owner.vx || 1) + Math.PI / 2;
             const distance = battle.ballSize * 1.25;
             summon.x = Math.max(battle.ballSize / 2, Math.min(battle.arenaSize - battle.ballSize / 2, owner.x + Math.cos(angle) * distance));
@@ -1962,6 +2085,7 @@
             if (!fighter.followUntil || fighter.followUntil <= now) {
                 fighter.followTargetId = null;
                 fighter.followEffects = null;
+                fighter.followCharmedBy = null;
                 return false;
             }
 
@@ -1970,6 +2094,7 @@
                 fighter.followTargetId = null;
                 fighter.followUntil = 0;
                 fighter.followEffects = null;
+                fighter.followCharmedBy = null;
                 return false;
             }
 
@@ -1979,7 +2104,12 @@
             fighter.vy = direction.y * scaledSpeed(fighter.speed * (effects.followSpeedMultiplier || 1));
 
             if (now >= fighter.nextFollowDamageAt) {
+                const originalCharmedBy = fighter.charmedBy;
+                if (fighter.followCharmedBy) fighter.charmedBy = fighter.followCharmedBy;
+
                 applyDamage(target, (effects.damagePerSecond || 0) * (effects.tickInterval || 1), fighter, "skill");
+
+                fighter.charmedBy = originalCharmedBy;
                 fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
             }
 
@@ -2107,6 +2237,9 @@
                     fighter.followUntil = now + effects.duration * 1000;
                     fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
                     fighter.followEffects = effects;
+                    if (fighter.charmedBy) {
+                        fighter.followCharmedBy = fighter.charmedBy;
+                    }
                     heartChase(fighter.x, fighter.y, target.x, target.y, fighter.definition.color);
                     floatText("💕LOCK ON", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
                     effectRing(target.x, target.y, battle.ballSize * 1.35, fighter.definition.color);
@@ -2193,6 +2326,9 @@
                         behindDistance: effects.behindDistance,
                         healRatio: effects.healRatio || 0
                     };
+                    if (fighter.charmedBy) {
+                        fighter.backstabCharmedBy = fighter.charmedBy;
+                    }
                     fighter.offMapUntil = fighter.backstab.returnAt;
                     fighter.invulnerableUntil = fighter.offMapUntil;
                     fighter.vx = 0;
@@ -2225,6 +2361,25 @@
                 if (target) {
                     plantBomb(fighter, target, now);
                     impactStar(target.x, target.y, fighter.definition.color);
+                }
+            }
+
+            if (id === "kim-dongha") {
+                const target = nearestEnemy(fighter);
+                if (target) {
+                    heartChase(fighter.x, fighter.y, target.x, target.y, fighter.definition.color);
+                    floatText("💕매혹", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
+                    effectRing(target.x, target.y, battle.ballSize * 1.5, fighter.definition.color);
+
+                    target.charmedBy = fighter;
+                    target.backstabCharmedBy = fighter;
+                    target.followCharmedBy = fighter;
+
+                    useSkill(target, now);
+
+                    target.charmedBy = null;
+                } else {
+                    floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
                 }
             }
 
@@ -2386,6 +2541,17 @@
                     handleChargeHit(a, b, nx, ny);
                     handleChargeHit(b, a, -nx, -ny);
 
+                    if (!areAllies(a, b)) {
+                        if (a.definition.id === "kim-dongha" && (!a.nextFlowerZoneAt || now >= a.nextFlowerZoneAt)) {
+                            createFlowerZone(a, now);
+                            a.nextFlowerZoneAt = now + (a.definition.passive.effects.cooldown || 2) * 1000;
+                        }
+                        if (b.definition.id === "kim-dongha" && (!b.nextFlowerZoneAt || now >= b.nextFlowerZoneAt)) {
+                            createFlowerZone(b, now);
+                            b.nextFlowerZoneAt = now + (b.definition.passive.effects.cooldown || 2) * 1000;
+                        }
+                    }
+
                     const key = `${a.id}:${b.id}`;
                     const lastHit = battle.pairHits.get(key) || 0;
                     if (now - lastHit > 620) {
@@ -2457,6 +2623,7 @@
             updatePuddles(now);
             updatePoisons(now);
             updateIceZones(now);
+            updateFlowerZones(now);
         }
 
         function checkWinner(now) {
@@ -2548,13 +2715,14 @@
                 cancelAnimationFrame(animationFrameId);
             }
 
-            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label, .bomb-timer, .impact-star, .puddle-zone, .poison-field, .ice-field, .arena-flash, .diet-aura, .ground-shockwave, .ground-crack, .ice-crystal, .frost-ring, .charge-ghost, .speed-line, .poison-drop, .poison-mist-cloud, .summon-portal, .summon-sparkle, .heart-particle, .glitch-line, .glitch-block, .cloud-particle, .slow-spiral, .siren-light, .arrest-net, .stealth-ghost, .blade-flash, .dust-puff, .bomb-pulse-ring, .explosion-ember, .explosion-flash-ring").forEach((node) => node.remove());
+            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label, .bomb-timer, .impact-star, .puddle-zone, .flower-zone, .poison-field, .ice-field, .arena-flash, .diet-aura, .ground-shockwave, .ground-crack, .ice-crystal, .frost-ring, .charge-ghost, .speed-line, .poison-drop, .poison-mist-cloud, .summon-portal, .summon-sparkle, .heart-particle, .glitch-line, .glitch-block, .cloud-particle, .slow-spiral, .siren-light, .arrest-net, .stealth-ghost, .blade-flash, .dust-puff, .bomb-pulse-ring, .explosion-ember, .explosion-flash-ring").forEach((node) => node.remove());
             battle.fighters = selectedCharacters.map((definition, index) => createFighter(definition, index, selectedCharacters.length));
             battle.pairHits = new Map();
             battle.activePuddles = [];
             battle.activePoisons = [];
             battle.activeBombs = [];
             battle.activeIceZones = [];
+            battle.activeFlowerZones = [];
 
             activeEffects.rings = 0;
             activeEffects.stars = 0;

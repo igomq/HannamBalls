@@ -255,6 +255,19 @@
     animation: bomb-timer-urgent 0.3s ease-in-out infinite;
 }
 
+/* 김동하 - 꽃미남 꽃 장판 */
+.flower-zone {
+    position: absolute;
+    pointer-events: none;
+    z-index: 3;
+    border-radius: 9999px;
+    border: 3px dashed #f43f5e;
+    background: radial-gradient(circle, rgba(225, 29, 72, 0.28) 0%, transparent 75%);
+    transform: translate(-50%, -50%);
+    animation: flower-pulse 1.2s infinite alternate ease-in-out;
+}
+
+
 /* ===== 키프레임 애니메이션 ===== */
 
 @keyframes diet-pulse {
@@ -398,4 +411,15 @@
 @keyframes bomb-timer-urgent {
     0%, 100% { transform: translate(-50%, -115%) scale(1); }
     50% { transform: translate(-50%, -115%) scale(1.15); box-shadow: 2px 2px 0px 0px #ba1a1a, 0 0 10px rgba(186, 26, 26, 0.6); }
+}
+
+@keyframes flower-pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(0.95);
+        opacity: 0.85;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.05);
+        opacity: 0.55;
+    }
 }

@@ -14,7 +14,8 @@
         junmo: "JM",
         haejin: "HJ",
         kanghyunwoo: "KH",
-        shingyu: "SG"
+        shingyu: "SG",
+        dongha: "DH"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -282,6 +283,41 @@
             cooldownOnDamageTaken: 3,
             immuneToBasic: false,
             avatarSrc: 'images/hyunwoo.png'
+        },
+        {
+            id: "kim-dongha",
+            name: "김동하",
+            shortName: "동하",
+            maxHp: 385,
+            baseAttack: 11,
+            speedLabel: "빠름",
+            speed: 270,
+            colorName: "정열적인 붉은색",
+            color: "#e11d48",
+            textColor: "#ffffff",
+            avatarSrc: "images/dongha.png",
+            avatarText: placeholderFaces.dongha,
+            traits: ["매혹", "지속 피해", "체력 회복"],
+            passive: {
+                name: "꽃미남",
+                description: "적과 부딪히면 주변에 2초간 지속되는 꽃 장판을 만들어 초당 22의 피해를 입힙니다.",
+                effects: {
+                    duration: 2,
+                    damagePerSecond: 22,
+                    tickInterval: 0.2,
+                    radius: 65,
+                    cooldown: 2
+                }
+            },
+            skill: {
+                name: "매혹",
+                cooldown: 11,
+                description: "가장 가까운 적을 매혹시켜 강제로 스킬을 시전시키게 합니다. 이 스킬로 인한 피해는 김동하가 입지 않고 피해량만큼 체력을 회복합니다.",
+                effects: {}
+            },
+            cooldownOnBasicHit: 0,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: false
         },
         {
             id: "lee-jihoon",
