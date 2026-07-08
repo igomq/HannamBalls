@@ -30,7 +30,6 @@
             colorName: "검은색",
             color: "#111111",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.song,
             traits: ["성장형 공격력", "느린 시작"],
             skill: {
@@ -62,7 +61,6 @@
             colorName: "회색",
             color: "#7b7f86",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.yuseung,
             traits: ["근거리 광역기", "쿨타임 순환"],
             skill: {
@@ -91,7 +89,6 @@
             colorName: "하늘색",
             color: "#38bdf8",
             textColor: "#001a42",
-            avatarSrc: "",
             avatarText: placeholderFaces.hanye,
             traits: ["전체 빙결", "받을수록 빨라지는 스킬"],
             skill: {
@@ -122,7 +119,6 @@
             colorName: "흰색",
             color: "#f3ecd3ff",
             textColor: "#1c1b1b",
-            avatarSrc: "",
             avatarText: placeholderFaces.jeongyuseung,
             traits: ["현재 체력 비례 기본 공격", "최고 체력 적 저격"],
             passive: {
@@ -157,7 +153,6 @@
             colorName: "보라색",
             color: "#8127cf",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.woochan,
             traits: ["기본 공격 면역", "고속 돌진", "돌진 중 저지불가"],
             skill: {
@@ -182,8 +177,8 @@
             id: "lee-seunghyun",
             name: "이승현",
             shortName: "승현",
-            maxHp: 265,
-            baseAttack: 18,
+            maxHp: 275,
+            baseAttack: 19,
             speedLabel: "빠름",
             speed: 255,
             colorName: "적갈색",
@@ -194,9 +189,9 @@
             traits: ["모서리 이동", "장판 흡혈", "밀치기 면역", "체력 50% 이하 보호막"],
             passive: {
                 name: "음침한 기운",
-                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 55%만큼 체력을 회복합니다. 처음으로 체력이 30% 미만으로 떨어지면 최대 체력의 50%에 해당하는 보호막을 얻습니다.",
+                description: "항상 맵 모서리로 이동하며, 적의 밀치기 스킬에 영향을 받지 않습니다. 이동 중 2초간 지속되는 장판을 만들고, 장판 피해량의 55%만큼 체력을 회복합니다. 처음으로 체력이 30% 미만으로 떨어지면 최대 체력의 40%에 해당하는 보호막을 얻습니다.",
                 effects: {
-                    puddleDamage: 28,
+                    puddleDamage: 19,
                     puddleDuration: 2,
                     puddleTickInterval: 0.55,
                     puddleRadius: 62,
@@ -205,25 +200,25 @@
                     dropInterval: 0.42,
                     maxActivePuddles: 5,
                     shieldThresholdRatio: 0.3,
-                    shieldRatio: 0.5
+                    shieldRatio: 0.4
                 }
             },
             skill: {
                 name: "음침 물들이기",
-                cooldown: 15,
-                description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 독 장판을 깝니다. 첫 사용은 무적 2초/초당 20 피해이며, 사용할 때마다 다음 쿨타임은 6초, 무적 시간은 1초, 초당 피해는 10씩 증가합니다.",
+                cooldown: 13,
+                description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 독 장판을 깝니다. 첫 사용은 무적 2초, 틱당 25 피해이며, 사용할 때마다 다음 쿨타임은 4초, 무적 시간은 1초, 틱당 피해는 10씩 증가합니다.",
                 effects: {
-                    poisonDps: 20,
+                    poisonDps: 25,
                     duration: 2,
                     offMapDuration: 2,
-                    tickInterval: 0.5,
-                    cooldownIncrease: 6,
+                    tickInterval: 0.44,
+                    cooldownIncrease: 4,
                     offMapDurationIncrease: 1,
                     poisonDpsIncrease: 10
                 }
             },
-            cooldownOnBasicHit: 0.22,
-            cooldownOnDamageTaken: 0,
+            cooldownOnBasicHit: 0.33,
+            cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
             immuneToKnockback: true,
             contactAttackDisabled: true,
@@ -241,7 +236,6 @@
             colorName: "민트색",
             color: "#42bb74ff",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.hyunwoo,
             traits: ["엄마 소환", "피격 쿨감", "소환수 흡혈"],
             skill: {
@@ -288,8 +282,8 @@
             id: "kim-dongha",
             name: "김동하",
             shortName: "동하",
-            maxHp: 385,
-            baseAttack: 11,
+            maxHp: 395,
+            baseAttack: 13,
             speedLabel: "빠름",
             speed: 270,
             colorName: "정열적인 붉은색",
@@ -300,13 +294,13 @@
             traits: ["매혹", "지속 피해", "체력 회복"],
             passive: {
                 name: "꽃미남",
-                description: "적과 부딪히면 주변에 2초간 지속되는 꽃 장판을 만들어 초당 22의 피해를 입힙니다.",
+                description: "적과 부딪히면 주변에 2초간 지속되는 꽃 장판을 만들어 초당 22의 피해를 입히고, 입힌 피해량의 40%만큼 체력을 회복합니다.",
                 effects: {
                     duration: 2,
                     damagePerSecond: 22,
                     tickInterval: 0.2,
                     radius: 65,
-                    cooldown: 2
+                    healRatio: 0.4
                 }
             },
             skill: {
@@ -315,8 +309,8 @@
                 description: "가장 가까운 적을 매혹시켜 강제로 스킬을 시전시키게 합니다. 이 스킬로 인한 피해는 김동하가 입지 않고 피해량만큼 체력을 회복합니다.",
                 effects: {}
             },
-            cooldownOnBasicHit: 0,
-            cooldownOnDamageTaken: 0,
+            cooldownOnBasicHit: 0.5,
+            cooldownOnDamageTaken: 0.5,
             immuneToBasic: false
         },
         {
@@ -330,7 +324,6 @@
             colorName: "핑크색",
             color: "#ec4899",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.jihoon,
             traits: ["기본 공격 회피", "회피 회복", "집착 추적"],
             passive: {
@@ -369,7 +362,6 @@
             colorName: "남색",
             color: "#1e3a8a",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.heoyul,
             traits: ["스킬 도둑", "잠깐 단단함", "쓰면 느려짐"],
             skill: {
@@ -399,7 +391,6 @@
             colorName: "노란색",
             color: "#facc15",
             textColor: "#1c1b1b",
-            avatarSrc: "",
             avatarText: placeholderFaces.heojaemin,
             traits: ["초스피드", "광역 둔화", "자가 가속", "쿨타임 순환"],
             skill: {
@@ -432,7 +423,6 @@
             colorName: "빨간색",
             color: "#dc2626",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.junmo,
             traits: ["단일 제압", "4번째 스킬 탈락"],
             passive: {
@@ -467,7 +457,6 @@
             colorName: "핫핑크",
             color: "#ff1493",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.haejin,
             traits: ["암살", "처치 보상", "잠깐 사라짐"],
             passive: {
@@ -505,7 +494,6 @@
             colorName: "연두색",
             color: "#84cc16",
             textColor: "#1c1b1b",
-            avatarSrc: "",
             avatarText: placeholderFaces.kanghyunwoo,
             traits: ["원거리 딜러", "제자리 포탑", "시간 성장"],
             passive: {
@@ -547,7 +535,6 @@
             colorName: "녹색",
             color: "#16a34a",
             textColor: "#ffffff",
-            avatarSrc: "",
             avatarText: placeholderFaces.shingyu,
             traits: ["폭탄 부여", "광역 폭발", "기본공격 쿨감"],
             skill: {

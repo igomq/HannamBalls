@@ -453,6 +453,8 @@
         </div>
     </div>
 
+    <script src="./battle-core.js"></script>
+    <script src="./battle-characters.js"></script>
     <script src="./effects.js"></script>
     <script>
         const arena = document.getElementById("arena");
@@ -460,6 +462,8 @@
         const countdown = document.getElementById("countdown");
         const matchTitle = document.getElementById("match-title");
         const elapsedTime = document.getElementById("elapsed-time");
+        const BattleCore = window.HannamBallsBattle;
+        const performanceProfile = BattleCore.createPerformanceProfile();
         const allCharacters = window.HannamBalls.getCharacters();
         const storedSelection = JSON.parse(localStorage.getItem("hannamBallsSelection") || "[]");
         let selectedCharacters = storedSelection
@@ -470,45 +474,58 @@
             selectedCharacters = allCharacters;
         }
 
-        const battle = {
-            fighters: [],
-            arenaSize: 600,
-            ballSize: 76,
-            startedAt: 0,
-            fightStartedAt: 0,
-            finishedAt: 0,
-            countdownSeconds: 3,
-            isRunning: false,
-            isFinished: false,
-            lastTime: 0,
-            pairHits: new Map(),
-            activePuddles: [],
-            activePoisons: [],
-            activeBombs: [],
-            activeIceZones: [],
-            activeFlowerZones: []
-        };
-        const EFFECT_LIMITS = {
-            bursts: 70,
-            rings: 14,
-            floatTexts: 18,
-            stars: 12,
-            flashes: 1
-        };
+        const battle = BattleCore.createBattleState();
+        const EFFECT_LIMITS = performanceProfile.effectLimits;
 
         const activeEffects = {
             rings: 0,
             stars: 0,
             bursts: 0,
             floatTexts: 0,
-            flashes: 0
+            flashes: 0,
+            skillLabels: 0
         };
 
         let animationFrameId = null;
         let lastElapsedText = "";
         let cachedCorners = [];
+        const hudUpdateGate = BattleCore.createUpdateGate(performanceProfile.hudIntervalMs);
+        const elapsedUpdateGate = BattleCore.createUpdateGate(performanceProfile.elapsedIntervalMs);
 
-        initEffects(arena, battle);
+        initEffects(arena, battle, performanceProfile);
+        const characterModules = window.HannamBallsCharacters.createModules(() => ({
+            battle,
+            addDamageReduction,
+            applyCopiedSkill,
+            applyDamage,
+            applyMaxHpRatioDamage,
+            areAllies,
+            arenaScale,
+            burst,
+            createFlowerZone,
+            createIceZone,
+            createPoisonField,
+            dashWithFallback,
+            effectRing,
+            effects: window,
+            floatText,
+            healFighter,
+            highestCurrentHpEnemy,
+            impactStar,
+            isInsideIceZone,
+            megaBurst,
+            nearestEnemy,
+            normalize,
+            plantBomb,
+            randomEnemy,
+            screenFlash,
+            setVelocitySpeed,
+            skillCooldownDuration,
+            skillLabel,
+            stun,
+            summonFighter,
+            useSkill
+        }));
 
         function escapeHtml(value) {
             return String(value)
@@ -520,8 +537,7 @@
         }
 
         function normalize(x, y) {
-            const length = Math.sqrt(x * x + y * y) || 1;
-            return { x: x / length, y: y / length };
+            return BattleCore.normalize(x, y);
         }
 
         function arenaScale() {
@@ -548,21 +564,11 @@
         }
 
         function skillCooldownDuration(fighter) {
-            if (fighter.definition.id === "lee-seunghyun") {
-                const effects = fighter.definition.skill.effects;
-                return fighter.definition.skill.cooldown + (fighter.seunghyunSkillUses || 0) * (effects.cooldownIncrease || 0);
-            }
-
-            return fighter.definition.skill.cooldown;
+            return BattleCore.skillCooldownDuration(fighter);
         }
 
         function rotateVector(x, y, radians) {
-            const cos = Math.cos(radians);
-            const sin = Math.sin(radians);
-            return {
-                x: x * cos - y * sin,
-                y: x * sin + y * cos
-            };
+            return BattleCore.rotateVector(x, y, radians);
         }
 
         function setVelocityDirection(fighter, x, y, speed) {
@@ -650,10 +656,7 @@
         }
 
         function formatElapsed(ms) {
-            const totalSeconds = Math.max(0, ms) / 1000;
-            const minutes = Math.floor(totalSeconds / 60);
-            const seconds = totalSeconds - minutes * 60;
-            return `${String(minutes).padStart(2, "0")}:${seconds.toFixed(1).padStart(4, "0")}`;
+            return BattleCore.formatElapsed(ms);
         }
 
         function currentFightElapsed(now) {
@@ -665,7 +668,11 @@
         }
 
         function updateElapsed(now) {
-            elapsedTime.textContent = `TIME ${formatElapsed(currentFightElapsed(now))}`;
+            const elapsedText = `TIME ${formatElapsed(currentFightElapsed(now))}`;
+            if (lastElapsedText !== elapsedText) {
+                elapsedTime.textContent = elapsedText;
+                lastElapsedText = elapsedText;
+            }
         }
 
         function setVelocitySpeed(fighter, speed) {
@@ -676,7 +683,7 @@
         }
 
         function isStunned(fighter, now) {
-            return fighter.stunnedUntil > now;
+            return BattleCore.isStunned(fighter, now);
         }
 
         function isUnstoppable(fighter, now) {
@@ -775,15 +782,11 @@
         }
 
         function areAllies(a, b) {
-            if (!a || !b) {
-                return false;
-            }
-
-            return Boolean(a.ownerId && b.ownerId && a.ownerId === b.ownerId);
+            return BattleCore.areAllies(a, b);
         }
 
         function livingEnemiesOf(fighter) {
-            return battle.fighters.filter((target) => target !== fighter && !target.dead && target.offMapUntil <= performance.now() && !areAllies(fighter, target));
+            return BattleCore.livingEnemiesOf(battle.fighters, fighter, performance.now());
         }
 
         function layoutFighters() {
@@ -1096,13 +1099,21 @@
         }
 
         function skillLabel(text, fighter) {
+            if (activeEffects.skillLabels >= EFFECT_LIMITS.skillLabels) {
+                return;
+            }
+
+            activeEffects.skillLabels++;
             const label = document.createElement("div");
             label.className = "skill-label";
             label.textContent = text;
             label.style.left = `${fighter.x}px`;
             label.style.top = `${fighter.y - battle.ballSize / 2}px`;
             arena.appendChild(label);
-            setTimeout(() => label.remove(), 760);
+            setTimeout(() => {
+                label.remove();
+                activeEffects.skillLabels--;
+            }, 760);
         }
 
         function reduceCooldown(fighter, seconds) {
@@ -1216,10 +1227,7 @@
                 return 0;
             }
 
-            const piercesBasicIgnore = kind === "basic"
-                && source
-                && source.definition.id === "song-geonuk"
-                && source.dietUses >= (source.definition.skill.effects.pierceBasicAfterUses || Infinity);
+            const piercesBasicIgnore = kind === "basic" && source && characterModules.piercesBasicIgnore(source, target);
 
             const isBasicLike = kind === "basic" || kind === "ranged";
 
@@ -1254,29 +1262,11 @@
                 effectRing(target.x, target.y, battle.ballSize * 1.1, "#38bdf8");
             }
 
-            const postHp = target.hp - damageToHp;
-
-            // 이승현 체력 첫 보호막 트리거
-            if (target.definition.id === "lee-seunghyun" && !target.shieldTriggered && postHp < target.maxHp * target.definition.shieldThresholdRatio && target.hp >= target.maxHp * target.definition.shieldThresholdRatio) {
-                target.shieldTriggered = true;
-                const shieldAmount = target.maxHp * target.definition.shieldRatio;
-                target.shield = (target.shield || 0) + shieldAmount;
-                floatText("보호막!", target.x, target.y - battle.ballSize / 2, "#38bdf8");
-                megaBurst(target.x, target.y, "#38bdf8", 6);
-
-                if (damageToHp > 0) {
-                    const damageToDropLimit = target.hp - target.maxHp * 0.5;
-                    const leftoverDamage = damageToHp - damageToDropLimit;
-                    const absorbed = Math.min(target.shield, leftoverDamage);
-                    target.shield -= absorbed;
-                    damageToHp = damageToDropLimit + (leftoverDamage - absorbed);
-                    floatText(`ABSORB ${Math.round(absorbed)}`, target.x, target.y - battle.ballSize / 2, "#38bdf8");
-                }
-            }
+            damageToHp = characterModules.applyThresholdShield(target, damageToHp, now);
 
             const actual = Math.min(target.hp, damageToHp);
             target.hp -= actual;
-            const isDot = kind === "poison" || (kind === "basic" && source && source.definition.id === "lee-seunghyun");
+            const isDot = characterModules.isDotDamage(kind, source);
             const canShowDot = !isDot || now >= target.nextDotFloatAt;
 
             if (canShowDot) {
@@ -1313,13 +1303,7 @@
                 target.element.style.zIndex = "1";
                 burst(target.x, target.y, "#ba1a1a", 12);
                 floatText("OUT", target.x, target.y, "#ba1a1a");
-
-                if (source && source.definition.id === "choi-haejin") {
-                    const effects = source.definition.passive?.effects || {};
-                    healFighter(source, source.maxHp * (effects.healOnKillRatio || 0));
-                    source.skillCooldown *= effects.cooldownOnKillRatio || 1;
-                    floatText("막타냠", source.x, source.y - battle.ballSize / 2, source.definition.color);
-                }
+                characterModules.onKill(source, target);
             }
 
             return actual;
@@ -1485,6 +1469,7 @@
                 radius,
                 damagePerSecond: effects.damagePerSecond || 22,
                 tickInterval: effects.tickInterval || 0.2,
+                healRatio: effects.healRatio || 0,
                 nextTickAt: now + (effects.tickInterval || 0.2) * 1000,
                 expiresAt: now + (effects.duration || 2) * 1000,
                 element: flower
@@ -1508,7 +1493,7 @@
 
                 flower.nextTickAt = now + flower.tickInterval * 1000;
 
-                if (window.flowerZoneParticles && Math.random() < 0.45) {
+                if (window.flowerZoneParticles && Math.random() < 0.45 * performanceProfile.effectScale) {
                     window.flowerZoneParticles(flower.x, flower.y, flower.radius, flower.source.definition.color);
                 }
 
@@ -1521,7 +1506,10 @@
                     const dy = target.y - flower.y;
                     if (Math.sqrt(dx * dx + dy * dy) <= flower.radius + battle.ballSize * 0.35) {
                         const damage = flower.damagePerSecond * flower.tickInterval;
-                        applyDamage(target, damage, flower.source, "passive");
+                        const dealt = applyDamage(target, damage, flower.source, "passive");
+                        if (dealt > 0 && flower.healRatio) {
+                            healFighter(flower.source, dealt * flower.healRatio);
+                        }
                     }
                 });
 
@@ -1841,6 +1829,11 @@
             } else if (copiedId === "lim-shingyu") {
                 plantBomb(fighter, copiedTarget, now, effects);
             } else if (copiedId === "kim-dongha") {
+                if (fighter.charmedBy) {
+                    floatText("매혹 연쇄 차단", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                    return true;
+                }
+
                 const target = nearestEnemy(fighter);
                 if (target) {
                     heartChase(fighter.x, fighter.y, target.x, target.y, fighter.definition.color);
@@ -2117,273 +2110,7 @@
         }
 
         function useSkill(fighter, now) {
-            const id = fighter.definition.id;
-            skillLabel(fighter.definition.skill.name, fighter);
-            screenFlash(fighter.definition.color);
-            megaBurst(fighter.x, fighter.y, fighter.definition.color, id === "lee-seunghyun" ? 4 : 8);
-
-            if (id === "song-geonuk") {
-                const effects = fighter.definition.skill.effects;
-                fighter.dietUses += 1;
-                const lost = Math.max(1, fighter.hp * effects.hpCostRatio);
-                fighter.hp = Math.max(1, fighter.hp - lost);
-                fighter.attack += effects.attackGain;
-                fighter.statBonusAttack += effects.attackGain;
-                fighter.speed *= effects.speedMultiplier;
-                fighter.statBonusSpeedRatio = fighter.speed / fighter.baseSpeed - 1;
-                addDamageReduction(fighter, effects.damageReductionGain || 0, effects.maxDamageReduction || 0);
-                setVelocitySpeed(fighter, fighter.speed);
-                effectRing(fighter.x, fighter.y, battle.ballSize * 1.55, fighter.definition.color);
-                burst(fighter.x, fighter.y, "#4ade80", 8);
-                dietAura(fighter);
-                floatText(`ATK+${effects.attackGain} DEF+`, fighter.x, fighter.y, "#006d36");
-            }
-
-            if (id === "yoo-seungchan") {
-                const effects = fighter.definition.skill.effects;
-                const radius = Math.min(effects.radius, battle.arenaSize * 0.38);
-                effectRing(fighter.x, fighter.y, radius * 2, fighter.definition.color);
-                groundSlam(fighter.x, fighter.y, radius, fighter.definition.color);
-                burst(fighter.x, fighter.y, fighter.definition.color, 10);
-                battle.fighters.forEach((target) => {
-                    if (target === fighter || target.dead || areAllies(fighter, target)) {
-                        return;
-                    }
-
-                    const dx = target.x - fighter.x;
-                    const dy = target.y - fighter.y;
-                    if (Math.sqrt(dx * dx + dy * dy) <= radius) {
-                        applyDamage(target, effects.damage, fighter, "skill");
-                        stun(target, effects.stunSeconds, now);
-                    }
-                });
-            }
-
-            if (id === "han-yejun") {
-                const effects = fighter.definition.skill.effects;
-                const ice = createIceZone(fighter, now, effects);
-                effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.2, fighter.definition.color);
-                iceCrystals(battle.arenaSize / 2, battle.arenaSize / 2, 10, fighter.definition.color);
-                burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 12);
-                battle.fighters.forEach((target) => {
-                    if (target !== fighter && !target.dead && !areAllies(fighter, target)) {
-                        applyDamage(target, effects.damage, fighter, "skill");
-                        stun(target, effects.stunSeconds, now);
-                        if (isInsideIceZone(target, ice)) {
-                            const bonus = applyDamage(target, effects.damage * effects.iceZoneBonusRatio, fighter, "skill");
-                            healFighter(fighter, bonus * effects.iceZoneHealRatio);
-                            floatText("얼음추가", target.x, target.y - battle.ballSize, fighter.definition.color);
-                        }
-                    }
-                });
-            }
-
-            if (id === "jeong-yuseung") {
-                const effects = fighter.definition.skill.effects;
-                const target = highestCurrentHpEnemy(fighter);
-                if (target) {
-                    const dealt = applyMaxHpRatioDamage(target, effects.maxHpDamageRatio || effects.currentHpDamageRatio, fighter, "skill");
-                    healFighter(fighter, dealt * (effects.healRatio || 0));
-                    effectRing(target.x, target.y, battle.ballSize * 1.55, fighter.definition.color);
-                    burst(target.x, target.y, fighter.definition.color, 6);
-                    impactStar(target.x, target.y, fighter.definition.color);
-                    floatText("음식 남김", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
-                } else {
-                    floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-                }
-            }
-
-            if (id === "lee-woochan") {
-                const effects = fighter.definition.skill.effects;
-                fighter.chargeUntil = now + effects.durationMs;
-                fighter.chargeHits = new Set();
-                setVelocitySpeed(fighter, Math.max(effects.minSpeed, fighter.speed * effects.speedMultiplier));
-                effectRing(fighter.x, fighter.y, battle.ballSize * 1.4, fighter.definition.color);
-                burst(fighter.x, fighter.y, fighter.definition.color, 8);
-                chargeGhost(fighter);
-            }
-
-            if (id === "lee-seunghyun") {
-                const effects = fighter.definition.skill.effects;
-                const uses = fighter.seunghyunSkillUses || 0;
-                const poisonEffects = {
-                    ...effects,
-                    poisonDps: effects.poisonDps + uses * effects.poisonDpsIncrease,
-                    offMapDuration: effects.offMapDuration + uses * effects.offMapDurationIncrease
-                };
-                fighter.offMapUntil = now + poisonEffects.offMapDuration * 1000;
-                fighter.invulnerableUntil = fighter.offMapUntil;
-                fighter.vx = 0;
-                fighter.vy = 0;
-                createPoisonField(fighter, now, poisonEffects);
-                fighter.seunghyunSkillUses += 1;
-                effectRing(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize * 1.35, fighter.definition.color);
-                poisonMist(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color);
-                burst(battle.arenaSize / 2, battle.arenaSize / 2, fighter.definition.color, 6);
-                floatText(`MAP OUT ${poisonEffects.poisonDps}/s`, fighter.x, fighter.y, fighter.definition.color);
-            }
-
-            if (id === "lee-hyunwoo") {
-                const summonDefinition = fighter.definition.skill.effects.summon;
-                summonPortal(fighter.x, fighter.y, fighter.definition.color);
-                summonFighter(fighter, summonDefinition, now);
-            }
-
-            if (id === "lee-jihoon") {
-                const target = nearestEnemy(fighter);
-                if (target) {
-                    const effects = fighter.definition.skill.effects;
-                    fighter.followTargetId = target.id;
-                    fighter.followUntil = now + effects.duration * 1000;
-                    fighter.nextFollowDamageAt = now + (effects.tickInterval || 1) * 1000;
-                    fighter.followEffects = effects;
-                    if (fighter.charmedBy) {
-                        fighter.followCharmedBy = fighter.charmedBy;
-                    }
-                    heartChase(fighter.x, fighter.y, target.x, target.y, fighter.definition.color);
-                    floatText("💕LOCK ON", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
-                    effectRing(target.x, target.y, battle.ballSize * 1.35, fighter.definition.color);
-                } else {
-                    floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-                }
-            }
-
-            if (id === "heo-yul") {
-                const target = nearestEnemy(fighter);
-                const effects = fighter.definition.skill.effects;
-                fighter.tempDamageReduction = effects.damageReduction;
-                fighter.tempDamageReductionUntil = now + effects.damageReductionDuration * 1000;
-                fighter.speed = Math.max(40, fighter.speed - effects.speedLoss);
-                fighter.statBonusSpeedRatio = fighter.speed / fighter.baseSpeed - 1;
-                glitchScan(fighter.x, fighter.y, battle.ballSize * 1.5, fighter.definition.color);
-                applyCopiedSkill(fighter, target, now);
-                floatText("🔀공부지능 ON", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-            }
-
-            if (id === "heo-jaemin") {
-                const effects = fighter.definition.skill.effects;
-                const radius = Math.min(effects.radius, battle.arenaSize * 0.4);
-                fighter.hasteMultiplier = effects.hasteMultiplier;
-                fighter.hasteUntil = now + effects.hasteDuration * 1000;
-                effectRing(fighter.x, fighter.y, radius * 2, fighter.definition.color);
-                cloudPuff(fighter.x, fighter.y, radius, fighter.definition.color);
-                burst(fighter.x, fighter.y, fighter.definition.color, 8);
-                floatText("☁️구름가속", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-
-                let dealt = 0;
-                battle.fighters.forEach((target) => {
-                    if (target === fighter || target.dead || areAllies(fighter, target)) {
-                        return;
-                    }
-                    const dx = target.x - fighter.x;
-                    const dy = target.y - fighter.y;
-                    if (Math.sqrt(dx * dx + dy * dy) <= radius) {
-                        target.slowMultiplier = effects.slowMultiplier;
-                        target.slowUntil = now + effects.slowDuration * 1000;
-                        dealt += applyDamage(target, effects.damage, fighter, "skill");
-                        floatText("🌀느려짐", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
-                        slowSpiral(target.x, target.y, fighter.definition.color);
-                        impactStar(target.x, target.y, fighter.definition.color);
-                        effectRing(target.x, target.y, battle.ballSize * 1.25, fighter.definition.color);
-                    }
-                });
-
-                healFighter(fighter, dealt * effects.healRatio);
-            }
-
-            if (id === "kim-junmo") {
-                fighter.skillUseCount += 1;
-                if (fighter.skillUseCount >= fighter.definition.passive.effects.selfOutOnSkillUse) {
-                    fighter.dead = true;
-                    fighter.hp = 0;
-                    fighter.vx = 0;
-                    fighter.vy = 0;
-                    floatText("셀프연행", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-                    megaBurst(fighter.x, fighter.y, fighter.definition.color, 6);
-                } else {
-                    const target = nearestEnemy(fighter);
-                    if (target) {
-                        const effects = fighter.definition.skill.effects;
-                        applyDamage(target, effects.damage, fighter, "skill");
-                        stun(target, effects.stunSeconds, now);
-                        sirenFlash(target.x, target.y);
-                        effectRing(target.x, target.y, battle.ballSize * 1.85, fighter.definition.color);
-                        burst(target.x, target.y, fighter.definition.color, 7);
-                        impactStar(target.x, target.y, fighter.definition.color);
-                        floatText("🚨공안출동", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
-                    }
-                }
-            }
-
-            if (id === "choi-haejin") {
-                const target = randomEnemy(fighter);
-                const effects = fighter.definition.skill.effects;
-                if (target) {
-                    fighter.backstab = {
-                        targetId: target.id,
-                        returnAt: now + effects.disappearDuration * 1000,
-                        damage: effects.damage,
-                        behindDistance: effects.behindDistance,
-                        healRatio: effects.healRatio || 0
-                    };
-                    if (fighter.charmedBy) {
-                        fighter.backstabCharmedBy = fighter.charmedBy;
-                    }
-                    fighter.offMapUntil = fighter.backstab.returnAt;
-                    fighter.invulnerableUntil = fighter.offMapUntil;
-                    fighter.vx = 0;
-                    fighter.vy = 0;
-                    stealthFade(fighter.x, fighter.y, fighter.definition.color);
-                    effectRing(fighter.x, fighter.y, battle.ballSize * 1.5, fighter.definition.color);
-                    burst(fighter.x, fighter.y, fighter.definition.color, 5);
-                    floatText("🔪사라짐", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-                }
-            }
-
-            if (id === "kang-hyunwoo") {
-                const target = nearestEnemy(fighter);
-                const effects = fighter.definition.skill.effects;
-                let direction = target ? normalize(fighter.x - target.x, fighter.y - target.y) : normalize(Math.random() - 0.5, Math.random() - 0.5);
-                const moved = dashWithFallback(fighter, direction, effects.dashDistance * arenaScale());
-                if (target && !target.dead) {
-                    applyDamage(target, effects.dashDamage || 15, fighter, "skill");
-                    effectRing(target.x, target.y, battle.ballSize * 1.2, fighter.definition.color);
-                    impactStar(target.x, target.y, fighter.definition.color);
-                }
-                dustKick(fighter.x, fighter.y, "#a8a29e");
-                megaBurst(fighter.x, fighter.y, fighter.definition.color, 4);
-                effectRing(fighter.x, fighter.y, battle.ballSize * 1.35, fighter.definition.color);
-                floatText(moved > 1 ? "💨호다닥" : "꿈틀", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-            }
-
-            if (id === "lim-shingyu") {
-                const target = nearestEnemy(fighter);
-                if (target) {
-                    plantBomb(fighter, target, now);
-                    impactStar(target.x, target.y, fighter.definition.color);
-                }
-            }
-
-            if (id === "kim-dongha") {
-                const target = nearestEnemy(fighter);
-                if (target) {
-                    heartChase(fighter.x, fighter.y, target.x, target.y, fighter.definition.color);
-                    floatText("💕매혹", target.x, target.y - battle.ballSize / 2, fighter.definition.color);
-                    effectRing(target.x, target.y, battle.ballSize * 1.5, fighter.definition.color);
-
-                    target.charmedBy = fighter;
-                    target.backstabCharmedBy = fighter;
-                    target.followCharmedBy = fighter;
-
-                    useSkill(target, now);
-
-                    target.charmedBy = null;
-                } else {
-                    floatText("NO TARGET", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-                }
-            }
-
-            fighter.skillCooldown = skillCooldownDuration(fighter);
+            characterModules.useSkill(fighter, now);
         }
 
         function handleWallBounce(fighter) {
@@ -2428,12 +2155,9 @@
                 return;
             }
 
-            const piercesBasicIgnore = attacker.definition.id === "song-geonuk"
-                && attacker.dietUses >= (attacker.definition.skill.effects.pierceBasicAfterUses || Infinity)
-                && (defender.definition.evadesBasic || defender.definition.immuneToBasic);
+            const piercesBasicIgnore = characterModules.piercesBasicIgnore(attacker, defender);
             const attackAmount = piercesBasicIgnore ? attacker.definition.baseAttack : attacker.attack;
-            const passiveEffects = attacker.definition.passive?.effects || {};
-            const basicBonusDamage = Math.max(0, defender.hp * (passiveEffects.basicCurrentHpBonusRatio || 0));
+            const basicBonusDamage = characterModules.basicBonusDamage(attacker, defender);
             const dealt = applyDamage(defender, attackAmount, attacker, "basic");
             if (dealt > 0) {
                 if (basicBonusDamage > 0 && !defender.dead) {
@@ -2542,14 +2266,8 @@
                     handleChargeHit(b, a, -nx, -ny);
 
                     if (!areAllies(a, b)) {
-                        if (a.definition.id === "kim-dongha" && (!a.nextFlowerZoneAt || now >= a.nextFlowerZoneAt)) {
-                            createFlowerZone(a, now);
-                            a.nextFlowerZoneAt = now + (a.definition.passive.effects.cooldown || 2) * 1000;
-                        }
-                        if (b.definition.id === "kim-dongha" && (!b.nextFlowerZoneAt || now >= b.nextFlowerZoneAt)) {
-                            createFlowerZone(b, now);
-                            b.nextFlowerZoneAt = now + (b.definition.passive.effects.cooldown || 2) * 1000;
-                        }
+                        characterModules.onEnemyCollision(a, b, now);
+                        characterModules.onEnemyCollision(b, a, now);
                     }
 
                     const key = `${a.id}:${b.id}`;
@@ -2595,10 +2313,10 @@
                 }
 
                 if (fighter.chargeUntil > now) {
-                    if (Math.random() < 0.18) {
+                    if (Math.random() < 0.18 * performanceProfile.effectScale) {
                         chargeGhost(fighter);
                     }
-                    if (Math.random() < 0.08) {
+                    if (Math.random() < 0.08 * performanceProfile.effectScale) {
                         burst(fighter.x, fighter.y, fighter.definition.color, 2);
                     }
                 } else if (updateFollowSkill(fighter, now)) {
@@ -2674,8 +2392,12 @@
             }
 
             renderFighters(now);
-            updateHud(now);
-            updateElapsed(now);
+            if (hudUpdateGate.shouldRun(now) || battle.isFinished) {
+                updateHud(now);
+            }
+            if (elapsedUpdateGate.shouldRun(now) || battle.isFinished) {
+                updateElapsed(now);
+            }
 
             if (battle.isRunning || !battle.isFinished) {
                 animationFrameId = requestAnimationFrame(tick);
@@ -2729,6 +2451,7 @@
             activeEffects.bursts = 0;
             activeEffects.floatTexts = 0;
             activeEffects.flashes = 0;
+            activeEffects.skillLabels = 0;
 
             battle.startedAt = performance.now();
             battle.fightStartedAt = 0;
@@ -2742,6 +2465,8 @@
 
             lastElapsedText = "";
             elapsedTime.textContent = "TIME 00:00.0";
+            hudUpdateGate.reset();
+            elapsedUpdateGate.reset();
 
             layoutFighters();
             renderHud();

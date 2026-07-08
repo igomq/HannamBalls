@@ -1,14 +1,20 @@
 (function () {
-    let _arena, _battle;
+    let _arena, _battle, _profile;
 
-    window.initEffects = function (arena, battle) {
+    function effectCount(count) {
+        return window.HannamBallsBattle?.scaledEffectCount(count, _profile) || count;
+    }
+
+    window.initEffects = function (arena, battle, profile = null) {
         _arena = arena;
         _battle = battle;
+        _profile = profile;
     };
 
     // 송건욱 - 다이어트 녹색 근육 파동
     window.dietAura = function (fighter) {
-        for (let i = 0; i < 2; i++) {
+        const auraCount = effectCount(2);
+        for (let i = 0; i < auraCount; i++) {
             const aura = document.createElement("div");
             aura.className = "diet-aura";
             aura.style.left = `${fighter.x}px`;
@@ -20,9 +26,10 @@
             setTimeout(() => aura.remove(), 820);
         }
         const emojis = ["💪", "🔥", "⬆"];
-        for (let i = 0; i < 3; i++) {
+        const emojiCount = effectCount(3);
+        for (let i = 0; i < emojiCount; i++) {
             const em = document.createElement("div");
-            const angle = (Math.PI * 2 * i) / 3 - Math.PI / 2;
+            const angle = (Math.PI * 2 * i) / emojiCount - Math.PI / 2;
             const dist = 28 + Math.random() * 18;
             em.className = "heart-particle";
             em.style.left = `${fighter.x}px`;
@@ -58,9 +65,10 @@
         _arena.appendChild(crack);
         setTimeout(() => crack.remove(), 750);
 
-        for (let i = 0; i < 6; i++) {
+        const debrisCount = effectCount(6);
+        for (let i = 0; i < debrisCount; i++) {
             const d = document.createElement("div");
-            const a = (Math.PI * 2 * i) / 6;
+            const a = (Math.PI * 2 * i) / debrisCount;
             const dist = radius * 0.4 + Math.random() * radius * 0.3;
             d.className = "effect-burst";
             d.style.left = `${x}px`;
@@ -75,9 +83,10 @@
 
     // 한예준 - 아이스 에이지 얼음 결정 비산
     window.iceCrystals = function (x, y, count, color) {
-        for (let i = 0; i < count; i++) {
+        const crystalCount = effectCount(count);
+        for (let i = 0; i < crystalCount; i++) {
             const c = document.createElement("div");
-            const a = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.5;
+            const a = (Math.PI * 2 * i) / crystalCount + (Math.random() - 0.5) * 0.5;
             const dist = 30 + Math.random() * 55;
             c.className = "ice-crystal";
             c.style.left = `${x}px`;
@@ -112,7 +121,7 @@
         _arena.appendChild(ghost);
         setTimeout(() => ghost.remove(), 420);
 
-        if (Math.random() < 0.6) {
+        if (Math.random() < 0.6 * (_profile?.effectScale || 1)) {
             const line = document.createElement("div");
             const angle = Math.atan2(fighter.vy, fighter.vx);
             const len = 18 + Math.random() * 22;
@@ -141,7 +150,8 @@
         _arena.appendChild(mist);
         setTimeout(() => mist.remove(), 1300);
 
-        for (let i = 0; i < 5; i++) {
+        const dropCount = effectCount(5);
+        for (let i = 0; i < dropCount; i++) {
             const drop = document.createElement("div");
             drop.className = "poison-drop";
             drop.style.left = `${x + (Math.random() - 0.5) * 80}px`;
@@ -166,9 +176,10 @@
         _arena.appendChild(portal);
         setTimeout(() => portal.remove(), 860);
 
-        for (let i = 0; i < 8; i++) {
+        const sparkleCount = effectCount(8);
+        for (let i = 0; i < sparkleCount; i++) {
             const sp = document.createElement("div");
-            const a = (Math.PI * 2 * i) / 8;
+            const a = (Math.PI * 2 * i) / sparkleCount;
             const dist = _battle.ballSize * 0.8;
             sp.className = "summon-sparkle";
             sp.style.left = `${x}px`;
@@ -185,7 +196,8 @@
     // 이지훈 - 집착 추적 하트 파티클
     window.heartChase = function (fromX, fromY, toX, toY, color) {
         const hearts = ["💕", "💗", "💖", "❤️"];
-        for (let i = 0; i < 4; i++) {
+        const heartCount = effectCount(4);
+        for (let i = 0; i < heartCount; i++) {
             const h = document.createElement("div");
             const mx = (toX - fromX) * 0.5 + (Math.random() - 0.5) * 40;
             const my = (toY - fromY) * 0.5 + (Math.random() - 0.5) * 40;
@@ -203,9 +215,10 @@
 
     // 허율 - 스킬 도둑 글리치 스캔
     window.glitchScan = function (x, y, size, color) {
-        for (let i = 0; i < 5; i++) {
+        const lineCount = effectCount(5);
+        for (let i = 0; i < lineCount; i++) {
             const line = document.createElement("div");
-            const yOff = (i - 2) * (size / 5);
+            const yOff = (i - (lineCount - 1) / 2) * (size / 5);
             line.className = "glitch-line";
             line.style.left = `${x - size / 2}px`;
             line.style.top = `${y + yOff}px`;
@@ -216,7 +229,8 @@
             _arena.appendChild(line);
             setTimeout(() => line.remove(), 460);
         }
-        for (let i = 0; i < 4; i++) {
+        const blockCount = effectCount(4);
+        for (let i = 0; i < blockCount; i++) {
             const block = document.createElement("div");
             const bw = 10 + Math.random() * 30;
             const bh = 4 + Math.random() * 8;
@@ -236,9 +250,10 @@
 
     // 허재민 - 뭉개뭉개 구름 확산
     window.cloudPuff = function (x, y, radius, color) {
-        for (let i = 0; i < 8; i++) {
+        const cloudCount = effectCount(8);
+        for (let i = 0; i < cloudCount; i++) {
             const cl = document.createElement("div");
-            const a = (Math.PI * 2 * i) / 8;
+            const a = (Math.PI * 2 * i) / cloudCount;
             const dist = radius * 0.4 + Math.random() * radius * 0.4;
             const sz = 20 + Math.random() * 25;
             cl.className = "cloud-particle";
@@ -296,9 +311,10 @@
 
     // 최해진 - 뒷치기 은신 사라짐
     window.stealthFade = function (x, y, color) {
-        for (let i = 0; i < 4; i++) {
+        const ghostCount = effectCount(4);
+        for (let i = 0; i < ghostCount; i++) {
             const ghost = document.createElement("div");
-            const a = (Math.PI * 2 * i) / 4 + Math.random() * 0.5;
+            const a = (Math.PI * 2 * i) / ghostCount + Math.random() * 0.5;
             const dist = 20 + Math.random() * 30;
             ghost.className = "stealth-ghost";
             ghost.style.left = `${x}px`;
@@ -316,9 +332,10 @@
 
     // 최해진 - 뒷치기 등장 칼날 번쩍
     window.stealthReveal = function (x, y, color) {
-        for (let i = 0; i < 3; i++) {
+        const bladeCount = effectCount(3);
+        for (let i = 0; i < bladeCount; i++) {
             const blade = document.createElement("div");
-            const rot = -30 + i * 30 + (Math.random() - 0.5) * 20;
+            const rot = -30 + i * (60 / Math.max(1, bladeCount - 1)) + (Math.random() - 0.5) * 20;
             blade.className = "blade-flash";
             blade.style.left = `${x}px`;
             blade.style.top = `${y}px`;
@@ -332,7 +349,8 @@
 
     // 강현우 - 대시 먼지
     window.dustKick = function (x, y, color) {
-        for (let i = 0; i < 5; i++) {
+        const dustCount = effectCount(5);
+        for (let i = 0; i < dustCount; i++) {
             const dust = document.createElement("div");
             const sz = 8 + Math.random() * 10;
             const a = Math.random() * Math.PI * 2;
@@ -378,9 +396,10 @@
         setTimeout(() => flash.remove(), 560);
 
         const colors = [color, "#fbbf24", "#f97316", "#ef4444"];
-        for (let i = 0; i < 10; i++) {
+        const emberCount = effectCount(10);
+        for (let i = 0; i < emberCount; i++) {
             const em = document.createElement("div");
-            const a = (Math.PI * 2 * i) / 10 + (Math.random() - 0.5) * 0.3;
+            const a = (Math.PI * 2 * i) / emberCount + (Math.random() - 0.5) * 0.3;
             const dist = radius * 0.3 + Math.random() * radius * 0.6;
             em.className = "explosion-ember";
             em.style.left = `${x}px`;
@@ -397,7 +416,8 @@
     // 김동하 - 꽃미남 꽃 장판 파티클
     window.flowerZoneParticles = function (x, y, radius, color) {
         const emojis = ["🌸", "🌹", "🌺", "🌷"];
-        for (let i = 0; i < 4; i++) {
+        const flowerCount = effectCount(4);
+        for (let i = 0; i < flowerCount; i++) {
             const p = document.createElement("div");
             const a = Math.random() * Math.PI * 2;
             const dist = Math.random() * radius * 0.85;
