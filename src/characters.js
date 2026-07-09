@@ -15,7 +15,10 @@
         haejin: "HJ",
         kanghyunwoo: "KH",
         shingyu: "SG",
-        dongha: "DH"
+        dongha: "DH",
+        bbangki: "BK",
+        faker: "FK",
+        hyunho: "HH"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -523,6 +526,120 @@
             contactAttackDisabled: true,
             immobile: true,
             avatarSrc: 'images/hyunwoo_k.png'
+        },
+        {
+            id: "faker",
+            name: "대상혁",
+            shortName: "대상혁",
+            maxHp: 1557,
+            baseAttack: 15.57,
+            speedLabel: "초월",
+            speed: 488,
+            colorName: "월즈 우승 트로피",
+            color: "#f59e0b",
+            textColor: "#1c1b1b",
+            avatarSrc: "images/faker.png",
+            avatarText: placeholderFaces.faker,
+            traits: ["압도적 OP", "전장 전체 제압", "불사대마왕"],
+            passive: {
+                name: "불사대마왕",
+                description: "처음으로 쓰러질 위기에 처하면 체력을 버티고 보호막을 얻으며 즉시 스킬을 준비합니다.",
+                effects: {
+                    clutchHpRatio: 0.5,
+                    clutchShieldRatio: 0.75,
+                    clutchDamageReduction: 0.8,
+                    clutchDuration: 15.57
+                }
+            },
+            skill: {
+                name: "미드 차이",
+                cooldown: 15.57,
+                description: "전장을 장악해 모든 적에게 1557 피해를 입히고 1557초간 행동 불가 상태로 만듭니다. 대상혁은 입힌 피해량만큼 회복합니다.",
+                effects: {
+                    damage: 1557,
+                    stunSeconds: 1557,
+                    healRatio: 1
+                }
+            },
+            cooldownOnBasicHit: 1.5,
+            cooldownOnDamageTaken: 3,
+            immuneToBasic: false,
+            immuneToKnockback: true
+        },
+        {
+            id: "bbangki",
+            name: "ㅃ키",
+            shortName: "ㅃ키",
+            maxHp: 255,
+            baseAttack: 1,
+            speedLabel: "ㅈㄴ 빠름",
+            speed: 545,
+            colorName: "청록색",
+            color: "#14b8a6",
+            textColor: "#001a42",
+            avatarSrc: "images/bbangki.png",
+            avatarText: placeholderFaces.bbangki,
+            traits: ["기본 공격 1", "초고속 방해", "각성 후 현타"],
+            startingDamageReduction: 0.18,
+            passive: {
+                name: "ㅃ키행동",
+                description: "항상 피해를 조금 덜 받고 매우 빠르게 돌아다닙니다. 단, 마지막 대치 구도에서는 어그로가 몰려 받는 피해가 증가합니다.",
+                effects: {
+                    duelDamageTakenMultiplier: 1.75
+                }
+            },
+            skill: {
+                name: "ㅃ키각성",
+                cooldown: 5.6,
+                description: "3.2초간 이동 속도가 크게 증가하고 받는 피해가 크게 감소합니다. 각성이 끝나면 현타로 최대 체력 비례 피해를 입으며, 사용할수록 현타 피해가 커집니다.",
+                effects: {
+                    duration: 3.2,
+                    hasteMultiplier: 1.95,
+                    damageReduction: 0.62,
+                    recoilBaseRatio: 0.07,
+                    recoilGrowthRatio: 0.025,
+                    maxRecoilRatio: 0.18
+                }
+            },
+            cooldownOnBasicHit: 0.1,
+            cooldownOnDamageTaken: 0.8,
+            immuneToBasic: false
+        },
+        {
+            id: "mun-hyunho",
+            name: "문현호",
+            shortName: "현호",
+            maxHp: 655,
+            baseAttack: 9,
+            speedLabel: "보통",
+            speed: 215,
+            colorName: "먹방 오렌지",
+            color: "#f97316",
+            textColor: "#ffffff",
+            avatarSrc: "images/hyunho.png",
+            avatarText: placeholderFaces.hyunho,
+            traits: ["높은 체력", "맛보기 표식", "중앙 먹방"],
+            passive: {
+                name: "맛보기",
+                description: "기본 공격에 맞은 적에게 표식을 남깁니다. 표식이 있는 적을 기본 공격하면 기본 공격력의 5배만큼 추가 피해를 입힙니다.",
+                effects: {
+                    markedBasicBonusMultiplier: 5
+                }
+            },
+            skill: {
+                name: "먹방",
+                cooldown: 14,
+                description: "맵 정중앙에 5초간 고정되고 받는 피해가 크게 감소합니다. 이 동안 부딪힌 적을 먹어 현재 체력의 50%를 빼앗습니다. 아무도 먹지 못하면 본인 최대 체력의 7.5%만큼 피해를 입습니다.",
+                effects: {
+                    duration: 5,
+                    currentHpStealRatio: 0.5,
+                    failSelfDamageRatio: 0.075,
+                    damageReduction: 0.75
+                }
+            },
+            cooldownOnBasicHit: 0.35,
+            cooldownOnDamageTaken: 0.5,
+            immuneToBasic: false
         },
         {
             id: "lim-shingyu",

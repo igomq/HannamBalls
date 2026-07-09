@@ -246,6 +246,74 @@
                 ctx.floatText(moved > 1 ? "💨호다닥" : "꿈틀", fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
             },
 
+            "faker": (fighter, now, ctx) => {
+                const effects = effectsOf(fighter);
+                let dealtTotal = 0;
+                fighter.x = ctx.battle.arenaSize / 2;
+                fighter.y = ctx.battle.arenaSize / 2;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                fighter.invulnerableUntil = Math.max(fighter.invulnerableUntil || 0, now + 750);
+
+                ctx.effectRing(fighter.x, fighter.y, ctx.battle.arenaSize * 1.2, fighter.definition.color);
+                ctx.burst(fighter.x, fighter.y, fighter.definition.color, 16);
+                ctx.floatText("MID GAP", fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
+
+                ctx.battle.fighters.forEach((target) => {
+                    if (target === fighter || target.dead || ctx.areAllies(fighter, target)) {
+                        return;
+                    }
+
+                    dealtTotal += ctx.applyDamage(target, effects.damage, fighter, "skill");
+                    ctx.stun(target, effects.stunSeconds, now);
+                    ctx.impactStar(target.x, target.y, fighter.definition.color);
+                    ctx.effectRing(target.x, target.y, ctx.battle.ballSize * 1.8, fighter.definition.color);
+                });
+
+                ctx.healFighter(fighter, dealtTotal * (effects.healRatio || 0));
+            },
+
+            "bbangki": (fighter, now, ctx) => {
+                const effects = effectsOf(fighter);
+                fighter.bbangkiAwakenUses = (fighter.bbangkiAwakenUses || 0) + 1;
+                fighter.hasteMultiplier = effects.hasteMultiplier || 1.8;
+                fighter.hasteUntil = now + (effects.duration || 3) * 1000;
+                fighter.tempDamageReduction = Math.max(fighter.tempDamageReduction || 0, effects.damageReduction || 0.55);
+                fighter.tempDamageReductionUntil = Math.max(fighter.tempDamageReductionUntil || 0, fighter.hasteUntil);
+                fighter.bbangkiCrashAt = fighter.hasteUntil;
+                fighter.bbangkiCrashRatio = Math.min(
+                    effects.maxRecoilRatio || 0.18,
+                    (effects.recoilBaseRatio || 0.07) + (fighter.bbangkiAwakenUses - 1) * (effects.recoilGrowthRatio || 0)
+                );
+                ctx.setVelocitySpeed(fighter, fighter.speed * fighter.hasteMultiplier);
+                ctx.effects.glitchScan(fighter.x, fighter.y, ctx.battle.ballSize * 1.7, fighter.definition.color);
+                ctx.effects.dustKick(fighter.x, fighter.y, fighter.definition.color);
+                ctx.effectRing(fighter.x, fighter.y, ctx.battle.ballSize * 1.8, fighter.definition.color);
+                ctx.burst(fighter.x, fighter.y, fighter.definition.color, 10);
+                ctx.floatText(`ㅃ키각성 ${fighter.bbangkiAwakenUses}`, fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
+            },
+
+            "mun-hyunho": (fighter, now, ctx) => {
+                const effects = effectsOf(fighter);
+                const center = ctx.battle.arenaSize / 2;
+                const durationMs = (effects.duration || 5) * 1000;
+                fighter.x = center;
+                fighter.y = center;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                fighter.centerLockUntil = now + durationMs;
+                fighter.mukbangUntil = fighter.centerLockUntil;
+                fighter.mukbangResolved = false;
+                fighter.mukbangStealRatio = effects.currentHpStealRatio || 0.5;
+                fighter.mukbangFailRatio = effects.failSelfDamageRatio || 0.075;
+                fighter.tempDamageReduction = Math.max(fighter.tempDamageReduction || 0, effects.damageReduction || 0.75);
+                fighter.tempDamageReductionUntil = Math.max(fighter.tempDamageReductionUntil || 0, fighter.mukbangUntil);
+                ctx.effectRing(center, center, ctx.battle.ballSize * 2.2, fighter.definition.color);
+                ctx.effectRing(center, center, ctx.battle.arenaSize * 0.46, fighter.definition.color);
+                ctx.burst(center, center, fighter.definition.color, 12);
+                ctx.floatText("먹방 대기", center, center - ctx.battle.ballSize / 2, fighter.definition.color);
+            },
+
             "lim-shingyu": (fighter, now, ctx) => {
                 const target = ctx.nearestEnemy(fighter);
                 if (target) {
@@ -296,6 +364,27 @@
                     source.skillCooldown *= effects.cooldownOnKillRatio || 1;
                     ctx.floatText("막타냠", source.x, source.y - ctx.battle.ballSize / 2, source.definition.color);
                 }
+            },
+            "mun-hyunho": {
+                onEnemyCollision(fighter, other, now, ctx) {
+                    if (!fighter.mukbangUntil || now > fighter.mukbangUntil || fighter.mukbangResolved || other.dead) {
+                        return;
+                    }
+
+                    const effects = fighter.definition.skill.effects || {};
+                    const dealt = ctx.applyCurrentHpRatioDamage(other, effects.currentHpStealRatio || 0.5, fighter, "skill");
+                    fighter.mukbangResolved = true;
+                    fighter.mukbangUntil = 0;
+                    fighter.centerLockUntil = 0;
+                    fighter.mukbangStealRatio = 0;
+                    fighter.mukbangFailRatio = 0;
+                    fighter.tempDamageReductionUntil = Math.min(fighter.tempDamageReductionUntil || 0, now);
+                    ctx.healFighter(fighter, dealt);
+                    ctx.floatText("먹방 성공", fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                    ctx.floatText("냠", other.x, other.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                    ctx.megaBurst(other.x, other.y, fighter.definition.color, 8);
+                    ctx.effectRing(other.x, other.y, ctx.battle.ballSize * 1.9, fighter.definition.color);
+                }
             }
         };
 
@@ -318,7 +407,24 @@
         }
 
         function onEnemyCollision(fighter, other, now) {
-            passiveHandlers[fighter.definition.id]?.onEnemyCollision?.(fighter, other, now, getContext());
+            const ctx = getContext();
+            if (fighter.mukbangUntil && now <= fighter.mukbangUntil && !fighter.mukbangResolved && !other.dead) {
+                const effects = fighter.definition.skill.effects || {};
+                const dealt = ctx.applyCurrentHpRatioDamage(other, fighter.mukbangStealRatio || effects.currentHpStealRatio || 0.5, fighter, "skill");
+                fighter.mukbangResolved = true;
+                fighter.mukbangUntil = 0;
+                fighter.centerLockUntil = 0;
+                fighter.mukbangStealRatio = 0;
+                fighter.mukbangFailRatio = 0;
+                fighter.tempDamageReductionUntil = Math.min(fighter.tempDamageReductionUntil || 0, now);
+                ctx.healFighter(fighter, dealt);
+                ctx.floatText("먹방 성공", fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                ctx.floatText("냠", other.x, other.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                ctx.megaBurst(other.x, other.y, fighter.definition.color, 8);
+                ctx.effectRing(other.x, other.y, ctx.battle.ballSize * 1.9, fighter.definition.color);
+            }
+
+            passiveHandlers[fighter.definition.id]?.onEnemyCollision?.(fighter, other, now, ctx);
         }
 
         function onKill(source, target) {
@@ -329,9 +435,29 @@
             passiveHandlers[source.definition.id]?.onKill?.(source, target, getContext());
         }
 
+        function onBasicHit(attacker, defender, dealt, now) {
+            if (!attacker || !defender || dealt <= 0) {
+                return;
+            }
+
+            if (attacker.definition.id === "mun-hyunho") {
+                const ctx = getContext();
+                const hadMark = defender.tasteMarks?.has(attacker.id);
+                if (!defender.tasteMarks) {
+                    defender.tasteMarks = new Set();
+                }
+                defender.tasteMarks.add(attacker.id);
+                ctx.floatText(hadMark ? "맛보기 3배" : "맛보기 표식", defender.x, defender.y - ctx.battle.ballSize / 2, attacker.definition.color);
+            }
+        }
+
         function basicBonusDamage(attacker, defender) {
             const effects = attacker.definition.passive?.effects || {};
-            return Math.max(0, defender.hp * (effects.basicCurrentHpBonusRatio || 0));
+            let bonus = Math.max(0, defender.hp * (effects.basicCurrentHpBonusRatio || 0));
+            if (attacker.definition.id === "mun-hyunho" && defender.tasteMarks?.has(attacker.id)) {
+                bonus += attacker.definition.baseAttack * (effects.markedBasicBonusMultiplier || 3);
+            }
+            return bonus;
         }
 
         function piercesBasicIgnore(attacker, defender) {
@@ -345,6 +471,20 @@
         }
 
         function applyThresholdShield(target, damageToHp, now) {
+            if (target.definition.id === "faker" && !target.fakerClutchUsed && target.hp - damageToHp <= 0) {
+                const ctx = getContext();
+                const effects = target.definition.passive?.effects || {};
+                const minimumHp = Math.max(1, target.maxHp * (effects.clutchHpRatio || 0.5));
+                target.fakerClutchUsed = true;
+                target.skillCooldown = 0;
+                target.shield = (target.shield || 0) + target.maxHp * (effects.clutchShieldRatio || 0.75);
+                target.tempDamageReduction = Math.max(target.tempDamageReduction || 0, effects.clutchDamageReduction || 0.8);
+                target.tempDamageReductionUntil = Math.max(target.tempDamageReductionUntil || 0, now + (effects.clutchDuration || 2.5) * 1000);
+                ctx.floatText("불사대마왕", target.x, target.y - ctx.battle.ballSize / 2, target.definition.color);
+                ctx.megaBurst(target.x, target.y, target.definition.color, 10);
+                return Math.max(0, target.hp - minimumHp);
+            }
+
             if (target.definition.id !== "lee-seunghyun"
                 || target.shieldTriggered
                 || target.hp - damageToHp >= target.maxHp * target.definition.shieldThresholdRatio
@@ -375,6 +515,7 @@
             applyThresholdShield,
             basicBonusDamage,
             isDotDamage,
+            onBasicHit,
             onEnemyCollision,
             onKill,
             piercesBasicIgnore,

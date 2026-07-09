@@ -497,6 +497,7 @@
             battle,
             addDamageReduction,
             applyCopiedSkill,
+            applyCurrentHpRatioDamage,
             applyDamage,
             applyMaxHpRatioDamage,
             areAllies,
@@ -741,17 +742,23 @@
                 baseSpeed: definition.speed,
                 statBonusAttack: 0,
                 statBonusSpeedRatio: 0,
-                statDamageReduction: 0,
-                statDamageReductionCap: 0,
+                statDamageReduction: definition.startingDamageReduction || 0,
+                statDamageReductionCap: definition.startingDamageReduction || 0,
                 skillCooldown: definition.skill.cooldown,
                 stunnedUntil: 0,
                 savedVelocity: null,
                 chargeUntil: 0,
                 chargeHits: new Set(),
+                centerLockUntil: 0,
+                mukbangUntil: 0,
+                mukbangResolved: false,
+                mukbangStealRatio: 0,
+                mukbangFailRatio: 0,
                 invulnerableUntil: 0,
                 offMapUntil: 0,
                 nextPuddleAt: 0,
                 nextDotFloatAt: 0,
+                tasteMarks: new Set(),
                 followTargetId: null,
                 followUntil: 0,
                 nextFollowDamageAt: 0,
@@ -770,6 +777,9 @@
                 rangedDamageBonus: 0,
                 nextRangedGrowthAt: 0,
                 nextWobbleAt: 0,
+                bbangkiAwakenUses: 0,
+                bbangkiCrashAt: 0,
+                bbangkiCrashRatio: 0,
                 backstab: null,
                 cornerIndex: index % 4,
                 dead: false,
@@ -899,6 +909,9 @@
                 if (fighter.dead) {
                     statusTextVal = "탈락";
                     statusColor = "#ba1a1a";
+                } else if (fighter.centerLockUntil > now) {
+                    statusTextVal = `먹방 ${(Math.max(0, fighter.centerLockUntil - now) / 1000).toFixed(1)}초`;
+                    statusColor = fighter.definition.color;
                 } else if (fighter.offMapUntil > now) {
                     statusTextVal = `맵 밖 ${(Math.max(0, fighter.offMapUntil - now) / 1000).toFixed(1)}초`;
                     statusColor = fighter.definition.color;
@@ -950,6 +963,15 @@
                 }
                 if (fighter.definition.id === "lee-seunghyun") {
                     bonusParts.push(`사용 ${fighter.seunghyunSkillUses}회`);
+                }
+                if (fighter.definition.id === "bbangki") {
+                    bonusParts.push(`각성 ${fighter.bbangkiAwakenUses || 0}회`);
+                    if (fighter.bbangkiCrashAt > now) {
+                        bonusParts.push(`현타 ${((fighter.bbangkiCrashAt - now) / 1000).toFixed(1)}초`);
+                    }
+                }
+                if (fighter.definition.id === "faker" && fighter.fakerClutchUsed) {
+                    bonusParts.push("불사 발동");
                 }
 
                 if (bonusParts.length > 0) {
@@ -1202,6 +1224,28 @@
             floatText(`+${Math.round(healed)}`, fighter.x, fighter.y - battle.ballSize / 2, "#006d36");
         }
 
+        function applyDirectSelfDamage(fighter, amount, label) {
+            if (!fighter || fighter.dead || !Number.isFinite(amount) || amount <= 0) {
+                return 0;
+            }
+
+            const actual = Math.min(fighter.hp, amount);
+            fighter.hp -= actual;
+            floatText(`${label} -${Math.round(actual)}`, fighter.x, fighter.y - battle.ballSize / 2, "#ba1a1a");
+            impactStar(fighter.x, fighter.y, "#ba1a1a");
+
+            if (fighter.hp <= 0) {
+                fighter.dead = true;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                fighter.element.style.zIndex = "1";
+                burst(fighter.x, fighter.y, "#ba1a1a", 12);
+                floatText("OUT", fighter.x, fighter.y, "#ba1a1a");
+            }
+
+            return actual;
+        }
+
         function applyDamage(target, amount, source, kind) {
             const now = performance.now();
             if (!target || target.dead || !Number.isFinite(amount) || amount <= 0) {
@@ -1251,7 +1295,13 @@
 
             const permanentReduction = Number.isFinite(target.statDamageReduction) ? target.statDamageReduction : 0;
             const temporaryReduction = target.tempDamageReductionUntil > now && Number.isFinite(target.tempDamageReduction) ? target.tempDamageReduction : 0;
-            const reducedAmount = amount * Math.max(0.1, 1 - permanentReduction - temporaryReduction);
+            let reducedAmount = amount * Math.max(0.1, 1 - permanentReduction - temporaryReduction);
+            if (target.definition.id === "bbangki") {
+                const aliveMainFighters = battle.fighters.filter((fighter) => !fighter.dead && !fighter.isSummon).length;
+                if (aliveMainFighters <= 2) {
+                    reducedAmount *= target.definition.passive?.effects?.duelDamageTakenMultiplier || 1;
+                }
+            }
 
             let damageToHp = reducedAmount;
             if (target.shield > 0) {
@@ -1342,6 +1392,56 @@
 
             fighter.savedVelocity = null;
             fighter.stunnedUntil = 0;
+        }
+
+        function updateCenterLock(fighter, now) {
+            if (!fighter.centerLockUntil) {
+                return false;
+            }
+
+            const center = battle.arenaSize / 2;
+            if (now < fighter.centerLockUntil) {
+                fighter.x = center;
+                fighter.y = center;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                if (!fighter.nextCenterLockPulseAt || now >= fighter.nextCenterLockPulseAt) {
+                    fighter.nextCenterLockPulseAt = now + 650;
+                    effectRing(center, center, battle.ballSize * 1.9, fighter.definition.color);
+                }
+                return true;
+            }
+
+            if (fighter.mukbangUntil && !fighter.mukbangResolved) {
+                const ratio = fighter.mukbangFailRatio || fighter.definition.skill.effects.failSelfDamageRatio || 0.075;
+                fighter.mukbangResolved = true;
+                fighter.tempDamageReductionUntil = Math.min(fighter.tempDamageReductionUntil || 0, now);
+                applyDirectSelfDamage(fighter, fighter.maxHp * ratio, "먹방실패");
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.5, "#ba1a1a");
+                burst(fighter.x, fighter.y, "#ba1a1a", 6);
+            }
+
+            fighter.centerLockUntil = 0;
+            fighter.mukbangUntil = 0;
+            fighter.mukbangStealRatio = 0;
+            fighter.mukbangFailRatio = 0;
+            return false;
+        }
+
+        function updateBbangkiCrash(fighter, now) {
+            if (!fighter.bbangkiCrashAt || now < fighter.bbangkiCrashAt) {
+                return;
+            }
+
+            const ratio = fighter.bbangkiCrashRatio || 0.07;
+            fighter.bbangkiCrashAt = 0;
+            fighter.bbangkiCrashRatio = 0;
+            fighter.hasteUntil = Math.min(fighter.hasteUntil || 0, now);
+            fighter.tempDamageReductionUntil = Math.min(fighter.tempDamageReductionUntil || 0, now);
+            fighter.slowMultiplier = 0.72;
+            fighter.slowUntil = now + 900;
+            applyDirectSelfDamage(fighter, fighter.maxHp * ratio, "현타");
+            effectRing(fighter.x, fighter.y, battle.ballSize * 1.35, "#ba1a1a");
         }
 
         function updateCachedCorners() {
@@ -1826,6 +1926,59 @@
                 impactStar(copiedTarget.x, copiedTarget.y, copiedColor);
                 megaBurst(fighter.x, fighter.y, copiedColor, 5);
                 floatText("대시복사", fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
+            } else if (copiedId === "faker") {
+                let dealtTotal = 0;
+                fighter.x = battle.arenaSize / 2;
+                fighter.y = battle.arenaSize / 2;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                effectRing(fighter.x, fighter.y, battle.arenaSize * 1.2, copiedColor);
+                burst(fighter.x, fighter.y, copiedColor, 12);
+                battle.fighters.forEach((enemy) => {
+                    if (enemy === fighter || enemy.dead || areAllies(fighter, enemy)) {
+                        return;
+                    }
+                    dealtTotal += applyDamage(enemy, effects.damage || 9999, fighter, "skill");
+                    stun(enemy, effects.stunSeconds || 5, now);
+                    impactStar(enemy.x, enemy.y, copiedColor);
+                    effectRing(enemy.x, enemy.y, battle.ballSize * 1.65, copiedColor);
+                });
+                healFighter(fighter, dealtTotal * (effects.healRatio || 0));
+                floatText("미드차이복사", fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
+            } else if (copiedId === "bbangki") {
+                fighter.bbangkiAwakenUses = (fighter.bbangkiAwakenUses || 0) + 1;
+                fighter.hasteMultiplier = effects.hasteMultiplier || 1.8;
+                fighter.hasteUntil = now + (effects.duration || 3) * 1000;
+                fighter.tempDamageReduction = Math.max(fighter.tempDamageReduction || 0, effects.damageReduction || 0.55);
+                fighter.tempDamageReductionUntil = Math.max(fighter.tempDamageReductionUntil || 0, fighter.hasteUntil);
+                fighter.bbangkiCrashAt = fighter.hasteUntil;
+                fighter.bbangkiCrashRatio = Math.min(
+                    effects.maxRecoilRatio || 0.18,
+                    (effects.recoilBaseRatio || 0.07) + (fighter.bbangkiAwakenUses - 1) * (effects.recoilGrowthRatio || 0)
+                );
+                setVelocitySpeed(fighter, fighter.speed * fighter.hasteMultiplier);
+                glitchScan(fighter.x, fighter.y, battle.ballSize * 1.7, copiedColor);
+                dustKick(fighter.x, fighter.y, copiedColor);
+                effectRing(fighter.x, fighter.y, battle.ballSize * 1.8, copiedColor);
+                floatText("ㅃ키각성복사", fighter.x, fighter.y - battle.ballSize / 2, copiedColor);
+            } else if (copiedId === "mun-hyunho") {
+                const center = battle.arenaSize / 2;
+                const durationMs = (effects.duration || 5) * 1000;
+                fighter.x = center;
+                fighter.y = center;
+                fighter.vx = 0;
+                fighter.vy = 0;
+                fighter.centerLockUntil = now + durationMs;
+                fighter.mukbangUntil = fighter.centerLockUntil;
+                fighter.mukbangResolved = false;
+                fighter.mukbangStealRatio = effects.currentHpStealRatio || 0.5;
+                fighter.mukbangFailRatio = effects.failSelfDamageRatio || 0.075;
+                fighter.tempDamageReduction = Math.max(fighter.tempDamageReduction || 0, effects.damageReduction || 0.75);
+                fighter.tempDamageReductionUntil = Math.max(fighter.tempDamageReductionUntil || 0, fighter.mukbangUntil);
+                effectRing(center, center, battle.ballSize * 2.2, copiedColor);
+                effectRing(center, center, battle.arenaSize * 0.46, copiedColor);
+                burst(center, center, copiedColor, 10);
+                floatText("먹방복사", center, center - battle.ballSize / 2, copiedColor);
             } else if (copiedId === "lim-shingyu") {
                 plantBomb(fighter, copiedTarget, now, effects);
             } else if (copiedId === "kim-dongha") {
@@ -2160,9 +2313,11 @@
             const basicBonusDamage = characterModules.basicBonusDamage(attacker, defender);
             const dealt = applyDamage(defender, attackAmount, attacker, "basic");
             if (dealt > 0) {
+                let totalDealt = dealt;
                 if (basicBonusDamage > 0 && !defender.dead) {
-                    applyDamage(defender, basicBonusDamage, attacker, "passive");
+                    totalDealt += applyDamage(defender, basicBonusDamage, attacker, "passive");
                 }
+                characterModules.onBasicHit(attacker, defender, totalDealt, now);
                 reduceCooldown(attacker, attacker.definition.cooldownOnBasicHit);
             }
         }
@@ -2292,6 +2447,11 @@
                     return;
                 }
 
+                updateBbangkiCrash(fighter, now);
+                if (fighter.dead) {
+                    return;
+                }
+
                 resolveBackstab(fighter, now);
                 restoreFromOffMap(fighter, now);
 
@@ -2300,6 +2460,13 @@
                 }
 
                 restoreFromStun(fighter, now);
+
+                if (updateCenterLock(fighter, now)) {
+                    return;
+                }
+                if (fighter.dead) {
+                    return;
+                }
 
                 if (isStunned(fighter, now)) {
                     return;
@@ -2310,6 +2477,13 @@
                 fighter.skillCooldown -= dt;
                 if (fighter.skillCooldown <= 0) {
                     useSkill(fighter, now);
+                }
+
+                if (updateCenterLock(fighter, now)) {
+                    return;
+                }
+                if (fighter.dead) {
+                    return;
                 }
 
                 if (fighter.chargeUntil > now) {
