@@ -26,7 +26,7 @@
             id: "song-geonuk",
             name: "송건욱",
             shortName: "건욱",
-            maxHp: 645,
+            maxHp: 610,
             baseAttack: 25,
             speedLabel: "느림",
             speed: 170,
@@ -38,10 +38,10 @@
             skill: {
                 name: "다이어트",
                 cooldown: 7,
-                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 5 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 2.5% 감소합니다. 최대 피해 감소 10%. 4회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
+                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 4 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 2.5% 감소합니다. 최대 피해 감소 10%. 4회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
                 effects: {
                     hpCostRatio: 0.055,
-                    attackGain: 5,
+                    attackGain: 4,
                     speedMultiplier: 1.155,
                     damageReductionGain: 0.025,
                     maxDamageReduction: 0.1,
@@ -60,7 +60,7 @@
             maxHp: 490,
             baseAttack: 22,
             speedLabel: "느림",
-            speed: 165,
+            speed: 180,
             colorName: "회색",
             color: "#7b7f86",
             textColor: "#ffffff",
@@ -69,9 +69,9 @@
             skill: {
                 name: "쿵쾅!",
                 cooldown: 6.5,
-                description: "주변 적에게 100의 피해를 주고 1초간 행동 불가 상태로 만듭니다.",
+                description: "주변 적에게 95의 피해를 주고 1초간 행동 불가 상태로 만듭니다.",
                 effects: {
-                    damage: 100,
+                    damage: 95,
                     stunSeconds: 1,
                     radius: 175
                 }
@@ -85,7 +85,7 @@
             id: "han-yejun",
             name: "한예준",
             shortName: "예준",
-            maxHp: 345,
+            maxHp: 370,
             baseAttack: 10,
             speedLabel: "보통",
             speed: 215,
@@ -97,12 +97,12 @@
             skill: {
                 name: "아이스 에이지",
                 cooldown: 12.5,
-                description: "모든 적을 1초간 행동 불가 상태로 만들고 140의 피해를 입힙니다. 잠깐 맵 절반이 얼음 구역이 되며, 구역 안 캐릭터는 스킬 피해량의 25%만큼 추가 피해를 입습니다. 이 구역 피해량의 50%만큼 회복합니다.",
+                description: "모든 적을 1초간 행동 불가 상태로 만들고 125의 피해를 입힙니다. 잠깐 맵 절반이 얼음 구역이 되며, 구역 안 캐릭터는 스킬 피해량의 30%만큼 추가 피해를 입습니다. 이 구역 피해량의 50%만큼 회복합니다.",
                 effects: {
-                    damage: 140,
+                    damage: 125,
                     stunSeconds: 1,
                     iceZoneDuration: 2.4,
-                    iceZoneBonusRatio: 0.25,
+                    iceZoneBonusRatio: 0.3,
                     iceZoneHealRatio: 0.5
                 }
             },
@@ -126,22 +126,22 @@
             traits: ["현재 체력 비례 기본 공격", "최고 체력 적 저격"],
             passive: {
                 name: "돼지 도축",
-                description: "기본 공격 시 적 현재 체력의 15.5%만큼 피해를 추가로 입힙니다.",
+                description: "기본 공격 시 적 현재 체력의 12.5%만큼 피해를 추가로 입힙니다.",
                 effects: {
-                    basicCurrentHpBonusRatio: 0.155
+                    basicCurrentHpBonusRatio: 0.125
                 }
             },
             skill: {
                 name: "음식 남기기",
                 cooldown: 9,
-                description: "현재 체력이 가장 높은 적에게 최대 체력의 22%만큼 피해를 입히고, 스킬 피해량의 45%만큼 회복합니다.",
+                description: "현재 체력이 가장 높은 적에게 최대 체력의 19%만큼 피해를 입히고, 스킬 피해량의 40%만큼 회복합니다.",
                 effects: {
-                    maxHpDamageRatio: 0.22,
-                    healRatio: 0.45
+                    maxHpDamageRatio: 0.19,
+                    healRatio: 0.4
                 }
             },
-            cooldownOnBasicHit: 1,
-            cooldownOnDamageTaken: 1,
+            cooldownOnBasicHit: 1.25
+            cooldownOnDamageTaken: 1.25
             immuneToBasic: false,
             avatarSrc: 'images/yuseung.png'
         },
@@ -180,7 +180,7 @@
             id: "lee-seunghyun",
             name: "이승현",
             shortName: "승현",
-            maxHp: 275,
+            maxHp: 295,
             baseAttack: 19,
             speedLabel: "빠름",
             speed: 255,
@@ -209,13 +209,13 @@
             skill: {
                 name: "음침 물들이기",
                 cooldown: 13,
-                description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 독 장판을 깝니다. 첫 사용은 무적 2초, 틱당 25 피해이며, 사용할 때마다 다음 쿨타임은 4초, 무적 시간은 1초, 틱당 피해는 10씩 증가합니다.",
+                description: "맵 밖으로 잠깐 나가 피해를 입지 않고, 맵 전역에 독 장판을 깝니다. 첫 사용은 무적 2초, 틱당 25 피해이며, 사용할 때마다 다음 쿨타임은 3.5초, 무적 시간은 1초, 틱당 피해는 10씩 증가합니다.",
                 effects: {
                     poisonDps: 25,
                     duration: 2,
                     offMapDuration: 2,
                     tickInterval: 0.44,
-                    cooldownIncrease: 4,
+                    cooldownIncrease: 3.5,
                     offMapDurationIncrease: 1,
                     poisonDpsIncrease: 10
                 }
@@ -232,7 +232,7 @@
             id: "lee-hyunwoo",
             name: "이현우",
             shortName: "현우",
-            maxHp: 355,
+            maxHp: 380,
             baseAttack: 10,
             speedLabel: "매우 빠름",
             speed: 315,
@@ -243,7 +243,7 @@
             traits: ["엄마 소환", "피격 쿨감", "소환수 흡혈"],
             skill: {
                 name: "엄마 빌려오기",
-                cooldown: 24,
+                cooldown: 22,
                 description: "체력 275, 기본 공격력 40, 이동속도 매우 빠름의 엄마를 소환합니다. 엄마는 현우를 공격하지 않으며, 초당 25씩 체력이 감소하고, 엄마가 입힌 피해의 30%만큼 이현우가, 50%만큼 엄마가 회복합니다.",
                 effects: {
                     summon: {
@@ -322,7 +322,7 @@
             id: "lee-jihoon",
             name: "이지훈",
             shortName: "지훈",
-            maxHp: 130,
+            maxHp: 175,
             baseAttack: 0,
             speedLabel: "매우 빠름",
             speed: 320,
@@ -333,18 +333,18 @@
             traits: ["기본 공격 회피", "회피 회복", "집착 추적"],
             passive: {
                 name: "회피형 인간",
-                description: "적의 기본 공격을 회피할 때마다 최대 체력의 5%만큼 체력을 회복합니다.",
+                description: "적의 기본 공격을 회피할 때마다 최대 체력의 5.5%만큼 체력을 회복합니다.",
                 effects: {
-                    healOnBasicEvadeRatio: 0.05
+                    healOnBasicEvadeRatio: 0.055
                 }
             },
             skill: {
                 name: "말 걸어준건 너가 처음이야",
                 cooldown: 9.5,
-                description: "가장 가까운 적을 5초간 따라다니며 매초 35의 피해를 입힙니다.",
+                description: "가장 가까운 적을 5초간 따라다니며 매초 34의 피해를 입힙니다.",
                 effects: {
                     duration: 5,
-                    damagePerSecond: 35,
+                    damagePerSecond: 34,
                     tickInterval: 1,
                     followSpeedMultiplier: 1.25
                 }
@@ -360,7 +360,7 @@
             id: "heo-yul",
             name: "허율",
             shortName: "허율",
-            maxHp: 365,
+            maxHp: 375,
             baseAttack: 15,
             speedLabel: "보통",
             speed: 215,
@@ -372,12 +372,12 @@
             skill: {
                 name: "생활지능 포기하고 얻은 공부지능",
                 cooldown: 8,
-                description: "가장 가까운 캐릭터의 스킬을 훔쳐 사용하고 3초간 받는 피해가 감소합니다. 대신 이동속도가 5 감소합니다.",
+                description: "가장 가까운 캐릭터의 스킬을 훔쳐 사용하고 3초간 받는 피해가 35% 감소합니다. 대신 이동속도가 4 감소합니다.",
                 effects: {
                     copyClosestSkill: true,
-                    damageReduction: 0.4,
+                    damageReduction: 0.35,
                     damageReductionDuration: 3,
-                    speedLoss: 5
+                    speedLoss: 4
                 }
             },
             cooldownOnBasicHit: 0.5,
@@ -392,7 +392,7 @@
             maxHp: 335,
             baseAttack: 22,
             speedLabel: "존나빠름",
-            speed: 460,
+            speed: 430,
             colorName: "노란색",
             color: "#facc15",
             textColor: "#1c1b1b",
@@ -401,15 +401,15 @@
             skill: {
                 name: "뭉개뭉개 구름",
                 cooldown: 10,
-                description: "주변 캐릭터들의 이동 속도를 크게 낮추고 25의 피해를 입히고 입힌 파해량의 69% 만큼 체력을 회복하며, 5초간 본인의 이동 속도가 크게 증가합니다.",
+                description: "주변 캐릭터들의 이동 속도를 크게 낮추고 32의 피해를 입히고 입힌 피해량의 55%만큼 체력을 회복하며, 잠시 본인의 이동 속도가 크게 증가합니다.",
                 effects: {
-                    damage: 25,
+                    damage: 32,
                     radius: 215,
                     slowMultiplier: 0.4,
                     slowDuration: 2,
                     hasteMultiplier: 1.65,
                     hasteDuration: 4,
-                    healRatio: 0.69
+                    healRatio: 0.55
                 }
             },
             cooldownOnBasicHit: 1,
@@ -440,14 +440,14 @@
             skill: {
                 name: "공안 호출",
                 cooldown: 10.5,
-                description: "공안을 불러와 가장 가까운 적을 3.5초간 이동 불가 상태로 만들고 130의 피해를 입힙니다.",
+                description: "공안을 불러와 가장 가까운 적을 3초간 이동 불가 상태로 만들고 150의 피해를 입힙니다.",
                 effects: {
-                    damage: 130,
-                    stunSeconds: 3.5
+                    damage: 150,
+                    stunSeconds: 3
                 }
             },
-            cooldownOnBasicHit: 0,
-            cooldownOnDamageTaken: 0,
+            cooldownOnBasicHit: 0.5,
+            cooldownOnDamageTaken: 0.5,
             immuneToBasic: false,
             avatarSrc: 'images/junmo.png'
         },
@@ -546,11 +546,11 @@
             traits: ["압도적 OP", "전장 전체 제압", "불사대마왕"],
             passive: {
                 name: "불사대마왕",
-                description: "모든 군중 제어 효과의 지속시간이 50% 감소합니다. 최대 2회, 죽기 직전에 최대 체력의 88.848%를 회복하고 최대 체력의 88.848%만큼 보호막을 얻습니다. 발동할 때마다 공격력이 15.57 증가하고 스킬 쿨타임이 2.5초 감소합니다.",
+                description: "모든 군중 제어 효과의 지속시간이 50% 감소합니다. 최대 2회, 죽기 직전에 최대 체력의 88.848%를 회복하고 최대 체력의 15.57%만큼 보호막을 얻습니다. 발동할 때마다 공격력이 15.57 증가하고 스킬 쿨타임이 2.5초 감소합니다.",
                 effects: {
                     maxTriggers: 2,
                     reviveHpRatio: 0.88848,
-                    shieldRatio: 0.88848,
+                    shieldRatio: 0.1557,
                     attackGain: 15.57,
                     cooldownReduction: 2.5
                 }
@@ -659,7 +659,7 @@
             maxHp: 515,
             baseAttack: 26,
             speedLabel: "매우 느림",
-            speed: 120,
+            speed: 130,
             colorName: "녹색",
             color: "#16a34a",
             textColor: "#ffffff",
@@ -667,7 +667,7 @@
             traits: ["폭탄 부여", "광역 폭발", "기본공격 쿨감"],
             skill: {
                 name: "임신펀치",
-                cooldown: 14,
+                cooldown: 13.5,
                 description: "가장 가까운 적에게 폭탄을 임신시킵니다. 폭탄은 3초 뒤 터지며 대상에게 125, 주변에 55의 피해를 입히고 이동 불가 상태로 만듭니다.",
                 effects: {
                     delay: 3,
