@@ -140,8 +140,8 @@
                     healRatio: 0.4
                 }
             },
-            cooldownOnBasicHit: 1.25
-            cooldownOnDamageTaken: 1.25
+            cooldownOnBasicHit: 1.25,
+            cooldownOnDamageTaken: 1.25,
             immuneToBasic: false,
             avatarSrc: 'images/yuseung.png'
         },
