@@ -285,25 +285,27 @@
             id: "kim-dongha",
             name: "김동하",
             shortName: "동하",
-            maxHp: 395,
-            baseAttack: 13,
+            maxHp: 455,
+            baseAttack: 18,
             speedLabel: "빠름",
-            speed: 270,
+            speed: 290,
             colorName: "정열적인 붉은색",
             color: "#e11d48",
             textColor: "#ffffff",
             avatarSrc: "images/dongha.png",
             avatarText: placeholderFaces.dongha,
-            traits: ["매혹", "지속 피해", "체력 회복"],
+            traits: ["보호막 파괴", "강화 꽃 장판", "매혹"],
             passive: {
-                name: "꽃미남",
-                description: "적과 부딪히면 주변에 2초간 지속되는 꽃 장판을 만들어 초당 22의 피해를 입히고, 입힌 피해량의 40%만큼 체력을 회복합니다.",
+                name: "꽃미남 · 쨍그랑",
+                description: "적과 부딪히면 주변에 3초간 지속되는 꽃 장판을 만들어 초당 34의 피해를 입히고, 입힌 피해량의 55%만큼 체력을 회복합니다. 부딪힌 적에게 보호막이 있다면 현재 보호막의 50%를 파괴합니다.",
                 effects: {
-                    duration: 2,
-                    damagePerSecond: 22,
+                    duration: 3,
+                    damagePerSecond: 34,
                     tickInterval: 0.2,
-                    radius: 65,
-                    healRatio: 0.4
+                    radius: 82,
+                    healRatio: 0.55,
+                    cooldown: 1.5,
+                    shieldBreakRatio: 0.5
                 }
             },
             skill: {
@@ -529,6 +531,7 @@
         },
         {
             id: "faker",
+            category: "boss",
             name: "대상혁",
             shortName: "대상혁",
             maxHp: 1557,
@@ -543,26 +546,34 @@
             traits: ["압도적 OP", "전장 전체 제압", "불사대마왕"],
             passive: {
                 name: "불사대마왕",
-                description: "처음으로 쓰러질 위기에 처하면 체력을 버티고 보호막을 얻으며 즉시 스킬을 준비합니다.",
+                description: "모든 군중 제어 효과의 지속시간이 50% 감소합니다. 최대 2회, 죽기 직전에 최대 체력의 88.848%를 회복하고 최대 체력의 88.848%만큼 보호막을 얻습니다. 발동할 때마다 공격력이 15.57 증가하고 스킬 쿨타임이 2.5초 감소합니다.",
                 effects: {
-                    clutchHpRatio: 0.5,
-                    clutchShieldRatio: 0.75,
-                    clutchDamageReduction: 0.8,
-                    clutchDuration: 15.57
+                    maxTriggers: 2,
+                    reviveHpRatio: 0.88848,
+                    shieldRatio: 0.88848,
+                    attackGain: 15.57,
+                    cooldownReduction: 2.5
                 }
             },
             skill: {
-                name: "미드 차이",
-                cooldown: 15.57,
-                description: "전장을 장악해 모든 적에게 1557 피해를 입히고 1557초간 행동 불가 상태로 만듭니다. 대상혁은 입힌 피해량만큼 회복합니다.",
+                name: "미드차이",
+                cooldown: 30,
+                description: "압도적인 권능을 시전해 주변 넓은 범위의 캐릭터에게 155.7 피해를 입히고 6초간 기절시킵니다.",
                 effects: {
-                    damage: 1557,
-                    stunSeconds: 1557,
-                    healRatio: 1
+                    damage: 155.7,
+                    stunSeconds: 6,
+                    radius: 255,
+                    trophyInterval: 6,
+                    trophyHealRatio: 0.1557,
+                    healingBlockDuration: 15.57,
+                    gogeonpaWindow: 6,
+                    gogeonpaDuration: 6,
+                    gogeonpaSpeedMultiplier: 0.5
                 }
             },
-            cooldownOnBasicHit: 1.5,
-            cooldownOnDamageTaken: 3,
+            cooldownOnBasicHit: 0.75,
+            cooldownOnDamageTaken: 0.1,
+            crowdControlDurationMultiplier: 0.5,
             immuneToBasic: false,
             immuneToKnockback: true
         },
@@ -621,15 +632,15 @@
             traits: ["높은 체력", "맛보기 표식", "중앙 먹방"],
             passive: {
                 name: "맛보기",
-                description: "기본 공격에 맞은 적에게 표식을 남깁니다. 표식이 있는 적을 기본 공격하면 기본 공격력의 5배만큼 추가 피해를 입힙니다.",
+                description: "기본 공격에 맞은 적에게 눈에 띄는 맛보기 표식을 남깁니다. 표식이 있는 적을 기본 공격하면 기본 공격력의 5배만큼 추가 피해를 입힌 뒤 표식을 삭제합니다.",
                 effects: {
                     markedBasicBonusMultiplier: 5
                 }
             },
             skill: {
                 name: "먹방",
-                cooldown: 14,
-                description: "맵 정중앙에 5초간 고정되고 받는 피해가 크게 감소합니다. 이 동안 부딪힌 적을 먹어 현재 체력의 50%를 빼앗습니다. 아무도 먹지 못하면 본인 최대 체력의 7.5%만큼 피해를 입습니다.",
+                cooldown: 18,
+                description: "맵 정중앙에 5초간 고정되고 받는 피해가 크게 감소합니다. 이 동안 부딪힌 적을 먹어 현재 체력의 50%를 빼앗고, 먹힌 적은 모션 뒤 남은 시간 동안 뱃속에 있어 맵에서 사라집니다. 먹은 피해로 적이 죽으면 이동 속도가 10 감소하는 대신 최대 체력과 체력이 20, 공격력이 2 증가합니다. 아무도 먹지 못하면 본인 최대 체력의 7.5%만큼 피해를 입습니다.",
                 effects: {
                     duration: 5,
                     currentHpStealRatio: 0.5,

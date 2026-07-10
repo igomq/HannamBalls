@@ -169,6 +169,47 @@
             box-shadow: 0 0 0 6px #38bdf8, 4px 4px 0px 0px #1c1b1b;
         }
 
+        .fighter-ball.taste-marked {
+            outline: 7px dashed #fb923c;
+            outline-offset: 4px;
+            animation: taste-mark-pulse 0.7s steps(2, end) infinite;
+        }
+
+        .fighter-ball.is-boss {
+            border-width: 7px;
+            box-shadow: 0 0 0 7px #f59e0b, 8px 8px 0 #1c1b1b;
+            z-index: 12;
+        }
+
+        .fighter-ball.gogeonpa-mode {
+            outline: 9px double #ef4444;
+            filter: saturate(1.5) contrast(1.15);
+            animation: taste-mark-pulse 0.35s steps(2, end) infinite;
+        }
+
+        .worlds-trophy {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            transform: translate(-50%, -50%);
+            border: 4px solid #1c1b1b;
+            background: #facc15;
+            box-shadow: 5px 5px 0 #1c1b1b, 0 0 20px #fef08a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9;
+            pointer-events: none;
+            animation: trophy-pulse 0.8s steps(2, end) infinite;
+        }
+
+        .worlds-trophy::after { content: "🏆"; font-size: 28px; }
+        @keyframes trophy-pulse { 50% { transform: translate(-50%, -50%) scale(1.15) rotate(5deg); } }
+
+        @keyframes taste-mark-pulse {
+            50% { outline-color: #fef08a; outline-offset: 8px; }
+        }
+
         .effect-ring,
         .effect-burst,
         .damage-float,
@@ -376,6 +417,39 @@
             overflow-wrap: anywhere;
         }
 
+        .boss-health-banner {
+            background: #1c1b1b;
+            color: #ffffff;
+            border: 4px solid #f59e0b;
+            box-shadow: 7px 7px 0 #7c2d12;
+        }
+
+        .boss-health-track {
+            height: 28px;
+            border: 3px solid #ffffff;
+            background: #3f3f46;
+            overflow: hidden;
+        }
+
+        .boss-health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #dc2626, #f59e0b);
+            transition: width 0.15s linear;
+        }
+
+        .boss-cooldown-track {
+            height: 12px;
+            border: 2px solid #ffffff;
+            background: #3f3f46;
+            overflow: hidden;
+        }
+
+        .boss-cooldown-fill {
+            height: 100%;
+            background: #38bdf8;
+            transition: width 0.1s linear, background-color 0.1s linear;
+        }
+
         @media (max-width: 767px) {
             .hud-card {
                 padding: 8px;
@@ -421,6 +495,27 @@
             </button>
         </div>
 
+        <div id="boss-health-banner" class="boss-health-banner hidden w-full max-w-[980px] p-3 md:p-4 mb-5" aria-live="polite">
+            <div class="flex items-end justify-between gap-3 mb-2">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[#facc15] text-[28px]">skull</span>
+                    <strong id="boss-health-name" class="font-headline-md text-headline-md">대상혁</strong>
+                </div>
+                <span id="boss-health-text" class="font-label-numeric text-label-numeric md:text-base">HP 1557 / 1557</span>
+            </div>
+            <div class="boss-health-track">
+                <div id="boss-health-fill" class="boss-health-fill" style="width:100%"></div>
+            </div>
+            <div class="flex items-center justify-between gap-3 mt-3 mb-1">
+                <span id="boss-cooldown-name" class="font-label-numeric text-label-numeric text-[#bae6fd]">미드차이</span>
+                <span id="boss-cooldown-text" class="font-label-numeric text-label-numeric">CD 30.0초</span>
+            </div>
+            <div class="boss-cooldown-track">
+                <div id="boss-cooldown-fill" class="boss-cooldown-fill" style="width:0%"></div>
+            </div>
+            <div id="boss-health-status" class="font-label-numeric text-label-numeric mt-2 text-[#fde68a]">불사대마왕 0 / 2</div>
+        </div>
+
         <div class="w-full max-w-[980px] flex flex-col md:flex-row items-start justify-center gap-6 mb-8">
             <div id="arena"
                 class="w-full max-w-[600px] aspect-square border-4 border-on-background bg-surface-container-lowest relative shadow-[8px_8px_0px_0px_#1c1b1b] overflow-hidden">
@@ -462,16 +557,49 @@
         const countdown = document.getElementById("countdown");
         const matchTitle = document.getElementById("match-title");
         const elapsedTime = document.getElementById("elapsed-time");
+        const bossHealthBanner = document.getElementById("boss-health-banner");
+        const bossHealthName = document.getElementById("boss-health-name");
+        const bossHealthText = document.getElementById("boss-health-text");
+        const bossHealthFill = document.getElementById("boss-health-fill");
+        const bossHealthStatus = document.getElementById("boss-health-status");
+        const bossCooldownName = document.getElementById("boss-cooldown-name");
+        const bossCooldownText = document.getElementById("boss-cooldown-text");
+        const bossCooldownFill = document.getElementById("boss-cooldown-fill");
         const BattleCore = window.HannamBallsBattle;
         const performanceProfile = BattleCore.createPerformanceProfile();
         const allCharacters = window.HannamBalls.getCharacters();
+        const battleMode = localStorage.getItem("hannamBallsBattleMode") === "boss" ? "boss" : "normal";
+        const isBossBattle = battleMode === "boss";
         const storedSelection = JSON.parse(localStorage.getItem("hannamBallsSelection") || "[]");
         let selectedCharacters = storedSelection
             .map((id) => window.HannamBalls.getCharacter(id))
-            .filter(Boolean);
+            .filter((character) => character && character.category !== "boss");
 
-        if (selectedCharacters.length < 2) {
-            selectedCharacters = allCharacters;
+        function applyRaidBalance(definition) {
+            definition.raidRole = "party";
+            if (definition.maxHp < 300) definition.maxHp = Math.round(definition.maxHp * 1.65);
+            else if (definition.maxHp < 400) definition.maxHp = Math.round(definition.maxHp * 1.35);
+            if (definition.id === "song-geonuk") definition.skill.effects.attackGain *= 0.55;
+            if (definition.id === "kang-hyunwoo") definition.passive.effects.growthDamage *= 0.5;
+            return definition;
+        }
+
+        if (isBossBattle && selectedCharacters.length < 2) {
+            selectedCharacters = allCharacters.filter((character) => character.category !== "boss").slice(0, 4);
+        }
+
+        if (isBossBattle) {
+            selectedCharacters = selectedCharacters.map(applyRaidBalance);
+            const bossId = localStorage.getItem("hannamBallsBossSelection") || "faker";
+            const boss = window.HannamBalls.getCharacter(bossId) || window.HannamBalls.getCharacter("faker");
+            if (boss) {
+                boss.raidRole = "boss";
+                selectedCharacters.push(boss);
+            }
+        }
+
+        if (!isBossBattle && selectedCharacters.length < 2) {
+            selectedCharacters = allCharacters.filter((character) => character.category !== "boss");
         }
 
         const battle = BattleCore.createBattleState();
@@ -508,6 +636,7 @@
             createPoisonField,
             dashWithFallback,
             effectRing,
+            executeFighter,
             effects: window,
             floatText,
             healFighter,
@@ -555,6 +684,9 @@
             }
 
             let speed = fighter.speed;
+            if (fighter.gogeonpaUntil > now) {
+                speed *= fighter.definition.skill.effects.gogeonpaSpeedMultiplier || 0.5;
+            }
             if (fighter.slowUntil > now) {
                 speed *= fighter.slowMultiplier;
             }
@@ -565,7 +697,11 @@
         }
 
         function skillCooldownDuration(fighter) {
-            return BattleCore.skillCooldownDuration(fighter);
+            const duration = BattleCore.skillCooldownDuration(fighter);
+            if (fighter.definition.id === "faker") {
+                return Math.max(5, duration - (fighter.fakerPassiveUses || 0) * (fighter.definition.passive.effects.cooldownReduction || 2.5));
+            }
+            return duration;
         }
 
         function rotateVector(x, y, radians) {
@@ -728,6 +864,8 @@
                 index,
                 total,
                 ownerId: options.ownerId || null,
+                team: options.team || definition.raidRole || null,
+                isBoss: Boolean(options.isBoss || definition.raidRole === "boss"),
                 isSummon: Boolean(options.isSummon || definition.isSummonDefinition),
                 x: 0,
                 y: 0,
@@ -759,6 +897,10 @@
                 nextPuddleAt: 0,
                 nextDotFloatAt: 0,
                 tasteMarks: new Set(),
+                consumedTasteMarks: new Set(),
+                swallowedById: null,
+                swallowedHideAt: 0,
+                swallowedUntil: 0,
                 followTargetId: null,
                 followUntil: 0,
                 nextFollowDamageAt: 0,
@@ -769,6 +911,13 @@
                 slowMultiplier: 1,
                 hasteUntil: 0,
                 hasteMultiplier: 1,
+                damageMultiplier: 1,
+                raidIncomingDamageMultiplier: 1,
+                raidCcDurationMultiplier: 1,
+                healingBlockedUntil: 0,
+                fakerPassiveUses: 0,
+                lastBossTrophyAt: 0,
+                gogeonpaUntil: 0,
                 forceMoveUntil: 0,
                 skillUseCount: 0,
                 dietUses: 0,
@@ -792,11 +941,17 @@
         }
 
         function areAllies(a, b) {
+            if (isBossBattle && a?.team && b?.team) return a.team === b.team;
             return BattleCore.areAllies(a, b);
         }
 
+        function fighterRadius(fighter) {
+            return battle.ballSize * (fighter?.isBoss ? 1 : 0.5);
+        }
+
         function livingEnemiesOf(fighter) {
-            return BattleCore.livingEnemiesOf(battle.fighters, fighter, performance.now());
+            const now = performance.now();
+            return battle.fighters.filter((target) => target !== fighter && !target.dead && target.offMapUntil <= now && !areAllies(fighter, target));
         }
 
         function layoutFighters() {
@@ -808,14 +963,18 @@
             const radius = Math.max(battle.ballSize, battle.arenaSize * 0.34);
 
             battle.fighters.forEach((fighter, index) => {
-                const angle = -Math.PI / 2 + (Math.PI * 2 * index) / battle.fighters.length;
-                fighter.x = center + Math.cos(angle) * radius;
-                fighter.y = center + Math.sin(angle) * radius;
+                const party = battle.fighters.filter((item) => !item.isBoss);
+                const partyIndex = party.indexOf(fighter);
+                const angle = -Math.PI / 2 + (Math.PI * 2 * Math.max(0, partyIndex)) / Math.max(1, party.length);
+                fighter.x = fighter.isBoss ? center : center + Math.cos(angle) * radius;
+                fighter.y = fighter.isBoss ? center : center + Math.sin(angle) * radius;
                 const direction = normalize(center - fighter.x, center - fighter.y);
                 fighter.vx = direction.x * scaledSpeed(moveSpeedOf(fighter)) * 1.45;
                 fighter.vy = direction.y * scaledSpeed(moveSpeedOf(fighter)) * 1.45;
-                fighter.element.style.width = `${battle.ballSize}px`;
-                fighter.element.style.height = `${battle.ballSize}px`;
+                const size = battle.ballSize * (fighter.isBoss ? 2 : 1);
+                fighter.element.classList.toggle("is-boss", fighter.isBoss);
+                fighter.element.style.width = `${size}px`;
+                fighter.element.style.height = `${size}px`;
             });
         }
 
@@ -909,6 +1068,9 @@
                 if (fighter.dead) {
                     statusTextVal = "탈락";
                     statusColor = "#ba1a1a";
+                } else if (fighter.gogeonpaUntil > now) {
+                    statusTextVal = `고전파 모드 ${((fighter.gogeonpaUntil - now) / 1000).toFixed(1)}초`;
+                    statusColor = "#ef4444";
                 } else if (fighter.centerLockUntil > now) {
                     statusTextVal = `먹방 ${(Math.max(0, fighter.centerLockUntil - now) / 1000).toFixed(1)}초`;
                     statusColor = fighter.definition.color;
@@ -970,8 +1132,14 @@
                         bonusParts.push(`현타 ${((fighter.bbangkiCrashAt - now) / 1000).toFixed(1)}초`);
                     }
                 }
-                if (fighter.definition.id === "faker" && fighter.fakerClutchUsed) {
-                    bonusParts.push("불사 발동");
+                if (fighter.definition.id === "faker") {
+                    bonusParts.push(`불사 ${fighter.fakerPassiveUses || 0}/2`);
+                    if (fighter.healingBlockedUntil > now) {
+                        bonusParts.push(`회복 봉인 ${((fighter.healingBlockedUntil - now) / 1000).toFixed(1)}초`);
+                    }
+                }
+                if (fighter.damageMultiplier > 1) {
+                    bonusParts.push("트로피 피해 x2");
                 }
 
                 if (bonusParts.length > 0) {
@@ -988,6 +1156,39 @@
                     }
                 }
             });
+            updateBossHealthBanner(now);
+        }
+
+        function updateBossHealthBanner(now) {
+            if (!isBossBattle) {
+                bossHealthBanner.classList.add("hidden");
+                return;
+            }
+            const boss = battle.fighters.find((fighter) => fighter.isBoss);
+            if (!boss) return;
+            bossHealthBanner.classList.remove("hidden");
+            const ratio = Math.max(0, Math.min(1, boss.hp / boss.maxHp));
+            bossHealthName.textContent = boss.definition.name;
+            bossHealthFill.style.width = `${ratio * 100}%`;
+            bossHealthText.textContent = boss.dead
+                ? "처치 완료"
+                : `HP ${Math.ceil(Math.max(0, boss.hp))} / ${boss.maxHp}${boss.shield > 0 ? ` + 보호막 ${Math.round(boss.shield)}` : ""}`;
+            const cooldownDuration = skillCooldownDuration(boss);
+            const remainingCooldown = Math.max(0, boss.skillCooldown);
+            const cooldownProgress = Math.max(0, Math.min(1, 1 - remainingCooldown / cooldownDuration));
+            bossCooldownName.textContent = boss.definition.skill.name;
+            bossCooldownText.textContent = remainingCooldown <= 0
+                ? "READY"
+                : `CD ${remainingCooldown.toFixed(1)} / ${cooldownDuration.toFixed(1)}초`;
+            bossCooldownFill.style.width = `${cooldownProgress * 100}%`;
+            bossCooldownFill.style.backgroundColor = remainingCooldown <= 0 ? "#4ade80" : "#38bdf8";
+            const states = [`불사대마왕 ${boss.fakerPassiveUses || 0} / ${boss.definition.passive?.effects?.maxTriggers || 2}`];
+            if (boss.healingBlockedUntil > now) states.push(`회복 봉인 ${((boss.healingBlockedUntil - now) / 1000).toFixed(1)}초`);
+            if (boss.gogeonpaUntil > now) states.push(`고전파 ${((boss.gogeonpaUntil - now) / 1000).toFixed(1)}초`);
+            if (boss.raidIncomingDamageMultiplier < 0.999) {
+                states.push(`레이드 방어 ${Math.round((1 - boss.raidIncomingDamageMultiplier) * 100)}%`);
+            }
+            bossHealthStatus.textContent = states.join(" · ");
         }
 
         function renderFighters(now) {
@@ -1015,7 +1216,12 @@
                     fighter.lastHasShield = shieldState;
                 }
 
-                fighter.element.style.transform = `translate(${fighter.x - battle.ballSize / 2}px, ${fighter.y - battle.ballSize / 2}px)`;
+                const tasteMarkedState = !fighter.dead && fighter.tasteMarks?.size > 0;
+                fighter.element.classList.toggle("taste-marked", tasteMarkedState);
+                fighter.element.classList.toggle("gogeonpa-mode", !fighter.dead && fighter.gogeonpaUntil > now);
+
+                const radius = fighterRadius(fighter);
+                fighter.element.style.transform = `translate(${fighter.x - radius}px, ${fighter.y - radius}px)`;
             });
         }
 
@@ -1139,7 +1345,8 @@
         }
 
         function reduceCooldown(fighter, seconds) {
-            if (!Number.isFinite(seconds) || seconds <= 0 || fighter.dead || isStunned(fighter, performance.now())) {
+            if (!Number.isFinite(seconds) || seconds <= 0 || fighter.dead
+                || (fighter.definition.id !== "faker" && isStunned(fighter, performance.now()))) {
                 return;
             }
 
@@ -1204,6 +1411,11 @@
 
         function healFighter(fighter, amount) {
             if (!fighter || fighter.dead || !Number.isFinite(amount) || amount <= 0) {
+                return;
+            }
+
+            if (fighter.healingBlockedUntil > performance.now()) {
+                floatText("회복 봉인", fighter.x, fighter.y - fighterRadius(fighter), "#7c3aed");
                 return;
             }
 
@@ -1293,6 +1505,17 @@
                 floatText("PIERCE", target.x, target.y - battle.ballSize / 2, source.definition.color);
             }
 
+            if (source) {
+                amount *= Number.isFinite(source.damageMultiplier) ? source.damageMultiplier : 1;
+                if (isBossBattle && source.team === "party") amount *= 0.85;
+                if (isBossBattle && target.isBoss && source.team === "party") {
+                    amount *= target.raidIncomingDamageMultiplier || 1;
+                }
+                if (isBossBattle && target.isBoss && source.definition.id === "jeong-yuseung" && kind === "passive") {
+                    amount *= 0.35;
+                }
+            }
+
             const permanentReduction = Number.isFinite(target.statDamageReduction) ? target.statDamageReduction : 0;
             const temporaryReduction = target.tempDamageReductionUntil > now && Number.isFinite(target.tempDamageReduction) ? target.tempDamageReduction : 0;
             let reducedAmount = amount * Math.max(0.1, 1 - permanentReduction - temporaryReduction);
@@ -1342,7 +1565,11 @@
                 }
             }
 
-            if (!isStunned(target, now)) {
+            if (actual > 0 && source?.definition.id === "faker") {
+                reduceCooldown(source, source.definition.cooldownOnBasicHit);
+            }
+
+            if (!isStunned(target, now) || target.definition.id === "faker") {
                 reduceCooldown(target, target.definition.cooldownOnDamageTaken);
             }
 
@@ -1357,6 +1584,20 @@
             }
 
             return actual;
+        }
+
+        function executeFighter(target, source, label = "처형") {
+            if (!target || target.dead || areAllies(target, source)) return false;
+            target.hp = 0;
+            target.shield = 0;
+            target.dead = true;
+            target.vx = 0;
+            target.vy = 0;
+            target.element.style.zIndex = "1";
+            floatText(label, target.x, target.y - fighterRadius(target), "#ef4444");
+            megaBurst(target.x, target.y, "#ef4444", 12);
+            characterModules.onKill(source, target);
+            return true;
         }
 
         function stun(target, seconds, now) {
@@ -1374,7 +1615,9 @@
                 target.savedVelocity = { vx: target.vx, vy: target.vy };
             }
 
-            target.stunnedUntil = Math.max(target.stunnedUntil, now + seconds * 1000);
+            const durationMultiplier = (target.definition.crowdControlDurationMultiplier || 1)
+                * (target.raidCcDurationMultiplier || 1);
+            target.stunnedUntil = Math.max(target.stunnedUntil, now + seconds * durationMultiplier * 1000);
             target.vx = 0;
             target.vy = 0;
         }
@@ -1425,6 +1668,27 @@
             fighter.mukbangUntil = 0;
             fighter.mukbangStealRatio = 0;
             fighter.mukbangFailRatio = 0;
+            fighter.mukbangTargetId = null;
+            return false;
+        }
+
+        function updateSwallowed(fighter, now) {
+            if (!fighter.swallowedById || fighter.dead) {
+                return false;
+            }
+            if (now < fighter.swallowedHideAt) {
+                fighter.vx = 0;
+                fighter.vy = 0;
+                return true;
+            }
+            if (now < fighter.swallowedUntil) {
+                fighter.offMapUntil = fighter.swallowedUntil;
+                fighter.invulnerableUntil = fighter.swallowedUntil;
+                return true;
+            }
+            fighter.swallowedById = null;
+            fighter.swallowedHideAt = 0;
+            fighter.swallowedUntil = 0;
             return false;
         }
 
@@ -1617,6 +1881,77 @@
             });
         }
 
+        function spawnWorldsTrophy(now) {
+            if (!isBossBattle) return;
+            const margin = battle.ballSize * 1.2;
+            const element = document.createElement("div");
+            element.className = "worlds-trophy";
+            const trophy = {
+                x: margin + Math.random() * Math.max(1, battle.arenaSize - margin * 2),
+                y: margin + Math.random() * Math.max(1, battle.arenaSize - margin * 2),
+                element,
+                spawnedAt: now
+            };
+            element.style.left = `${trophy.x}px`;
+            element.style.top = `${trophy.y}px`;
+            arena.appendChild(element);
+            battle.activeTrophies.push(trophy);
+            while (battle.activeTrophies.length > 4) {
+                battle.activeTrophies.shift().element.remove();
+            }
+            floatText("월즈 트로피!", trophy.x, trophy.y - 32, "#f59e0b");
+        }
+
+        function reviveRaidAlly(collector, trophy) {
+            const deadAllies = battle.fighters.filter((fighter) => fighter.team === collector.team && fighter.dead && !fighter.isSummon);
+            if (!deadAllies.length) return false;
+            const revived = deadAllies[Math.floor(Math.random() * deadAllies.length)];
+            revived.dead = false;
+            revived.hp = Math.max(1, revived.maxHp * 0.4);
+            revived.shield = 0;
+            revived.x = trophy.x;
+            revived.y = trophy.y;
+            revived.invulnerableUntil = performance.now() + 1500;
+            revived.element.style.zIndex = "";
+            setVelocityDirection(revived, Math.random() - 0.5, Math.random() - 0.5, revived.speed);
+            floatText(`${revived.definition.name} 부활!`, trophy.x, trophy.y - 42, "#22c55e");
+            megaBurst(trophy.x, trophy.y, "#22c55e", 10);
+            return true;
+        }
+
+        function collectWorldsTrophy(fighter, trophy, now) {
+            const boss = battle.fighters.find((target) => target.isBoss && !target.dead);
+            if (fighter.isBoss) {
+                fighter.lastBossTrophyAt = now;
+                healFighter(fighter, fighter.maxHp * (fighter.definition.skill.effects.trophyHealRatio || 0.1557));
+                floatText("트로피 흡수", trophy.x, trophy.y - 32, fighter.definition.color);
+            } else {
+                fighter.damageMultiplier = 2;
+                if (boss) {
+                    boss.healingBlockedUntil = Math.max(boss.healingBlockedUntil || 0, now + (boss.definition.skill.effects.healingBlockDuration || 15.57) * 1000);
+                    if (boss.gogeonpaUntil > now) reviveRaidAlly(fighter, trophy);
+                }
+                floatText("피해량 2배!", trophy.x, trophy.y - 32, "#f97316");
+            }
+            trophy.element.remove();
+        }
+
+        function updateWorldsTrophies(now) {
+            if (!isBossBattle) return;
+            if (now >= (battle.nextTrophyAt || Infinity)) {
+                spawnWorldsTrophy(now);
+                battle.nextTrophyAt = now + 6000;
+            }
+            battle.activeTrophies = battle.activeTrophies.filter((trophy) => {
+                const collector = battle.fighters.find((fighter) => !fighter.dead
+                    && fighter.offMapUntil <= now
+                    && Math.hypot(fighter.x - trophy.x, fighter.y - trophy.y) <= fighterRadius(fighter) + 24);
+                if (!collector) return true;
+                collectWorldsTrophy(collector, trophy, now);
+                return false;
+            });
+        }
+
         function createPoisonField(source, now, copiedEffects = null) {
             const effects = copiedEffects || source.definition.skill.effects;
             const field = document.createElement("div");
@@ -1757,7 +2092,8 @@
                 return 0;
             }
 
-            return applyDamage(target, Math.max(0, target.hp * ratio), source, kind);
+            const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party" ? ratio * 0.35 : ratio;
+            return applyDamage(target, Math.max(0, target.hp * adjustedRatio), source, kind);
         }
 
         function applyMaxHpRatioDamage(target, ratio, source, kind = "skill") {
@@ -1765,7 +2101,8 @@
                 return 0;
             }
 
-            return applyDamage(target, Math.max(0, target.maxHp * ratio), source, kind);
+            const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party" ? ratio * 0.35 : ratio;
+            return applyDamage(target, Math.max(0, target.maxHp * adjustedRatio), source, kind);
         }
 
         function applyCopiedSkill(fighter, copiedFrom, now) {
@@ -1890,7 +2227,9 @@
                     const dy = enemy.y - fighter.y;
                     if (Math.sqrt(dx * dx + dy * dy) <= radius) {
                         enemy.slowMultiplier = effects.slowMultiplier || 0.45;
-                        enemy.slowUntil = now + (effects.slowDuration || 3) * 1000;
+                        enemy.slowUntil = now + (effects.slowDuration || 3)
+                            * (enemy.definition.crowdControlDurationMultiplier || 1)
+                            * (enemy.raidCcDurationMultiplier || 1) * 1000;
                         applyDamage(enemy, effects.damage || 45, fighter, "skill");
                         impactStar(enemy.x, enemy.y, copiedColor);
                     }
@@ -2183,6 +2522,7 @@
             const summon = createFighter(definition, battle.fighters.length, battle.fighters.length + 1, {
                 id: `${owner.id}-mom-${Math.round(now)}`,
                 ownerId: owner.id,
+                team: owner.team,
                 isSummon: true
             });
             if (owner.charmedBy) {
@@ -2267,7 +2607,7 @@
         }
 
         function handleWallBounce(fighter) {
-            const radius = battle.ballSize / 2;
+            const radius = fighterRadius(fighter);
             let bounced = false;
             const now = performance.now();
 
@@ -2318,7 +2658,9 @@
                     totalDealt += applyDamage(defender, basicBonusDamage, attacker, "passive");
                 }
                 characterModules.onBasicHit(attacker, defender, totalDealt, now);
-                reduceCooldown(attacker, attacker.definition.cooldownOnBasicHit);
+                if (attacker.definition.id !== "faker") {
+                    reduceCooldown(attacker, attacker.definition.cooldownOnBasicHit);
+                }
             }
         }
 
@@ -2343,8 +2685,6 @@
         }
 
         function handleCollisions(now) {
-            const radius = battle.ballSize / 2;
-
             for (let first = 0; first < battle.fighters.length; first += 1) {
                 for (let second = first + 1; second < battle.fighters.length; second += 1) {
                     const a = battle.fighters[first];
@@ -2356,7 +2696,7 @@
                     const dx = b.x - a.x;
                     const dy = b.y - a.y;
                     const distance = Math.sqrt(dx * dx + dy * dy) || 1;
-                    const minDistance = radius * 2;
+                    const minDistance = fighterRadius(a) + fighterRadius(b);
 
                     if (distance > minDistance) {
                         continue;
@@ -2366,11 +2706,14 @@
                     const ny = dy / distance;
                     const overlap = minDistance - distance;
                     const noPushPair = a.definition.noPushCollision || b.definition.noPushCollision;
+                    const bossPhasesStunned = (a.isBoss && isStunned(b, now)) || (b.isBoss && isStunned(a, now));
                     const tangentX = -ny;
                     const tangentY = nx;
                     const randomSide = Math.random() < 0.5 ? -1 : 1;
 
-                    if (noPushPair) {
+                    if (bossPhasesStunned) {
+                        // The boss keeps its trajectory through stunned raid members.
+                    } else if (noPushPair) {
                         if (a.definition.noPushCollision && !isStunned(a, now)) {
                             a.x -= nx * overlap;
                             a.y -= ny * overlap;
@@ -2394,16 +2737,16 @@
                     const bVelocity = b.vx * nx + b.vy * ny;
                     const impulse = bVelocity - aVelocity;
 
-                    if (!noPushPair && !isStunned(a, now)) {
+                    if (!noPushPair && !bossPhasesStunned && !isStunned(a, now)) {
                         a.vx += impulse * nx + tangentX * randomSide * scaledSpeed(18);
                         a.vy += impulse * ny + tangentY * randomSide * scaledSpeed(18);
                     }
-                    if (!noPushPair && !isStunned(b, now)) {
+                    if (!noPushPair && !bossPhasesStunned && !isStunned(b, now)) {
                         b.vx -= impulse * nx + tangentX * randomSide * scaledSpeed(18);
                         b.vy -= impulse * ny + tangentY * randomSide * scaledSpeed(18);
                     }
 
-                    if (!noPushPair) {
+                    if (!noPushPair && !bossPhasesStunned) {
                         const aCharge = a.definition.skill.effects || {};
                         const bCharge = b.definition.skill.effects || {};
                         setVelocitySpeed(a, a.chargeUntil > now ? Math.max(aCharge.minSpeed, moveSpeedOf(a, now) * aCharge.speedMultiplier) : moveSpeedOf(a, now));
@@ -2449,6 +2792,10 @@
 
                 updateBbangkiCrash(fighter, now);
                 if (fighter.dead) {
+                    return;
+                }
+
+                if (updateSwallowed(fighter, now)) {
                     return;
                 }
 
@@ -2516,22 +2863,26 @@
             updatePoisons(now);
             updateIceZones(now);
             updateFlowerZones(now);
+            updateWorldsTrophies(now);
         }
 
         function checkWinner(now) {
             const alive = battle.fighters.filter((fighter) => !fighter.dead && !fighter.isSummon);
-            if (!battle.isFinished && battle.isRunning && alive.length <= 1) {
+            const boss = alive.find((fighter) => fighter.isBoss);
+            const partyAlive = alive.filter((fighter) => fighter.team === "party");
+            const raidFinished = isBossBattle && (!boss || partyAlive.length === 0);
+            if (!battle.isFinished && battle.isRunning && (raidFinished || (!isBossBattle && alive.length <= 1))) {
                 battle.isFinished = true;
                 battle.isRunning = false;
                 battle.finishedAt = now;
                 countdown.classList.remove("hidden");
                 countdown.innerHTML = `
                     <div>
-                        <div>${alive[0] ? `${escapeHtml(alive[0].definition.name)} 승리` : "무승부"}</div>
+                        <div>${isBossBattle ? (boss ? "보스 승리" : "레이드 성공!") : (alive[0] ? `${escapeHtml(alive[0].definition.name)} 승리` : "무승부")}</div>
                         <div class="font-label-numeric text-label-numeric mt-3">TIME ${formatElapsed(currentFightElapsed(now))}</div>
                     </div>
                 `;
-                matchTitle.textContent = "전투 종료";
+                matchTitle.textContent = isBossBattle ? "보스전 종료" : "전투 종료";
                 updateElapsed(now);
             }
         }
@@ -2553,7 +2904,7 @@
                     battle.isRunning = true;
                     battle.fightStartedAt = now;
                     countdown.classList.add("hidden");
-                    matchTitle.textContent = "전투 중";
+                    matchTitle.textContent = isBossBattle ? "보스 레이드 중" : "전투 중";
                 }
             }
 
@@ -2611,14 +2962,24 @@
                 cancelAnimationFrame(animationFrameId);
             }
 
-            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label, .bomb-timer, .impact-star, .puddle-zone, .flower-zone, .poison-field, .ice-field, .arena-flash, .diet-aura, .ground-shockwave, .ground-crack, .ice-crystal, .frost-ring, .charge-ghost, .speed-line, .poison-drop, .poison-mist-cloud, .summon-portal, .summon-sparkle, .heart-particle, .glitch-line, .glitch-block, .cloud-particle, .slow-spiral, .siren-light, .arrest-net, .stealth-ghost, .blade-flash, .dust-puff, .bomb-pulse-ring, .explosion-ember, .explosion-flash-ring").forEach((node) => node.remove());
+            arena.querySelectorAll(".fighter-ball, .effect-ring, .effect-burst, .damage-float, .skill-label, .bomb-timer, .impact-star, .puddle-zone, .flower-zone, .poison-field, .ice-field, .arena-flash, .worlds-trophy, .diet-aura, .ground-shockwave, .ground-crack, .ice-crystal, .frost-ring, .charge-ghost, .speed-line, .poison-drop, .poison-mist-cloud, .summon-portal, .summon-sparkle, .heart-particle, .glitch-line, .glitch-block, .cloud-particle, .slow-spiral, .siren-light, .arrest-net, .stealth-ghost, .blade-flash, .dust-puff, .bomb-pulse-ring, .explosion-ember, .explosion-flash-ring").forEach((node) => node.remove());
             battle.fighters = selectedCharacters.map((definition, index) => createFighter(definition, index, selectedCharacters.length));
+            if (isBossBattle) {
+                const partyCount = battle.fighters.filter((fighter) => fighter.team === "party" && !fighter.isSummon).length;
+                const extraRaiders = Math.max(0, partyCount - 2);
+                const boss = battle.fighters.find((fighter) => fighter.isBoss);
+                if (boss) {
+                    boss.raidIncomingDamageMultiplier = Math.max(0.55, 1 / (1 + extraRaiders * 0.045));
+                    boss.raidCcDurationMultiplier = Math.max(0.45, 1 / (1 + extraRaiders * 0.08));
+                }
+            }
             battle.pairHits = new Map();
             battle.activePuddles = [];
             battle.activePoisons = [];
             battle.activeBombs = [];
             battle.activeIceZones = [];
             battle.activeFlowerZones = [];
+            battle.activeTrophies = [];
 
             activeEffects.rings = 0;
             activeEffects.stars = 0;
@@ -2628,6 +2989,7 @@
             activeEffects.skillLabels = 0;
 
             battle.startedAt = performance.now();
+            battle.nextTrophyAt = isBossBattle ? battle.startedAt + battle.countdownSeconds * 1000 + 6000 : Infinity;
             battle.fightStartedAt = 0;
             battle.finishedAt = 0;
             battle.lastTime = 0;
@@ -2635,7 +2997,7 @@
             battle.isFinished = false;
             countdown.classList.remove("hidden");
             countdown.textContent = "3";
-            matchTitle.textContent = "전투 준비";
+            matchTitle.textContent = isBossBattle ? "보스전 준비" : "전투 준비";
 
             lastElapsedText = "";
             elapsedTime.textContent = "TIME 00:00.0";
@@ -2675,8 +3037,9 @@
             battle.fighters.forEach((fighter) => {
                 fighter.x *= ratio;
                 fighter.y *= ratio;
-                fighter.element.style.width = `${battle.ballSize}px`;
-                fighter.element.style.height = `${battle.ballSize}px`;
+                const size = battle.ballSize * (fighter.isBoss ? 2 : 1);
+                fighter.element.style.width = `${size}px`;
+                fighter.element.style.height = `${size}px`;
             });
         });
 
