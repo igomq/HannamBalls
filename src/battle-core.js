@@ -106,13 +106,42 @@
         return fighter.stunnedUntil > now;
     }
 
-    function skillCooldownDuration(fighter) {
-        if (fighter.definition.id === "lee-seunghyun") {
-            const effects = fighter.definition.skill.effects;
-            return fighter.definition.skill.cooldown + (fighter.seunghyunSkillUses || 0) * (effects.cooldownIncrease || 0);
+    function getSkills(definition) {
+        if (!definition) {
+            return [];
         }
 
-        return fighter.definition.skill.cooldown;
+        if (Array.isArray(definition.skills) && definition.skills.length > 0) {
+            return definition.skills;
+        }
+
+        const skills = [];
+        if (definition.skill) {
+            skills.push(definition.skill);
+        }
+        if (definition.skill2) {
+            skills.push(definition.skill2);
+        }
+        return skills;
+    }
+
+    function skillOf(fighter, skillIndex = 0) {
+        const skills = getSkills(fighter?.definition);
+        return skills[skillIndex] || fighter?.definition?.skill || null;
+    }
+
+    function skillCooldownDuration(fighter, skillIndex = 0) {
+        const skill = skillOf(fighter, skillIndex);
+        if (!skill) {
+            return 999;
+        }
+
+        if (fighter.definition.id === "lee-seunghyun" && skillIndex === 0) {
+            const effects = skill.effects || {};
+            return skill.cooldown + (fighter.seunghyunSkillUses || 0) * (effects.cooldownIncrease || 0);
+        }
+
+        return skill.cooldown;
     }
 
     function livingEnemiesOf(fighters, fighter, now) {
@@ -136,12 +165,14 @@
         createUpdateGate,
         distanceSquared,
         formatElapsed,
+        getSkills,
         isLowPowerDevice,
         isStunned,
         livingEnemiesOf,
         normalize,
         rotateVector,
         scaledEffectCount,
-        skillCooldownDuration
+        skillCooldownDuration,
+        skillOf
     };
 })();

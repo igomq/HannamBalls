@@ -435,5 +435,58 @@
             setTimeout(() => p.remove(), 800);
         }
     };
+
+    // 노무현 - 운지 추락
+    window.unjiDrop = function (x, y, color) {
+        const mark = document.createElement("div");
+        mark.className = "skill-label";
+        mark.textContent = "↓ 운지";
+        mark.style.left = `${x}px`;
+        mark.style.top = `${y}px`;
+        mark.style.color = color || "#0f766e";
+        _arena.appendChild(mark);
+        setTimeout(() => mark.remove(), 760);
+
+        const dropCount = effectCount(6);
+        for (let i = 0; i < dropCount; i++) {
+            const dust = document.createElement("div");
+            dust.className = "dust-puff";
+            dust.style.left = `${x + (Math.random() - 0.5) * 40}px`;
+            dust.style.top = `${y + (Math.random() - 0.5) * 20}px`;
+            dust.style.setProperty("--ddx", `${(Math.random() - 0.5) * 30}px`);
+            dust.style.setProperty("--ddy", `${20 + Math.random() * 40}px`);
+            _arena.appendChild(dust);
+            setTimeout(() => dust.remove(), 500);
+        }
+    };
+
+    // 부엉이 - 바위 궤적
+    window.rockDropTrail = function (x, y, dirX, dirY, color) {
+        const count = effectCount(4);
+        for (let i = 0; i < count; i++) {
+            const pebble = document.createElement("div");
+            pebble.className = "dust-puff";
+            pebble.style.left = `${x + dirX * (12 + i * 10)}px`;
+            pebble.style.top = `${y + dirY * (12 + i * 10)}px`;
+            pebble.style.color = color || "#78716c";
+            pebble.style.setProperty("--ddx", `${dirX * 18}px`);
+            pebble.style.setProperty("--ddy", `${dirY * 18}px`);
+            pebble.style.animationDelay = `${i * 40}ms`;
+            _arena.appendChild(pebble);
+            setTimeout(() => pebble.remove(), 450);
+        }
+    };
+
+    // 노무현 - 논두렁 필드
+    window.nondurungField = function (x, y, size, durationSeconds = 3) {
+        const field = document.createElement("div");
+        field.className = "nondurung-field";
+        field.style.width = `${size}px`;
+        field.style.height = `${size}px`;
+        field.style.left = "0px";
+        field.style.top = "0px";
+        _arena.appendChild(field);
+        setTimeout(() => field.remove(), Math.max(500, durationSeconds * 1000));
+    };
 })();
 

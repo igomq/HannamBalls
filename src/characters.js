@@ -18,7 +18,11 @@
         dongha: "DH",
         bbangki: "BK",
         faker: "FK",
-        hyunho: "HH"
+        hyunho: "HH",
+        roh: "MH",
+        owl: "부엉",
+        mic: "MIC",
+        piaget: "피아"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -558,7 +562,7 @@
             skill: {
                 name: "미드차이",
                 cooldown: 30,
-                description: "압도적인 권능을 시전해 주변 넓은 범위의 캐릭터에게 155.7 피해를 입히고 6초간 기절시킵니다.",
+                description: "압도적인 권능을 시전해 주변 넓은 범위의 캐릭터에게 155.7 피해를 입히고 6초간 기절시킵니다. 불사대마왕 2회를 모두 소모한 뒤 6초 이내에 월즈 트로피를 흡수하면 6초간 고전파 모드에 진입합니다.",
                 effects: {
                     damage: 155.7,
                     stunSeconds: 6,
@@ -571,11 +575,124 @@
                     gogeonpaSpeedMultiplier: 0.5
                 }
             },
+            mapEffects: {
+                trophy: {
+                    name: "월즈 트로피",
+                    interval: 6,
+                    bossHealRatio: 0.1557,
+                    partyDamageMultiplier: 2,
+                    healingBlockDuration: 15.57,
+                    gogeonpaWindow: 6,
+                    gogeonpaDuration: 6,
+                    description: "6초마다 맵에 월즈 트로피가 소환됩니다. 대상혁이 흡수하면 최대 체력의 15.57%를 회복합니다. 레이드 파티가 흡수하면 해당 캐릭터의 피해량이 2배가 되고, 대상혁은 15.57초간 회복이 봉인됩니다. 불사대마왕을 모두 소모한 뒤 6초 이내에 대상혁이 트로피를 흡수하면 6초간 고전파 모드에 들어가며, 고전파 중 파티가 트로피를 먹으면 탈락한 아군 1명을 부활시킵니다."
+                }
+            },
             cooldownOnBasicHit: 0.75,
             cooldownOnDamageTaken: 0.1,
             crowdControlDurationMultiplier: 0.5,
             immuneToBasic: false,
             immuneToKnockback: true
+        },
+        {
+            id: "roh-moohyun",
+            category: "boss",
+            name: "노무현",
+            shortName: "노무현",
+            unlockRequirement: {
+                clearBossId: "faker",
+                label: "대상혁 보스전 클리어 시 해금"
+            },
+            maxHp: 2009,
+            baseAttack: 52.3,
+            speedLabel: "빠름",
+            speed: 252.3,
+            colorName: "노무랑",
+            color: "#f5d82c",
+            textColor: "#ffffff",
+            avatarText: placeholderFaces.roh,
+            traits: ["이중 스킬", "표식 기절", "부엉이 소환", "운지", "마이크·피아제"],
+            startingDamageReduction: 0.0523,
+            passive: {
+                name: "부끄러운 줄 알아야지!",
+                description: "노무현과 충돌하면 노무현이 표식을 남깁니다. 이후에 다시 충돌할 경우, 표식을 소모하며 52.3의 추가 피해를 입히고 2.09초간 기절시킵니다.",
+                effects: {
+                    markBonusDamage: 52.3,
+                    markStunSeconds: 2.09
+                }
+            },
+            skill: {
+                name: "부엉이 소환",
+                cooldown: 15.23,
+                description: "체력 523, 공격력 20.09의 부엉이를 소환합니다. 부엉이는 바위 떨구기(쿨타임 5.23초)로 전방 직선에 바위를 떨궈 맞은 적에게 52.3 피해를 주고 2.09초간 기절시킵니다.",
+                effects: {
+                    summon: {
+                        id: "roh-owl",
+                        name: "부엉이",
+                        shortName: "부엉이",
+                        maxHp: 523,
+                        baseAttack: 20.09,
+                        speedLabel: "빠름",
+                        speed: 252.3,
+                        colorName: "밤부엉이",
+                        color: "#57534e",
+                        textColor: "#fafaf9",
+                        avatarText: placeholderFaces.owl,
+                        traits: ["소환수", "바위 떨구기"],
+                        skill: {
+                            name: "바위 떨구기",
+                            cooldown: 5.23,
+                            description: "자신 앞 직선 경로로 바위를 떨굽니다. 바위에 맞은 적은 52.3 피해를 입고 2.09초간 중력이 강하게 작용해 기절합니다.",
+                            effects: {
+                                rockDamage: 52.3,
+                                rockSpeed: 523,
+                                rockRange: 420,
+                                rockRadius: 42,
+                                stunSeconds: 2.09
+                            }
+                        },
+                        cooldownOnBasicHit: 0.523,
+                        cooldownOnDamageTaken: 0.209,
+                        immuneToBasic: false,
+                        isSummonDefinition: true,
+                        hpDecayPerSecond: 0
+                    }
+                }
+            },
+            skill2: {
+                name: "운지",
+                cooldown: 12.09,
+                description: "가장 가까운 캐릭터를 강제로 자신 앞으로 데려와 맵 밖으로 추락시켜 해당 캐릭터의 최대 체력의 20.09%에 해당하는 피해를 입힙니다. 이 피해로 사망하면 노무현은 최대 체력의 20.09%만큼 회복하고 52.3%만큼의 보호막을 얻습니다.",
+                effects: {
+                    maxHpDamageRatio: 0.2009,
+                    killHealRatio: 0.2009,
+                    killShieldRatio: 0.523,
+                    offMapDuration: 2.09
+                }
+            },
+            mapEffects: {
+                mic: {
+                    maxHp: 209,
+                    damageThresholdRatio: 0.0523,
+                    lifetime: 5.23,
+                    failHealRatio: 0.2009,
+                    successAttackBuffRatio: 0.0523
+                },
+                piaget: {
+                    maxHp: 523,
+                    interval: 20.09,
+                    failStunSeconds: 2.09,
+                    failPartyHealRatio: 0.2009,
+                    failPartyDamageBoost: 0.523,
+                    successStunSeconds: 5.23,
+                    successHealRatio: 0.523
+                }
+            },
+            cooldownOnBasicHit: 0.523,
+            cooldownOnDamageTaken: 0.523,
+            crowdControlDurationMultiplier: 0.523,
+            immuneToBasic: false,
+            immuneToKnockback: true,
+            avatarSrc: 'images/muhyun.png'
         },
         {
             id: "bbangki",
@@ -684,13 +801,63 @@
         }
     ];
 
+    const CLEARED_BOSSES_KEY = "hannamBallsClearedBosses";
+
+    function readClearedBosses() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(CLEARED_BOSSES_KEY) || "[]");
+            return Array.isArray(parsed) ? parsed.filter((id) => typeof id === "string") : [];
+        } catch (_error) {
+            return [];
+        }
+    }
+
+    function writeClearedBosses(ids) {
+        const unique = [...new Set(ids.filter((id) => typeof id === "string"))];
+        localStorage.setItem(CLEARED_BOSSES_KEY, JSON.stringify(unique));
+        return unique;
+    }
+
     window.HannamBalls = {
+        CLEARED_BOSSES_KEY,
         getCharacters() {
             return window.HANNAM_BALLS_CHARACTERS.map((character) => JSON.parse(JSON.stringify(character)));
         },
         getCharacter(id) {
             const character = window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === id);
             return character ? JSON.parse(JSON.stringify(character)) : null;
+        },
+        getClearedBosses() {
+            return readClearedBosses();
+        },
+        markBossCleared(bossId) {
+            if (!bossId) {
+                return readClearedBosses();
+            }
+            const cleared = readClearedBosses();
+            if (!cleared.includes(bossId)) {
+                cleared.push(bossId);
+            }
+            return writeClearedBosses(cleared);
+        },
+        isBossUnlocked(characterOrId) {
+            const character = typeof characterOrId === "string"
+                ? window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === characterOrId)
+                : characterOrId;
+            if (!character || character.category !== "boss") {
+                return true;
+            }
+            const requirement = character.unlockRequirement;
+            if (!requirement?.clearBossId) {
+                return true;
+            }
+            return readClearedBosses().includes(requirement.clearBossId);
+        },
+        getBossUnlockLabel(characterOrId) {
+            const character = typeof characterOrId === "string"
+                ? window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === characterOrId)
+                : characterOrId;
+            return character?.unlockRequirement?.label || "해금 조건 미충족";
         }
     };
 })();

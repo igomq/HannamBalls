@@ -1,6 +1,7 @@
 (function () {
-    function effectsOf(fighter) {
-        return fighter.definition.skill.effects || {};
+    function effectsOf(fighter, skillIndex = 0) {
+        const skill = window.HannamBallsBattle?.skillOf?.(fighter, skillIndex) || fighter.definition.skill;
+        return skill?.effects || {};
     }
 
     function createModules(getContext) {
@@ -283,6 +284,68 @@
                 });
             },
 
+            "roh-moohyun": (fighter, now, ctx, skillIndex = 0) => {
+                if (skillIndex === 1) {
+                    const effects = effectsOf(fighter, 1);
+                    const target = ctx.nearestEnemy(fighter);
+                    if (!target || target.isMapObject) {
+                        ctx.floatText("NO TARGET", fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                        return;
+                    }
+
+                    const dir = ctx.normalize(fighter.vx || 1, fighter.vy || 0);
+                    const pullDistance = ctx.battle.ballSize * 1.15;
+                    target.x = Math.max(
+                        ctx.battle.ballSize / 2,
+                        Math.min(ctx.battle.arenaSize - ctx.battle.ballSize / 2, fighter.x + dir.x * pullDistance)
+                    );
+                    target.y = Math.max(
+                        ctx.battle.ballSize / 2,
+                        Math.min(ctx.battle.arenaSize - ctx.battle.ballSize / 2, fighter.y + dir.y * pullDistance)
+                    );
+                    target.vx = 0;
+                    target.vy = 0;
+                    ctx.effectRing(fighter.x, fighter.y, ctx.battle.ballSize * 2.2, fighter.definition.color);
+                    ctx.megaBurst(target.x, target.y, "#facc15", 10);
+                    ctx.floatText("운지!", target.x, target.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                    if (ctx.effects?.unjiDrop) {
+                        ctx.effects.unjiDrop(target.x, target.y, fighter.definition.color);
+                    }
+
+                    // 피해를 먼저 적용한 뒤 추락(맵 밖) 연출 — offMap 중이면 피해가 무시됨
+                    const dealt = ctx.applyMaxHpRatioDamage(target, effects.maxHpDamageRatio || 0.2009, fighter, "skill");
+                    if (target.dead) {
+                        ctx.healFighter(fighter, fighter.maxHp * (effects.killHealRatio || 0.2009));
+                        fighter.shield = (fighter.shield || 0) + fighter.maxHp * (effects.killShieldRatio || 0.523);
+                        ctx.floatText("운지 처치 회복", fighter.x, fighter.y - ctx.battle.ballSize, "#4ade80");
+                        ctx.megaBurst(fighter.x, fighter.y, "#4ade80", 8);
+                    } else {
+                        target.offMapUntil = now + (effects.offMapDuration || 2.09) * 1000;
+                        if (dealt > 0) {
+                            ctx.floatText("추락!", target.x, target.y - ctx.battle.ballSize / 2, "#ba1a1a");
+                        }
+                    }
+                    return;
+                }
+
+                const summonDefinition = fighter.definition.skill.effects.summon;
+                ctx.effects.summonPortal(fighter.x, fighter.y, fighter.definition.color);
+                const summon = ctx.summonFighter(fighter, summonDefinition, now, {
+                    label: "부엉이 소환",
+                    idPrefix: "owl"
+                });
+                if (summon) {
+                    ctx.floatText("부엉이!", summon.x, summon.y - ctx.battle.ballSize / 2, summon.definition.color);
+                }
+            },
+
+            "roh-owl": (fighter, now, ctx) => {
+                const effects = effectsOf(fighter);
+                if (ctx.fireRock) {
+                    ctx.fireRock(fighter, now, effects);
+                }
+            },
+
             "bbangki": (fighter, now, ctx) => {
                 const effects = effectsOf(fighter);
                 fighter.bbangkiAwakenUses = (fighter.bbangkiAwakenUses || 0) + 1;
@@ -418,6 +481,40 @@
                         ctx.executeFighter(other, fighter, "고전파 처형");
                     }
                 }
+            },
+            "roh-moohyun": {
+                onEnemyCollision(fighter, other, now, ctx) {
+                    if (other.dead || other.isMapObject) {
+                        return;
+                    }
+
+                    if (!fighter.rohMarkHits) {
+                        fighter.rohMarkHits = new Map();
+                    }
+                    const lastHit = fighter.rohMarkHits.get(other.id) || 0;
+                    if (now - lastHit < 620) {
+                        return;
+                    }
+                    fighter.rohMarkHits.set(other.id, now);
+
+                    if (!other.rohMarks) {
+                        other.rohMarks = new Set();
+                    }
+
+                    const effects = fighter.definition.passive?.effects || {};
+                    if (other.rohMarks.has(fighter.id)) {
+                        other.rohMarks.delete(fighter.id);
+                        ctx.applyDamage(other, effects.markBonusDamage || 52.3, fighter, "passive");
+                        ctx.stun(other, effects.markStunSeconds || 2.09, now);
+                        ctx.floatText("부끄러운 줄!", other.x, other.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                        ctx.impactStar(other.x, other.y, fighter.definition.color);
+                        ctx.megaBurst(other.x, other.y, "#facc15", 6);
+                    } else {
+                        other.rohMarks.add(fighter.id);
+                        ctx.floatText("표식", other.x, other.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                        ctx.effectRing(other.x, other.y, ctx.battle.ballSize * 1.25, fighter.definition.color);
+                    }
+                }
             }
         };
 
@@ -425,18 +522,45 @@
             return fighter.definition.id === "lee-seunghyun" ? 4 : 8;
         }
 
-        function useSkill(fighter, now) {
+        function useSkill(fighter, now, skillIndex = 0) {
             const ctx = getContext();
-            ctx.skillLabel(fighter.definition.skill.name, fighter);
+            const skill = window.HannamBallsBattle.skillOf(fighter, skillIndex) || fighter.definition.skill;
+            if (!skill) {
+                return;
+            }
+
+            // 맵 오브젝트·더미 스킬은 시전하지 않음
+            if (fighter.isMapObject || skill.cooldown >= 900) {
+                if (fighter.skillCooldowns) {
+                    fighter.skillCooldowns[skillIndex] = skill.cooldown;
+                }
+                if (skillIndex === 0) {
+                    fighter.skillCooldown = skill.cooldown;
+                }
+                return;
+            }
+
+            ctx.skillLabel(skill.name, fighter);
             ctx.screenFlash(fighter.definition.color);
             ctx.megaBurst(fighter.x, fighter.y, fighter.definition.color, skillStartBurstCount(fighter));
 
             const handler = skillHandlers[fighter.definition.id];
             if (handler) {
-                handler(fighter, now, ctx);
+                handler(fighter, now, ctx, skillIndex, skill);
             }
 
-            fighter.skillCooldown = ctx.skillCooldownDuration(fighter);
+            const duration = ctx.skillCooldownDuration(fighter, skillIndex);
+            if (!fighter.skillCooldowns) {
+                const skills = window.HannamBallsBattle.getSkills(fighter.definition);
+                fighter.skillCooldowns = skills.map((item, index) => (
+                    index === skillIndex ? duration : ctx.skillCooldownDuration(fighter, index)
+                ));
+            } else {
+                fighter.skillCooldowns[skillIndex] = duration;
+            }
+            if (skillIndex === 0) {
+                fighter.skillCooldown = duration;
+            }
         }
 
         function onEnemyCollision(fighter, other, now) {
