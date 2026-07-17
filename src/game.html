@@ -555,20 +555,20 @@
         </div>
     </main>
 
-    <div id="info-modal" class="fixed inset-0 hidden items-center justify-center p-4 modal-backdrop z-50">
-        <div class="w-full max-w-md bg-surface brutal-border-thick hard-shadow p-6">
-            <div class="flex items-start justify-between gap-4 mb-4">
-                <div>
+    <div id="info-modal" class="fixed inset-0 hidden items-center justify-center p-4 modal-backdrop z-50 overflow-y-auto">
+        <div class="w-full max-w-md max-h-[min(90vh,900px)] bg-surface brutal-border-thick hard-shadow p-6 flex flex-col my-auto">
+            <div class="flex items-start justify-between gap-4 mb-4 shrink-0">
+                <div class="min-w-0">
                     <h2 id="modal-name" class="font-headline-md text-headline-md"></h2>
                     <p id="modal-skill" class="font-label-numeric text-label-numeric text-secondary mt-1"></p>
                 </div>
                 <button id="modal-close"
-                    class="w-9 h-9 bg-surface-container-lowest brutal-border-thin hard-shadow-sm btn-brutal flex items-center justify-center"
+                    class="w-9 h-9 shrink-0 bg-surface-container-lowest brutal-border-thin hard-shadow-sm btn-brutal flex items-center justify-center"
                     title="닫기">
                     <span class="material-symbols-outlined text-[20px]">close</span>
                 </button>
             </div>
-            <div id="modal-body" class="space-y-3 text-body-base"></div>
+            <div id="modal-body" class="space-y-3 text-body-base overflow-y-auto min-h-0 flex-1 overscroll-contain pr-1"></div>
         </div>
     </div>
 
@@ -599,10 +599,13 @@
 
         function applyRaidBalance(definition) {
             definition.raidRole = "party";
-            if (definition.maxHp < 300) definition.maxHp = Math.round(definition.maxHp * 1.65);
-            else if (definition.maxHp < 400) definition.maxHp = Math.round(definition.maxHp * 1.35);
-            if (definition.id === "song-geonuk") definition.skill.effects.attackGain *= 0.55;
-            if (definition.id === "kang-hyunwoo") definition.passive.effects.growthDamage *= 0.5;
+            definition.maxHp = window.HannamBalls.getRaidMaxHp(definition.maxHp);
+            if (definition.id === "song-geonuk" && definition.skill?.effects) {
+                definition.skill.effects.attackGain *= window.HannamBalls.RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER;
+            }
+            if (definition.id === "kang-hyunwoo" && definition.passive?.effects) {
+                definition.passive.effects.growthDamage *= window.HannamBalls.RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER;
+            }
             return definition;
         }
 
@@ -703,6 +706,7 @@
             applyCurrentHpRatioDamage,
             applyDamage,
             applyMaxHpRatioDamage,
+            applyTaehoonPoison,
             areAllies,
             arenaScale,
             burst,
@@ -1021,10 +1025,11 @@
                 lastBossTrophyAt: 0,
                 gogeonpaUntil: 0,
                 forceMoveUntil: 0,
-                rohDamageTaken: 0,
-                rohNextMicAt: 0,
+                rohMicSegmentsClaimed: 0,
                 rohMarks: new Set(),
                 rohMarkHits: new Map(),
+                taehoonPoison: null,
+                taehoonCollideAt: null,
                 mapExpireAt: options.mapExpireAt || 0,
                 skillUseCount: 0,
                 dietUses: 0,
@@ -1123,8 +1128,49 @@
             return `rgb(${nr}, ${ng}, ${nb})`;
         }
 
-        function despawnMapObject(fighter) {
-            if (!fighter || !fighter.isMapObject) {
+        function isRohOwlFighter(fighter) {
+            if (!fighter) {
+                return false;
+            }
+            const def = fighter.definition || {};
+            return fighter.isRohOwl === true
+                || def.id === "roh-owl"
+                || def.name === "부엉이"
+                || def.shortName === "부엉이";
+        }
+
+        function shouldShowInHud(fighter) {
+            if (!fighter || fighter.isMapObject) {
+                return false;
+            }
+            // 부엉이·보스 소환 전투유닛은 하단 정보창에 표시하지 않음
+            if (fighter.hideFromHud === true) {
+                return false;
+            }
+            const def = fighter.definition || {};
+            if (def.hideFromHud === true || isRohOwlFighter(fighter)) {
+                return false;
+            }
+            // 보스 팀 소환수(부엉이 등)도 HUD 제외. 파티 소환(엄마 등)은 유지
+            if (fighter.isSummon && fighter.team === "boss") {
+                return false;
+            }
+            return true;
+        }
+
+        function shouldDespawnOnDeath(fighter) {
+            if (!fighter) {
+                return false;
+            }
+            if (fighter.isMapObject || fighter.despawnOnDeath === true) {
+                return true;
+            }
+            const def = fighter.definition || {};
+            return def.despawnOnDeath === true || isRohOwlFighter(fighter);
+        }
+
+        function despawnFighterElement(fighter) {
+            if (!fighter) {
                 return;
             }
             fighter.dead = true;
@@ -1132,13 +1178,40 @@
             fighter.vx = 0;
             fighter.vy = 0;
             if (fighter.element) {
+                fighter.element.classList.remove("is-dead");
                 fighter.element.remove();
                 fighter.element = null;
             }
+            fighter.hudElement = null;
+            fighter.hudHpFill = null;
+            fighter.hudHpText = null;
+            fighter.hudSkillFills = [];
+            fighter.hudSkillFill = null;
+            fighter.hudStatus = null;
+            fighter.hudStatBonus = null;
+        }
+
+        /** DOM 제거 + fighters 목록에서 삭제해 잔상/HUD 카드가 남지 않게 함 */
+        function removeFighterCompletely(fighter) {
+            if (!fighter) {
+                return;
+            }
+            despawnFighterElement(fighter);
+            const index = battle.fighters.indexOf(fighter);
+            if (index >= 0) {
+                battle.fighters.splice(index, 1);
+            }
+        }
+
+        function despawnMapObject(fighter) {
+            if (!fighter || !fighter.isMapObject) {
+                return;
+            }
+            removeFighterCompletely(fighter);
         }
 
         function renderHud() {
-            const hudFighters = battle.fighters.filter((fighter) => !fighter.isMapObject);
+            const hudFighters = battle.fighters.filter((fighter) => shouldShowInHud(fighter) && !fighter.dead);
             hud.innerHTML = hudFighters.map((fighter) => {
                 const skills = getSkills(fighter.definition);
                 const skillBars = skills.map((skill, index) => `
@@ -1176,7 +1249,7 @@
             }).join("");
 
             battle.fighters.forEach((fighter) => {
-                if (fighter.isMapObject) {
+                if (!shouldShowInHud(fighter)) {
                     fighter.hudElement = null;
                     fighter.hudHpFill = null;
                     fighter.hudHpText = null;
@@ -1188,6 +1261,10 @@
                 }
 
                 const card = hud.querySelector(`[data-hud-id="${fighter.id}"]`);
+                if (!card) {
+                    fighter.hudElement = null;
+                    return;
+                }
                 fighter.hudElement = card;
                 fighter.hudHpFill = card.querySelector(".hp-fill");
                 fighter.hudHpText = card.querySelector(".hp-text");
@@ -1273,6 +1350,9 @@
                 } else if (isStunned(fighter, now)) {
                     statusTextVal = `행동 불가 ${(Math.max(0, fighter.stunnedUntil - now) / 1000).toFixed(1)}초`;
                     statusColor = "#ba1a1a";
+                } else if (fighter.taehoonPoison && fighter.taehoonPoison.expiresAt > now) {
+                    statusTextVal = `독 ${(Math.max(0, fighter.taehoonPoison.expiresAt - now) / 1000).toFixed(1)}초`;
+                    statusColor = "#7c3aed";
                 } else if (fighter.isMapObject && fighter.mapExpireAt > now) {
                     statusTextVal = `잔여 ${(Math.max(0, fighter.mapExpireAt - now) / 1000).toFixed(1)}초`;
                     statusColor = fighter.definition.color;
@@ -1336,9 +1416,12 @@
                 }
                 if (fighter.definition.id === "faker") {
                     bonusParts.push(`불사 ${fighter.fakerPassiveUses || 0}/2`);
-                    if (fighter.healingBlockedUntil > now) {
-                        bonusParts.push(`회복 봉인 ${((fighter.healingBlockedUntil - now) / 1000).toFixed(1)}초`);
-                    }
+                }
+                if (fighter.healingBlockedUntil > now) {
+                    bonusParts.push(`회복 봉인 ${((fighter.healingBlockedUntil - now) / 1000).toFixed(1)}초`);
+                }
+                if (fighter.taehoonPoison && fighter.taehoonPoison.expiresAt > now && !String(statusTextVal).startsWith("독")) {
+                    bonusParts.push(`독 ${((fighter.taehoonPoison.expiresAt - now) / 1000).toFixed(1)}초`);
                 }
                 if (fighter.damageMultiplier > 1.001) {
                     const mult = fighter.damageMultiplier;
@@ -1425,21 +1508,25 @@
             }
             if (boss.healingBlockedUntil > now) states.push(`회복 봉인 ${((boss.healingBlockedUntil - now) / 1000).toFixed(1)}초`);
             if (boss.gogeonpaUntil > now) states.push(`고전파 ${((boss.gogeonpaUntil - now) / 1000).toFixed(1)}초`);
-            if (boss.raidIncomingDamageMultiplier < 0.999) {
-                states.push(`레이드 방어 ${Math.round((1 - boss.raidIncomingDamageMultiplier) * 100)}%`);
+            const raidDmgMult = Number.isFinite(boss.raidIncomingDamageMultiplier) ? boss.raidIncomingDamageMultiplier : 1;
+            if (raidDmgMult < 0.995) {
+                states.push(`레이드 방어 ${Math.round((1 - raidDmgMult) * 100)}%`);
+            } else if (raidDmgMult > 1.005) {
+                states.push(`소수 보정 피해 +${Math.round((raidDmgMult - 1) * 100)}%`);
             }
             bossHealthStatus.textContent = states.join(" · ") || boss.definition.passive?.name || "";
         }
 
         function renderFighters(now) {
+            const despawnQueue = [];
             battle.fighters.forEach((fighter) => {
-                if (!fighter.element) {
+                // 맵 오브젝트·부엉이 등은 죽은 뒤 완전 제거(잔상·HUD 방지)
+                if (fighter.dead && shouldDespawnOnDeath(fighter)) {
+                    despawnQueue.push(fighter);
                     return;
                 }
 
-                // 맵 오브젝트(마이크/피아제)는 죽은 뒤 DOM에서 제거되어 잔상을 남기지 않음
-                if (fighter.isMapObject && fighter.dead) {
-                    despawnMapObject(fighter);
+                if (!fighter.element) {
                     return;
                 }
 
@@ -1485,6 +1572,9 @@
                 const radius = fighterRadius(fighter);
                 fighter.element.style.transform = `translate(${fighter.x - radius}px, ${fighter.y - radius}px)`;
             });
+            if (despawnQueue.length > 0) {
+                despawnQueue.forEach((fighter) => removeFighterCompletely(fighter));
+            }
         }
 
         function effectRing(x, y, size, color) {
@@ -1766,12 +1856,14 @@
 
             if (source) {
                 amount *= Number.isFinite(source.damageMultiplier) ? source.damageMultiplier : 1;
-                if (isBossBattle && source.team === "party") amount *= 0.85;
+                if (isBossBattle && source.team === "party") {
+                    amount *= window.HannamBalls.RAID_PARTY_DAMAGE_MULTIPLIER;
+                }
                 if (isBossBattle && target.isBoss && source.team === "party") {
                     amount *= target.raidIncomingDamageMultiplier || 1;
                 }
                 if (isBossBattle && target.isBoss && source.definition.id === "jeong-yuseung" && kind === "passive") {
-                    amount *= 0.35;
+                    amount *= window.HannamBalls.RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER;
                 }
             }
 
@@ -1829,7 +1921,6 @@
             }
 
             if (actual > 0 && target.definition.id === "roh-moohyun" && !target.dead) {
-                target.rohDamageTaken = (target.rohDamageTaken || 0) + actual;
                 maybeSpawnRohMics(target, now);
             }
 
@@ -1841,11 +1932,18 @@
                 target.dead = true;
                 target.vx = 0;
                 target.vy = 0;
-                burst(target.x, target.y, "#ba1a1a", 12);
-                floatText(target.isMapObject ? "파괴" : "OUT", target.x, target.y, "#ba1a1a");
+                const despawn = shouldDespawnOnDeath(target);
+                const deathX = target.x;
+                const deathY = target.y;
+                burst(deathX, deathY, "#ba1a1a", 12);
+                floatText(target.isMapObject ? "파괴" : (despawn ? "소멸" : "OUT"), deathX, deathY, "#ba1a1a");
                 if (target.isMapObject) {
                     resolveMapObjectDeath(target, source, now);
-                    despawnMapObject(target);
+                    removeFighterCompletely(target);
+                } else if (despawn) {
+                    characterModules.onKill(source, target);
+                    removeFighterCompletely(target);
+                    renderHud();
                 } else {
                     if (target.element) {
                         target.element.style.zIndex = "1";
@@ -1859,15 +1957,23 @@
 
         function executeFighter(target, source, label = "처형") {
             if (!target || target.dead || areAllies(target, source)) return false;
+            const deathX = target.x;
+            const deathY = target.y;
+            const radius = fighterRadius(target);
             target.hp = 0;
             target.shield = 0;
             target.dead = true;
             target.vx = 0;
             target.vy = 0;
-            target.element.style.zIndex = "1";
-            floatText(label, target.x, target.y - fighterRadius(target), "#ef4444");
-            megaBurst(target.x, target.y, "#ef4444", 12);
+            floatText(label, deathX, deathY - radius, "#ef4444");
+            megaBurst(deathX, deathY, "#ef4444", 12);
             characterModules.onKill(source, target);
+            if (shouldDespawnOnDeath(target)) {
+                removeFighterCompletely(target);
+                renderHud();
+            } else if (target.element) {
+                target.element.style.zIndex = "1";
+            }
             return true;
         }
 
@@ -2242,6 +2348,68 @@
             battle.activePoisons.push(poisonObj);
         }
 
+        /**
+         * 양태훈 패시브/스킬 독. kind="poison"이라 기본 공격 면역과 무관.
+         * 중첩 없음 — 남은 지속시간이 있으면 연장.
+         */
+        function applyTaehoonPoison(target, source, now, durationSeconds) {
+            if (!target || target.dead || target.isMapObject || !source) {
+                return false;
+            }
+            const passive = source.definition?.id === "yang-taehoon"
+                ? (source.definition.passive?.effects || {})
+                : (window.HannamBalls.getCharacter?.("yang-taehoon")?.passive?.effects || {});
+            const durationMs = Math.max(0.1, durationSeconds || passive.poisonDuration || 5) * 1000;
+            const dps = passive.poisonDps || 4;
+            const tickInterval = passive.poisonTickInterval || 1;
+            const existing = target.taehoonPoison;
+            if (existing && existing.expiresAt > now) {
+                existing.expiresAt += durationMs;
+                existing.source = source;
+                existing.sourceId = source.id;
+                existing.dps = dps;
+                existing.tickInterval = tickInterval;
+                floatText(`독 연장 +${(durationMs / 1000).toFixed(1)}초`, target.x, target.y - battle.ballSize / 2, "#7c3aed");
+                return true;
+            }
+            target.taehoonPoison = {
+                source,
+                sourceId: source.id,
+                dps,
+                tickInterval,
+                nextTickAt: now + tickInterval * 1000,
+                expiresAt: now + durationMs
+            };
+            floatText(`독 ${durationSeconds || 5}초`, target.x, target.y - battle.ballSize / 2, "#7c3aed");
+            return true;
+        }
+
+        function updateTaehoonPoisons(now) {
+            battle.fighters.forEach((target) => {
+                const poison = target.taehoonPoison;
+                if (!poison) {
+                    return;
+                }
+                if (target.dead || now >= poison.expiresAt) {
+                    target.taehoonPoison = null;
+                    return;
+                }
+                if (now < poison.nextTickAt) {
+                    return;
+                }
+                poison.nextTickAt = now + (poison.tickInterval || 1) * 1000;
+                const source = poison.source && !poison.source.dead
+                    ? poison.source
+                    : (getFighterById(poison.sourceId) || poison.source);
+                // 독 틱은 기본 공격 판정이 아님 (kind: poison)
+                const dealt = applyDamage(target, poison.dps * (poison.tickInterval || 1), source, "poison");
+                if (dealt > 0 && now >= (target.nextDotFloatAt || 0)) {
+                    target.nextDotFloatAt = now + 450;
+                    floatText(`독 -${Math.round(dealt)}`, target.x, target.y - battle.ballSize / 2, "#7c3aed");
+                }
+            });
+        }
+
         function updatePoisons(now) {
             battle.activePoisons = battle.activePoisons.filter((poison) => {
                 if (now >= poison.expiresAt || poison.source.dead) {
@@ -2366,7 +2534,9 @@
                 return 0;
             }
 
-            const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party" ? ratio * 0.35 : ratio;
+            const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party"
+                ? ratio * window.HannamBalls.RAID_BOSS_RATIO_DAMAGE_MULTIPLIER
+                : ratio;
             return applyDamage(target, Math.max(0, target.hp * adjustedRatio), source, kind);
         }
 
@@ -2375,7 +2545,9 @@
                 return 0;
             }
 
-            const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party" ? ratio * 0.35 : ratio;
+            const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party"
+                ? ratio * window.HannamBalls.RAID_BOSS_RATIO_DAMAGE_MULTIPLIER
+                : ratio;
             return applyDamage(target, Math.max(0, target.maxHp * adjustedRatio), source, kind);
         }
 
@@ -2820,8 +2992,23 @@
                 summon.vx = direction.x * scaledSpeed(summon.speed);
                 summon.vy = direction.y * scaledSpeed(summon.speed);
             }
+            // 부엉이: HUD/잔상 제외 플래그를 fighter에 강제 고정
+            if (
+                definition.id === "roh-owl"
+                || definition.name === "부엉이"
+                || definition.hideFromHud
+                || definition.despawnOnDeath
+            ) {
+                summon.isRohOwl = definition.id === "roh-owl" || definition.name === "부엉이";
+                summon.hideFromHud = true;
+                summon.despawnOnDeath = true;
+                if (summon.definition) {
+                    summon.definition.hideFromHud = true;
+                    summon.definition.despawnOnDeath = true;
+                }
+            }
             // 부엉이는 소환 직후 바위를 바로 떨굴 수 있게 준비
-            if (definition.id === "roh-owl") {
+            if (definition.id === "roh-owl" || summon.isRohOwl) {
                 ensureSkillCooldowns(summon);
                 summon.skillCooldowns[0] = 0.523;
                 summon.skillCooldown = 0.523;
@@ -2832,6 +3019,7 @@
                 summon.element.classList.add("is-map-object");
             }
             battle.fighters.push(summon);
+            // 부엉이 소환 시에도 정보창에 안 뜨도록 필터된 HUD만 갱신
             renderHud();
             megaBurst(summon.x, summon.y, owner?.definition?.color || definition.color, 6);
             floatText(options.label || `${definition.name} 등장`, summon.x, summon.y - battle.ballSize / 2, definition.color);
@@ -2910,24 +3098,31 @@
             };
         }
 
+        /**
+         * 노무현 마이크: 최대 체력 대비 5.23% 구간을 새로 내려갈 때마다 1회만 소환.
+         * 회복 후 같은 구간(예: 94.77%)을 다시 통과해도 재소환하지 않음.
+         * (툴팁 문구는 변경하지 않음)
+         */
         function maybeSpawnRohMics(boss, now) {
             const config = boss.definition.mapEffects?.mic;
             if (!config || boss.dead) {
                 return;
             }
 
-            const threshold = boss.maxHp * (config.damageThresholdRatio || 0.0523);
-            if (threshold <= 0) {
+            const ratio = config.damageThresholdRatio || 0.0523;
+            const thresholdHp = boss.maxHp * ratio;
+            if (!(thresholdHp > 0) || !(boss.maxHp > 0)) {
                 return;
             }
 
-            if (!Number.isFinite(boss.rohNextMicAt) || boss.rohNextMicAt <= 0) {
-                boss.rohNextMicAt = threshold;
-            }
+            const missingHp = Math.max(0, boss.maxHp - Math.max(0, boss.hp));
+            const segmentsReached = Math.floor(missingHp / thresholdHp + 1e-9);
+            let claimed = Math.max(0, Math.floor(Number(boss.rohMicSegmentsClaimed) || 0));
 
-            while ((boss.rohDamageTaken || 0) >= boss.rohNextMicAt) {
+            while (claimed < segmentsReached) {
+                claimed += 1;
+                boss.rohMicSegmentsClaimed = claimed;
                 spawnRohMic(boss, now, config);
-                boss.rohNextMicAt += threshold;
             }
         }
 
@@ -3014,6 +3209,12 @@
                 stun(fighter, stunSeconds, now);
             });
             healFighter(boss, boss.maxHp * (config.successHealRatio || 0.523));
+            const shieldRatio = config.successShieldRatio ?? 0.523;
+            if (shieldRatio > 0 && boss && !boss.dead) {
+                const shieldGain = boss.maxHp * shieldRatio;
+                boss.shield = (boss.shield || 0) + shieldGain;
+                floatText(`보호막 +${Math.round(shieldGain)}`, boss.x, boss.y - battle.ballSize / 2, "#38bdf8");
+            }
             if (window.nondurungField) {
                 window.nondurungField(battle.arenaSize / 2, battle.arenaSize / 2, battle.arenaSize, stunSeconds);
             } else {
@@ -3171,6 +3372,8 @@
         }
 
         function updateSummons(dt) {
+            const despawnQueue = [];
+            let hudNeedsRefresh = false;
             battle.fighters.forEach((fighter) => {
                 if (!fighter.isSummon || fighter.dead) {
                     return;
@@ -3184,18 +3387,30 @@
                 }
 
                 if (fighter.hp <= 0) {
+                    const deathX = fighter.x;
+                    const deathY = fighter.y;
                     fighter.dead = true;
                     fighter.vx = 0;
                     fighter.vy = 0;
                     if (fighter.isMapObject) {
                         fighter.mapResolved = true;
-                        floatText("소멸", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
-                        despawnMapObject(fighter);
+                        floatText("소멸", deathX, deathY - battle.ballSize / 2, fighter.definition.color);
+                        despawnQueue.push(fighter);
+                    } else if (shouldDespawnOnDeath(fighter)) {
+                        floatText("소멸", deathX, deathY - battle.ballSize / 2, fighter.definition.color);
+                        despawnQueue.push(fighter);
+                        hudNeedsRefresh = true;
                     } else {
-                        floatText("퇴근", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+                        floatText("퇴근", deathX, deathY - battle.ballSize / 2, fighter.definition.color);
                     }
                 }
             });
+            if (despawnQueue.length > 0) {
+                despawnQueue.forEach((fighter) => removeFighterCompletely(fighter));
+            }
+            if (hudNeedsRefresh) {
+                renderHud();
+            }
         }
 
         function updateFollowSkill(fighter, now) {
@@ -3515,6 +3730,7 @@
             updateRohMapEffects(now);
             updatePuddles(now);
             updatePoisons(now);
+            updateTaehoonPoisons(now);
             updateIceZones(now);
             updateFlowerZones(now);
             updateWorldsTrophies(now);
@@ -3636,7 +3852,8 @@
                 lines.push(`<p class="text-on-surface-variant">마이크: 최대 체력의 ${(mic.damageThresholdRatio * 100).toFixed(2)}% 피해마다 HP ${mic.maxHp} 마이크 소환. ${mic.lifetime}초 내 파괴 시 아군 공격력 +${(mic.successAttackBuffRatio * 100).toFixed(2)}%, 실패 시 보스 최대 체력 ${(mic.failHealRatio * 100).toFixed(2)}% 회복.</p>`);
             }
             if (piaget) {
-                lines.push(`<p class="text-on-surface-variant">피아제: ${piaget.interval}초마다 HP ${piaget.maxHp} 피아제 소환. 보스가 파괴 시 논두렁 ${piaget.successStunSeconds}초·보스 최대 체력 ${(piaget.successHealRatio * 100).toFixed(1)}% 회복. 실패 시 보스 ${piaget.failStunSeconds}초 행동 불가·아군 최대 체력 ${(piaget.failPartyHealRatio * 100).toFixed(0)}% 회복·피해 +${(piaget.failPartyDamageBoost * 100).toFixed(1)}%.</p>`);
+                const shieldRatio = piaget.successShieldRatio ?? 0.523;
+                lines.push(`<p class="text-on-surface-variant">피아제: ${piaget.interval}초마다 HP ${piaget.maxHp} 피아제 소환. 보스가 파괴 시 논두렁 ${piaget.successStunSeconds}초·보스 최대 체력 ${(piaget.successHealRatio * 100).toFixed(1)}% 회복·보호막 ${(shieldRatio * 100).toFixed(1)}%. 실패 시 보스 ${piaget.failStunSeconds}초 행동 불가·아군 최대 체력 ${(piaget.failPartyHealRatio * 100).toFixed(0)}% 회복·피해 +${(piaget.failPartyDamageBoost * 100).toFixed(1)}%.</p>`);
             }
             if (trophy) {
                 lines.push(`<p class="text-on-surface-variant">${escapeHtml(trophy.name || "월즈 트로피")}: ${escapeHtml(trophy.description)}</p>`);
@@ -3652,18 +3869,61 @@
             `;
         }
 
+        function raidBalanceHtml(definition) {
+            if (!isBossBattle || !window.HannamBalls?.getRaidBalanceInfo) {
+                return "";
+            }
+            if (definition?.isSummonDefinition || definition?.isMapObject) {
+                return "";
+            }
+            const partyCount = battle.fighters.filter((fighter) => (
+                fighter.team === "party" && !fighter.isSummon && !fighter.isMapObject
+            )).length || Math.max(selectedCharacters.filter((item) => item.raidRole === "party" || item.category !== "boss").length, 2);
+            const boss = battle.fighters.find((fighter) => fighter.isBoss)
+                || selectedCharacters.find((item) => item.category === "boss" || item.raidRole === "boss");
+            const info = window.HannamBalls.getRaidBalanceInfo(definition, {
+                partyCount: Math.max(partyCount, 1),
+                bossId: boss?.definition?.id || boss?.id || "faker"
+            });
+            if (!info?.lines?.length) {
+                return "";
+            }
+            return `
+                <div class="bg-primary-fixed brutal-border-thin p-2 space-y-1">
+                    <p class="font-label-numeric text-label-numeric text-on-primary-fixed">보스전 밸런스</p>
+                    ${info.lines.map((line) => `<p class="text-sm text-on-surface-variant">${escapeHtml(line)}</p>`).join("")}
+                </div>
+            `;
+        }
+
         function showInfo(definition) {
             const skills = getSkills(definition);
+            const base = window.HannamBalls.getCharacter(definition.id);
+            const raidInfo = isBossBattle && base && window.HannamBalls?.getRaidBalanceInfo
+                ? window.HannamBalls.getRaidBalanceInfo(base, {
+                    partyCount: Math.max(
+                        battle.fighters.filter((fighter) => fighter.team === "party" && !fighter.isSummon && !fighter.isMapObject).length,
+                        2
+                    ),
+                    bossId: (battle.fighters.find((fighter) => fighter.isBoss)?.definition?.id)
+                        || selectedCharacters.find((item) => item.category === "boss" || item.raidRole === "boss")?.id
+                        || "faker"
+                })
+                : null;
+            const hpLabel = raidInfo && !raidInfo.isBoss && raidInfo.raidMaxHp !== raidInfo.baseMaxHp
+                ? `HP ${definition.maxHp} <span class="opacity-70">(기본 ${raidInfo.baseMaxHp})</span>`
+                : `HP ${definition.maxHp}`;
             document.getElementById("modal-name").textContent = definition.name;
             document.getElementById("modal-name").style.color = definition.color;
             document.getElementById("modal-skill").textContent = skills.map((skill) => `${skill.name} / ${skill.cooldown}초`).join(" · ");
             document.getElementById("modal-body").innerHTML = `
                 <div class="grid grid-cols-2 gap-2 font-label-numeric text-label-numeric">
-                    <div class="bg-surface-container-low brutal-border-thin p-2">HP ${definition.maxHp}</div>
+                    <div class="bg-surface-container-low brutal-border-thin p-2">${hpLabel}</div>
                     <div class="bg-surface-container-low brutal-border-thin p-2">ATK ${definition.baseAttack}</div>
                     <div class="bg-surface-container-low brutal-border-thin p-2">SPD ${escapeHtml(definition.speedLabel)}</div>
                     <div class="bg-surface-container-low brutal-border-thin p-2">${escapeHtml(definition.colorName)}</div>
                 </div>
+                ${raidBalanceHtml(definition)}
                 ${passiveHtml(definition)}
                 ${skillDescriptionsHtml(definition)}
                 ${mapEffectsHtml(definition)}
@@ -3680,6 +3940,10 @@
             document.getElementById("info-modal").classList.remove("flex");
         }
 
+        function computeRaidIncomingDamageMultiplier(partyCount, bossId) {
+            return window.HannamBalls.computeRaidIncomingDamageMultiplier(partyCount, bossId);
+        }
+
         function startBattle() {
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
@@ -3689,19 +3953,19 @@
             battle.fighters = selectedCharacters.map((definition, index) => createFighter(definition, index, selectedCharacters.length));
             if (isBossBattle) {
                 const partyCount = battle.fighters.filter((fighter) => fighter.team === "party" && !fighter.isSummon).length;
-                const extraRaiders = Math.max(0, partyCount - 2);
                 const boss = battle.fighters.find((fighter) => fighter.isBoss);
                 if (boss) {
-                    const defenseFloor = boss.definition.id === "roh-moohyun" ? 0.48 : 0.55;
-                    const defenseScale = boss.definition.id === "roh-moohyun" ? 0.055 : 0.045;
+                    // 인원 보정 피벗 10명:
+                    // - 10인 미만: 보스 받는 피해 증가 (적을수록 대폭)
+                    // - 10인: 보정 없음
+                    // - 10인 초과: 보스 받는 피해 소폭 감소 (많을수록 천천히 감소)
+                    boss.raidIncomingDamageMultiplier = computeRaidIncomingDamageMultiplier(partyCount, boss.definition.id);
+                    const extraRaiders = Math.max(0, partyCount - 2);
                     const ccFloor = boss.definition.id === "roh-moohyun" ? 0.38 : 0.45;
                     const ccScale = boss.definition.id === "roh-moohyun" ? 0.1 : 0.08;
-                    boss.raidIncomingDamageMultiplier = Math.max(defenseFloor, 1 / (1 + extraRaiders * defenseScale));
                     boss.raidCcDurationMultiplier = Math.max(ccFloor, 1 / (1 + extraRaiders * ccScale));
                     if (boss.definition.id === "roh-moohyun") {
-                        const threshold = boss.maxHp * (boss.definition.mapEffects?.mic?.damageThresholdRatio || 0.0523);
-                        boss.rohDamageTaken = 0;
-                        boss.rohNextMicAt = threshold;
+                        boss.rohMicSegmentsClaimed = 0;
                         // 오프닝 압박: 첫 스킬을 빨리 돌림
                         ensureSkillCooldowns(boss);
                         boss.skillCooldowns[0] = 5.23;

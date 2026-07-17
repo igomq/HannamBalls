@@ -22,7 +22,8 @@
         roh: "MH",
         owl: "부엉",
         mic: "MIC",
-        piaget: "피아"
+        piaget: "피아",
+        taehoon: "TH"
     };
 
     window.HANNAM_BALLS_CHARACTERS = [
@@ -30,8 +31,8 @@
             id: "song-geonuk",
             name: "송건욱",
             shortName: "건욱",
-            maxHp: 610,
-            baseAttack: 25,
+            maxHp: 600,
+            baseAttack: 26,
             speedLabel: "느림",
             speed: 170,
             colorName: "검은색",
@@ -42,10 +43,10 @@
             skill: {
                 name: "다이어트",
                 cooldown: 7,
-                description: "현재 체력의 5.5%가 감소하는 대신, 기본 공격력이 4 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 2.5% 감소합니다. 최대 피해 감소 10%. 4회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
+                description: "현재 체력의 5%가 감소하는 대신, 기본 공격력이 5 증가하고 이동 속도가 15.5% 상승하며 받는 피해가 2.5% 감소합니다. 최대 피해 감소 10%. 4회 다이어트 이후 기본 공격 면역을 뚫습니다. (면역 대상에게는 증가 공격력 미적용)",
                 effects: {
-                    hpCostRatio: 0.055,
-                    attackGain: 4,
+                    hpCostRatio: 0.05,
+                    attackGain: 5,
                     speedMultiplier: 1.155,
                     damageReductionGain: 0.025,
                     maxDamageReduction: 0.1,
@@ -61,7 +62,7 @@
             id: "yoo-seungchan",
             name: "유승찬",
             shortName: "승찬",
-            maxHp: 490,
+            maxHp: 530,
             baseAttack: 22,
             speedLabel: "느림",
             speed: 180,
@@ -184,10 +185,10 @@
             id: "lee-seunghyun",
             name: "이승현",
             shortName: "승현",
-            maxHp: 295,
+            maxHp: 290,
             baseAttack: 19,
             speedLabel: "빠름",
-            speed: 255,
+            speed: 265,
             colorName: "적갈색",
             color: "#8b2f23",
             textColor: "#ffffff",
@@ -622,25 +623,25 @@
             },
             skill: {
                 name: "부엉이 소환",
-                cooldown: 15.23,
-                description: "체력 523, 공격력 20.09의 부엉이를 소환합니다. 부엉이는 바위 떨구기(쿨타임 5.23초)로 전방 직선에 바위를 떨궈 맞은 적에게 52.3 피해를 주고 2.09초간 기절시킵니다.",
+                cooldown: 20.09,
+                description: "체력 209, 공격력 5.23의 부엉이를 소환합니다. 부엉이는 바위 떨구기로 전방 직선에 바위를 떨궈 맞은 적에게 52.3 피해를 주고 2.09초간 기절시킵니다.",
                 effects: {
                     summon: {
                         id: "roh-owl",
                         name: "부엉이",
                         shortName: "부엉이",
-                        maxHp: 523,
-                        baseAttack: 20.09,
+                        maxHp: 209,
+                        baseAttack: 5.23,
                         speedLabel: "빠름",
                         speed: 252.3,
-                        colorName: "밤부엉이",
+                        colorName: "바위부엉이",
                         color: "#57534e",
                         textColor: "#fafaf9",
                         avatarText: placeholderFaces.owl,
                         traits: ["소환수", "바위 떨구기"],
                         skill: {
                             name: "바위 떨구기",
-                            cooldown: 5.23,
+                            cooldown: 8,
                             description: "자신 앞 직선 경로로 바위를 떨굽니다. 바위에 맞은 적은 52.3 피해를 입고 2.09초간 중력이 강하게 작용해 기절합니다.",
                             effects: {
                                 rockDamage: 52.3,
@@ -654,18 +655,20 @@
                         cooldownOnDamageTaken: 0.209,
                         immuneToBasic: false,
                         isSummonDefinition: true,
+                        hideFromHud: true,
+                        despawnOnDeath: true,
                         hpDecayPerSecond: 0
                     }
                 }
             },
             skill2: {
                 name: "운지",
-                cooldown: 12.09,
-                description: "가장 가까운 캐릭터를 강제로 자신 앞으로 데려와 맵 밖으로 추락시켜 해당 캐릭터의 최대 체력의 20.09%에 해당하는 피해를 입힙니다. 이 피해로 사망하면 노무현은 최대 체력의 20.09%만큼 회복하고 52.3%만큼의 보호막을 얻습니다.",
+                cooldown: 15.23,
+                description: "가장 가까운 캐릭터를 강제로 자신 앞으로 데려와 맵 밖으로 추락시켜 해당 캐릭터의 최대 체력의 20.09%에 해당하는 피해를 입힙니다. 이 피해로 사망하면 노무현은 최대 체력의 20.09%만큼 회복하고 5.23%만큼의 보호막을 얻습니다.",
                 effects: {
                     maxHpDamageRatio: 0.2009,
                     killHealRatio: 0.2009,
-                    killShieldRatio: 0.523,
+                    killShieldRatio: 0.0523,
                     offMapDuration: 2.09
                 }
             },
@@ -674,17 +677,18 @@
                     maxHp: 209,
                     damageThresholdRatio: 0.0523,
                     lifetime: 5.23,
-                    failHealRatio: 0.2009,
+                    failHealRatio: 0.0523,
                     successAttackBuffRatio: 0.0523
                 },
                 piaget: {
                     maxHp: 523,
-                    interval: 20.09,
+                    interval: 15,
                     failStunSeconds: 2.09,
                     failPartyHealRatio: 0.2009,
                     failPartyDamageBoost: 0.523,
                     successStunSeconds: 5.23,
-                    successHealRatio: 0.523
+                    successHealRatio: 0.523,
+                    successShieldRatio: 0.523
                 }
             },
             cooldownOnBasicHit: 0.523,
@@ -693,6 +697,47 @@
             immuneToBasic: false,
             immuneToKnockback: true,
             avatarSrc: 'images/muhyun.png'
+        },
+        {
+            id: "yang-taehoon",
+            name: "양태훈",
+            shortName: "태훈",
+            maxHp: 470,
+            baseAttack: 0,
+            speedLabel: "보통",
+            speed: 235,
+            colorName: "톡식한 보라색",
+            color: "#7c3aed",
+            textColor: "#ffffff",
+            avatarSrc: "images/taehoon.png",
+            avatarText: placeholderFaces.taehoon,
+            traits: ["기본 공격 없음", "독", "독 폭파"],
+            passive: {
+                name: "머뭇거리기",
+                description: "적과 부딪히면 0.5초간 제자리에 머뭇거리는 대신, 5초간 지속 피해를 입히는 독을 묻힙니다. 독은 초당 4 피해를 입힙니다. 독은 중첩되지 않지만, 독 지속시간이 남아있을 때 다시 부딪히면 지속시간이 늘어납니다.",
+                effects: {
+                    hesitateSeconds: 0.5,
+                    poisonDuration: 5,
+                    poisonDps: 4,
+                    poisonTickInterval: 1,
+                    collideCooldownMs: 620
+                }
+            },
+            skill: {
+                name: "극성 한남 퍼리충",
+                cooldown: 10,
+                description: "독이 묻어 있는 모든 캐릭터의 독을 폭파시켜 5초간 치유 불가 디버프를 부여하고, 남은 독 지속시간에 비례해 피해를 입힙니다. 폭파 대상이 소환수라면 처형합니다. 독이 묻어 있는 캐릭터가 없다면 모든 적에게 5초간 독을 묻힙니다. 폭파 피해: (log10(남은 독 지속시간 ms))² / log10(100) × 55 (최대 300)",
+                effects: {
+                    healBlockSeconds: 5,
+                    fallbackPoisonDuration: 5,
+                    detonateDamageBase: 55,
+                    detonateDamageMax: 300
+                }
+            },
+            cooldownOnBasicHit: 0,
+            cooldownOnDamageTaken: 0,
+            immuneToBasic: true,
+            contactAttackDisabled: true
         },
         {
             id: "bbangki",
@@ -738,9 +783,9 @@
             name: "문현호",
             shortName: "현호",
             maxHp: 655,
-            baseAttack: 9,
+            baseAttack: 7,
             speedLabel: "보통",
-            speed: 215,
+            speed: 220,
             colorName: "먹방 오렌지",
             color: "#f97316",
             textColor: "#ffffff",
@@ -765,15 +810,15 @@
                     damageReduction: 0.75
                 }
             },
-            cooldownOnBasicHit: 0.35,
-            cooldownOnDamageTaken: 0.5,
+            cooldownOnBasicHit: 0.3,
+            cooldownOnDamageTaken: 0.3,
             immuneToBasic: false
         },
         {
             id: "lim-shingyu",
             name: "임신규",
             shortName: "신규",
-            maxHp: 515,
+            maxHp: 555,
             baseAttack: 26,
             speedLabel: "매우 느림",
             speed: 130,
@@ -818,8 +863,204 @@
         return unique;
     }
 
+    const RAID_PARTY_DAMAGE_MULTIPLIER = 0.85;
+    const RAID_BOSS_RATIO_DAMAGE_MULTIPLIER = 0.35;
+    const RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER = 0.35;
+    const RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER = 0.55;
+    const RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER = 0.5;
+    const RAID_HP_LOW_THRESHOLD = 300;
+    const RAID_HP_MID_THRESHOLD = 400;
+    const RAID_HP_LOW_MULTIPLIER = 1.65;
+    const RAID_HP_MID_MULTIPLIER = 1.35;
+    const RAID_PARTY_PIVOT = 10;
+
+    function resolveCharacter(characterOrId) {
+        if (!characterOrId) {
+            return null;
+        }
+        if (typeof characterOrId === "string") {
+            return window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === characterOrId) || null;
+        }
+        if (characterOrId.id) {
+            const base = window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === characterOrId.id);
+            return base || characterOrId;
+        }
+        return characterOrId;
+    }
+
+    function getRaidMaxHp(baseMaxHp) {
+        const hp = Number(baseMaxHp) || 0;
+        if (hp < RAID_HP_LOW_THRESHOLD) {
+            return Math.round(hp * RAID_HP_LOW_MULTIPLIER);
+        }
+        if (hp < RAID_HP_MID_THRESHOLD) {
+            return Math.round(hp * RAID_HP_MID_MULTIPLIER);
+        }
+        return hp;
+    }
+
+    /**
+     * 레이드 인원 수에 따른 보스가 받는 피해 배율.
+     * 기준 10인 = 1.0 / 미만 증가 / 초과 소폭 감소
+     */
+    function computeRaidIncomingDamageMultiplier(partyCount, bossId) {
+        const n = Math.max(1, Math.floor(Number(partyCount) || 1));
+        const isRoh = bossId === "roh-moohyun";
+
+        if (n < RAID_PARTY_PIVOT) {
+            const lowScale = isRoh ? 0.11 : 0.12;
+            return 1 + (RAID_PARTY_PIVOT - n) * lowScale;
+        }
+        if (n === RAID_PARTY_PIVOT) {
+            return 1;
+        }
+        const highScale = isRoh ? 0.02 : 0.016;
+        const floor = isRoh ? 0.72 : 0.78;
+        return Math.max(floor, 1 / (1 + (n - RAID_PARTY_PIVOT) * highScale));
+    }
+
+    function formatMultiplier(value) {
+        const rounded = Math.round(value * 1000) / 1000;
+        return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+    }
+
+    function formatSignedPercent(multiplier) {
+        const percent = Math.round((multiplier - 1) * 100);
+        if (percent > 0) {
+            return `+${percent}%`;
+        }
+        if (percent < 0) {
+            return `${percent}%`;
+        }
+        return "±0%";
+    }
+
+    function characterHasBossRatioDamage(character) {
+        if (!character) {
+            return false;
+        }
+        const skills = [];
+        if (Array.isArray(character.skills)) {
+            skills.push(...character.skills);
+        }
+        if (character.skill) {
+            skills.push(character.skill);
+        }
+        if (character.skill2) {
+            skills.push(character.skill2);
+        }
+        const skillHasRatio = skills.some((skill) => {
+            const effects = skill?.effects || {};
+            return Number(effects.maxHpDamageRatio) > 0
+                || Number(effects.currentHpStealRatio) > 0
+                || Number(effects.basicCurrentHpBonusRatio) > 0;
+        });
+        const passiveEffects = character.passive?.effects || {};
+        const passiveHasRatio = Number(passiveEffects.basicCurrentHpBonusRatio) > 0
+            || Number(passiveEffects.maxHpDamageRatio) > 0;
+        return skillHasRatio || passiveHasRatio;
+    }
+
+    /**
+     * 보스전에서 적용되는 캐릭터 밸런스 보정 설명.
+     * @returns {{ lines: string[], baseMaxHp: number, raidMaxHp: number, isBoss: boolean, partyDamageMultiplier: number, incomingDamageMultiplier: number|null }}
+     */
+    function getRaidBalanceInfo(characterOrId, options = {}) {
+        const character = resolveCharacter(characterOrId);
+        const partyCount = Math.max(1, Math.floor(Number(options.partyCount) || 1));
+        const bossId = options.bossId || "faker";
+        const lines = [];
+
+        if (!character) {
+            return {
+                lines,
+                baseMaxHp: 0,
+                raidMaxHp: 0,
+                isBoss: false,
+                partyDamageMultiplier: RAID_PARTY_DAMAGE_MULTIPLIER,
+                incomingDamageMultiplier: null
+            };
+        }
+
+        const isBoss = character.category === "boss" || options.forceBoss === true;
+        const baseMaxHp = Number(character.maxHp) || 0;
+        const raidMaxHp = isBoss ? baseMaxHp : getRaidMaxHp(baseMaxHp);
+        const incomingDamageMultiplier = computeRaidIncomingDamageMultiplier(
+            partyCount,
+            isBoss ? character.id : bossId
+        );
+
+        if (isBoss) {
+            lines.push(`인원 보정 기준: ${RAID_PARTY_PIVOT}인`);
+            lines.push(`현재 파티 ${partyCount}인 → 받는 피해 ${formatSignedPercent(incomingDamageMultiplier)} (×${formatMultiplier(incomingDamageMultiplier)})`);
+            lines.push(`10인 미만: 받는 피해 증가 · 10인 초과: 받는 피해 소폭 감소`);
+            if (character.crowdControlDurationMultiplier != null) {
+                lines.push(`기본 CC 지속시간 ×${formatMultiplier(character.crowdControlDurationMultiplier)}`);
+            }
+            if (character.startingDamageReduction) {
+                lines.push(`기본 피해 감소 ${Math.round(character.startingDamageReduction * 1000) / 10}%`);
+            }
+            return {
+                lines,
+                baseMaxHp,
+                raidMaxHp,
+                isBoss: true,
+                partyDamageMultiplier: RAID_PARTY_DAMAGE_MULTIPLIER,
+                incomingDamageMultiplier
+            };
+        }
+
+        if (raidMaxHp !== baseMaxHp) {
+            const hpMultLabel = baseMaxHp < RAID_HP_LOW_THRESHOLD
+                ? formatMultiplier(RAID_HP_LOW_MULTIPLIER)
+                : formatMultiplier(RAID_HP_MID_MULTIPLIER);
+            lines.push(`최대 체력 ${baseMaxHp} → ${raidMaxHp} (×${hpMultLabel})`);
+        } else {
+            lines.push(`최대 체력 ${baseMaxHp} (보스전 보정 없음)`);
+        }
+
+        lines.push(`파티 전체 피해 ×${formatMultiplier(RAID_PARTY_DAMAGE_MULTIPLIER)}`);
+
+        if (characterHasBossRatioDamage(character)) {
+            lines.push(`보스 대상 체력 비례 피해 ×${formatMultiplier(RAID_BOSS_RATIO_DAMAGE_MULTIPLIER)}`);
+        }
+
+        if (character.id === "jeong-yuseung") {
+            lines.push(`패시브(돼지 도축) 보스 추가 피해 ×${formatMultiplier(RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER)}`);
+        }
+
+        if (character.id === "song-geonuk") {
+            const baseGain = Number(character.skill?.effects?.attackGain) || 0;
+            const raidGain = Math.round(baseGain * RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER * 1000) / 1000;
+            lines.push(`다이어트 공격력 상승 ${baseGain} → ${raidGain} (×${formatMultiplier(RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER)})`);
+        }
+
+        if (character.id === "kang-hyunwoo") {
+            const baseGrowth = Number(character.passive?.effects?.growthDamage) || 0;
+            const raidGrowth = Math.round(baseGrowth * RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER * 1000) / 1000;
+            lines.push(`시간 성장 피해 ${baseGrowth} → ${raidGrowth} (×${formatMultiplier(RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER)})`);
+        }
+
+        lines.push(`인원 보정(${partyCount}인): 보스 받는 피해 ${formatSignedPercent(incomingDamageMultiplier)} (×${formatMultiplier(incomingDamageMultiplier)})`);
+
+        return {
+            lines,
+            baseMaxHp,
+            raidMaxHp,
+            isBoss: false,
+            partyDamageMultiplier: RAID_PARTY_DAMAGE_MULTIPLIER,
+            incomingDamageMultiplier
+        };
+    }
+
     window.HannamBalls = {
         CLEARED_BOSSES_KEY,
+        RAID_PARTY_DAMAGE_MULTIPLIER,
+        RAID_BOSS_RATIO_DAMAGE_MULTIPLIER,
+        RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER,
+        RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER,
+        RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER,
+        RAID_PARTY_PIVOT,
         getCharacters() {
             return window.HANNAM_BALLS_CHARACTERS.map((character) => JSON.parse(JSON.stringify(character)));
         },
@@ -827,6 +1068,9 @@
             const character = window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === id);
             return character ? JSON.parse(JSON.stringify(character)) : null;
         },
+        getRaidMaxHp,
+        computeRaidIncomingDamageMultiplier,
+        getRaidBalanceInfo,
         getClearedBosses() {
             return readClearedBosses();
         },
@@ -841,9 +1085,7 @@
             return writeClearedBosses(cleared);
         },
         isBossUnlocked(characterOrId) {
-            const character = typeof characterOrId === "string"
-                ? window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === characterOrId)
-                : characterOrId;
+            const character = resolveCharacter(characterOrId);
             if (!character || character.category !== "boss") {
                 return true;
             }
@@ -854,9 +1096,7 @@
             return readClearedBosses().includes(requirement.clearBossId);
         },
         getBossUnlockLabel(characterOrId) {
-            const character = typeof characterOrId === "string"
-                ? window.HANNAM_BALLS_CHARACTERS.find((item) => item.id === characterOrId)
-                : characterOrId;
+            const character = resolveCharacter(characterOrId);
             return character?.unlockRequirement?.label || "해금 조건 미충족";
         }
     };

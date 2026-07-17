@@ -346,6 +346,67 @@
                 }
             },
 
+            "yang-taehoon": (fighter, now, ctx) => {
+                const effects = effectsOf(fighter);
+                const passiveEffects = fighter.definition.passive?.effects || {};
+                const poisoned = ctx.battle.fighters.filter((target) => (
+                    target
+                    && !target.dead
+                    && !target.isMapObject
+                    && target !== fighter
+                    && !ctx.areAllies(fighter, target)
+                    && target.taehoonPoison
+                    && target.taehoonPoison.expiresAt > now
+                ));
+
+                if (poisoned.length === 0) {
+                    const duration = effects.fallbackPoisonDuration || passiveEffects.poisonDuration || 5;
+                    let applied = 0;
+                    ctx.battle.fighters.forEach((target) => {
+                        if (
+                            !target
+                            || target === fighter
+                            || target.dead
+                            || target.isMapObject
+                            || ctx.areAllies(fighter, target)
+                        ) {
+                            return;
+                        }
+                        ctx.applyTaehoonPoison(target, fighter, now, duration);
+                        applied += 1;
+                    });
+                    ctx.floatText(applied > 0 ? `독 살포 ${applied}` : "NO TARGET", fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                    ctx.effects?.poisonMist?.(fighter.x, fighter.y, fighter.definition.color);
+                    ctx.effectRing(fighter.x, fighter.y, ctx.battle.ballSize * 2.2, fighter.definition.color);
+                    return;
+                }
+
+                const healBlockSeconds = effects.healBlockSeconds || 5;
+                const damageBase = effects.detonateDamageBase || 55;
+                const damageCap = effects.detonateDamageMax || 300;
+                poisoned.forEach((target) => {
+                    const remainingMs = Math.max(1, (target.taehoonPoison?.expiresAt || now) - now);
+                    target.taehoonPoison = null;
+                    target.healingBlockedUntil = Math.max(target.healingBlockedUntil || 0, now + healBlockSeconds * 1000);
+
+                    if (target.isSummon) {
+                        ctx.executeFighter(target, fighter, "독 처형");
+                        return;
+                    }
+
+                    // 독 연장 중첩 시 폭파 피해 폭주 방지 — 최대 300
+                    const rawDamage = (Math.log10(remainingMs) ** 2) / Math.log10(100) * damageBase;
+                    const damage = Math.min(damageCap, rawDamage);
+                    ctx.applyDamage(target, damage, fighter, "skill");
+                    ctx.floatText(`독폭파 ${Math.round(damage)}`, target.x, target.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                    ctx.megaBurst(target.x, target.y, fighter.definition.color, 8);
+                    ctx.impactStar(target.x, target.y, "#a855f7");
+                    ctx.floatText("치유 불가", target.x, target.y - ctx.battle.ballSize, "#7c3aed");
+                });
+                ctx.effects?.poisonMist?.(fighter.x, fighter.y, fighter.definition.color);
+                ctx.floatText(`독 폭파 ${poisoned.length}`, fighter.x, fighter.y - ctx.battle.ballSize / 2, fighter.definition.color);
+            },
+
             "bbangki": (fighter, now, ctx) => {
                 const effects = effectsOf(fighter);
                 fighter.bbangkiAwakenUses = (fighter.bbangkiAwakenUses || 0) + 1;
@@ -514,6 +575,30 @@
                         ctx.floatText("표식", other.x, other.y - ctx.battle.ballSize / 2, fighter.definition.color);
                         ctx.effectRing(other.x, other.y, ctx.battle.ballSize * 1.25, fighter.definition.color);
                     }
+                }
+            },
+            "yang-taehoon": {
+                onEnemyCollision(fighter, other, now, ctx) {
+                    if (other.dead || other.isMapObject || fighter.dead) {
+                        return;
+                    }
+
+                    const effects = fighter.definition.passive?.effects || {};
+                    if (!fighter.taehoonCollideAt) {
+                        fighter.taehoonCollideAt = new Map();
+                    }
+                    const lastHit = fighter.taehoonCollideAt.get(other.id) || 0;
+                    if (now - lastHit < (effects.collideCooldownMs || 620)) {
+                        return;
+                    }
+                    fighter.taehoonCollideAt.set(other.id, now);
+
+                    // 머뭇거리기: 자신 0.5초 정지
+                    ctx.stun(fighter, effects.hesitateSeconds || 0.5, now);
+                    ctx.applyTaehoonPoison(other, fighter, now, effects.poisonDuration || 5);
+                    ctx.floatText("머뭇… 독", other.x, other.y - ctx.battle.ballSize / 2, fighter.definition.color);
+                    ctx.effectRing(other.x, other.y, ctx.battle.ballSize * 1.2, fighter.definition.color);
+                    ctx.effects?.poisonMist?.(other.x, other.y, fighter.definition.color);
                 }
             }
         };
