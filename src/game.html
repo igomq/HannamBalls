@@ -192,6 +192,111 @@
             z-index: 12;
         }
 
+        #countdown.result-overlay {
+            align-items: flex-start;
+            justify-content: center;
+            overflow-y: auto;
+            padding: 1rem 0.75rem;
+            background: rgba(255, 255, 255, 0.88);
+        }
+
+        .result-panel {
+            width: min(100%, 420px);
+            margin: auto;
+            text-align: center;
+        }
+
+        .damage-meter {
+            margin-top: 0.85rem;
+            text-align: left;
+            background: #fff;
+            border: 3px solid #1c1b1b;
+            box-shadow: 4px 4px 0 #1c1b1b;
+            padding: 0.65rem 0.7rem 0.55rem;
+        }
+
+        .damage-meter-title {
+            font-family: "Plus Jakarta Sans", sans-serif;
+            font-weight: 800;
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            margin-bottom: 0.45rem;
+            text-align: center;
+        }
+
+        .damage-meter-list {
+            max-height: min(38vh, 280px);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.28rem;
+        }
+
+        .damage-meter-row {
+            display: grid;
+            grid-template-columns: 1.1rem 0.55rem minmax(3.2rem, 4.6rem) 1fr minmax(3.2rem, 4.4rem) 2.6rem;
+            align-items: center;
+            gap: 0.28rem;
+            font-size: 0.72rem;
+            line-height: 1.1;
+        }
+
+        .damage-meter-rank {
+            opacity: 0.55;
+            text-align: right;
+            font-weight: 700;
+        }
+
+        .damage-meter-swatch {
+            width: 0.55rem;
+            height: 0.55rem;
+            border-radius: 9999px;
+            border: 1px solid #1c1b1b;
+        }
+
+        .damage-meter-name {
+            font-weight: 700;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .damage-meter-bar-track {
+            height: 0.45rem;
+            background: #e7e5e4;
+            border: 1px solid #1c1b1b;
+            overflow: hidden;
+        }
+
+        .damage-meter-bar-fill {
+            height: 100%;
+            min-width: 0;
+        }
+
+        .damage-meter-value {
+            font-family: "Plus Jakarta Sans", sans-serif;
+            font-weight: 800;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .damage-meter-pct {
+            opacity: 0.6;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .damage-meter-total {
+            margin-top: 0.45rem;
+            padding-top: 0.35rem;
+            border-top: 2px solid #1c1b1b;
+            font-family: "Plus Jakarta Sans", sans-serif;
+            font-weight: 800;
+            font-size: 0.75rem;
+            text-align: right;
+        }
+
         .fighter-ball.gogeonpa-mode {
             outline: 9px double #ef4444;
             filter: saturate(1.5) contrast(1.15);
@@ -597,14 +702,14 @@
             .map((id) => window.HannamBalls.getCharacter(id))
             .filter((character) => character && character.category !== "boss");
 
-        function applyRaidBalance(definition) {
+        function applyRaidBalance(definition, raidBossId) {
             definition.raidRole = "party";
             definition.maxHp = window.HannamBalls.getRaidMaxHp(definition.maxHp);
             if (definition.id === "song-geonuk" && definition.skill?.effects) {
-                definition.skill.effects.attackGain *= window.HannamBalls.RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER;
+                definition.skill.effects.attackGain *= window.HannamBalls.getRaidSongGeonukAttackGainMultiplier(raidBossId);
             }
             if (definition.id === "kang-hyunwoo" && definition.passive?.effects) {
-                definition.passive.effects.growthDamage *= window.HannamBalls.RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER;
+                definition.passive.effects.growthDamage *= window.HannamBalls.getRaidKangHyunwooGrowthMultiplier(raidBossId);
             }
             return definition;
         }
@@ -660,14 +765,15 @@
             selectedCharacters = allCharacters.filter((character) => character.category !== "boss").slice(0, 4);
         }
 
+        let selectedBossId = "faker";
         if (isBossBattle) {
-            selectedCharacters = selectedCharacters.map(applyRaidBalance);
-            let bossId = localStorage.getItem("hannamBallsBossSelection") || "faker";
-            if (!window.HannamBalls.isBossUnlocked(bossId)) {
-                bossId = "faker";
-                localStorage.setItem("hannamBallsBossSelection", bossId);
+            selectedBossId = localStorage.getItem("hannamBallsBossSelection") || "faker";
+            if (!window.HannamBalls.isBossUnlocked(selectedBossId)) {
+                selectedBossId = "faker";
+                localStorage.setItem("hannamBallsBossSelection", selectedBossId);
             }
-            const boss = window.HannamBalls.getCharacter(bossId) || window.HannamBalls.getCharacter("faker");
+            selectedCharacters = selectedCharacters.map((definition) => applyRaidBalance(definition, selectedBossId));
+            const boss = window.HannamBalls.getCharacter(selectedBossId) || window.HannamBalls.getCharacter("faker");
             if (boss) {
                 boss.raidRole = "boss";
                 selectedCharacters.push(boss);
@@ -1018,9 +1124,12 @@
                 hasteUntil: 0,
                 hasteMultiplier: 1,
                 damageMultiplier: 1,
+                damageDealt: 0,
+                bossDamageDealt: 0,
                 raidIncomingDamageMultiplier: 1,
                 raidCcDurationMultiplier: 1,
                 healingBlockedUntil: 0,
+                debuffImmuneUntil: 0,
                 fakerPassiveUses: 0,
                 lastBossTrophyAt: 0,
                 gogeonpaUntil: 0,
@@ -1507,6 +1616,7 @@
                 }
             }
             if (boss.healingBlockedUntil > now) states.push(`회복 봉인 ${((boss.healingBlockedUntil - now) / 1000).toFixed(1)}초`);
+            if (isDebuffImmune(boss, now)) states.push(`디버프 면역 ${((boss.debuffImmuneUntil - now) / 1000).toFixed(1)}초`);
             if (boss.gogeonpaUntil > now) states.push(`고전파 ${((boss.gogeonpaUntil - now) / 1000).toFixed(1)}초`);
             const raidDmgMult = Number.isFinite(boss.raidIncomingDamageMultiplier) ? boss.raidIncomingDamageMultiplier : 1;
             if (raidDmgMult < 0.995) {
@@ -1857,13 +1967,13 @@
             if (source) {
                 amount *= Number.isFinite(source.damageMultiplier) ? source.damageMultiplier : 1;
                 if (isBossBattle && source.team === "party") {
-                    amount *= window.HannamBalls.RAID_PARTY_DAMAGE_MULTIPLIER;
+                    amount *= window.HannamBalls.getRaidPartyDamageMultiplier(selectedBossId);
                 }
                 if (isBossBattle && target.isBoss && source.team === "party") {
                     amount *= target.raidIncomingDamageMultiplier || 1;
                 }
                 if (isBossBattle && target.isBoss && source.definition.id === "jeong-yuseung" && kind === "passive") {
-                    amount *= window.HannamBalls.RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER;
+                    amount *= window.HannamBalls.getRaidJeongYuseungPassiveMultiplier(selectedBossId);
                 }
             }
 
@@ -1878,11 +1988,12 @@
             }
 
             let damageToHp = reducedAmount;
+            let shieldAbsorbed = 0;
             if (target.shield > 0) {
-                const absorbed = Math.min(target.shield, damageToHp);
-                target.shield -= absorbed;
-                damageToHp -= absorbed;
-                floatText(`ABSORB ${Math.round(absorbed)}`, target.x, target.y - battle.ballSize / 2, "#38bdf8");
+                shieldAbsorbed = Math.min(target.shield, damageToHp);
+                target.shield -= shieldAbsorbed;
+                damageToHp -= shieldAbsorbed;
+                floatText(`ABSORB ${Math.round(shieldAbsorbed)}`, target.x, target.y - battle.ballSize / 2, "#38bdf8");
                 effectRing(target.x, target.y, battle.ballSize * 1.1, "#38bdf8");
             }
 
@@ -1890,6 +2001,7 @@
 
             const actual = Math.min(target.hp, damageToHp);
             target.hp -= actual;
+            creditDamageMeter(source, target, shieldAbsorbed + actual);
             const isDot = characterModules.isDotDamage(kind, source);
             const canShowDot = !isDot || now >= target.nextDotFloatAt;
 
@@ -1977,8 +2089,55 @@
             return true;
         }
 
+        function isDebuffImmune(fighter, now = performance.now()) {
+            return Boolean(fighter && Number.isFinite(fighter.debuffImmuneUntil) && fighter.debuffImmuneUntil > now);
+        }
+
+        function clearDebuffs(fighter, now = performance.now()) {
+            if (!fighter) {
+                return;
+            }
+            const wasStunned = isStunned(fighter, now);
+            fighter.stunnedUntil = 0;
+            fighter.healingBlockedUntil = 0;
+            fighter.slowUntil = 0;
+            fighter.slowMultiplier = 1;
+            fighter.taehoonPoison = null;
+            if (fighter.tasteMarks instanceof Set) {
+                fighter.tasteMarks.clear();
+            }
+            if (fighter.consumedTasteMarks instanceof Set) {
+                fighter.consumedTasteMarks.clear();
+            }
+            if (fighter.element) {
+                fighter.element.classList.remove("gravity-crush", "taste-marked");
+            }
+            if (wasStunned && fighter.savedVelocity) {
+                fighter.vx = fighter.savedVelocity.vx;
+                fighter.vy = fighter.savedVelocity.vy;
+                setVelocitySpeed(fighter, moveSpeedOf(fighter, now));
+            }
+            fighter.savedVelocity = null;
+        }
+
+        function grantDebuffImmunity(fighter, until, now = performance.now()) {
+            if (!fighter || !(until > now)) {
+                return;
+            }
+            clearDebuffs(fighter, now);
+            fighter.debuffImmuneUntil = Math.max(fighter.debuffImmuneUntil || 0, until);
+            floatText("디버프 면역", fighter.x, fighter.y - battle.ballSize / 2, fighter.definition.color);
+            effectRing(fighter.x, fighter.y, battle.ballSize * 1.4, "#f5d82c");
+        }
+
         function stun(target, seconds, now) {
             if (target.dead) {
+                return;
+            }
+
+            if (isDebuffImmune(target, now)) {
+                floatText("면역", target.x, target.y - battle.ballSize / 2, target.definition.color);
+                effectRing(target.x, target.y, battle.ballSize * 1.15, "#f5d82c");
                 return;
             }
 
@@ -2356,6 +2515,10 @@
             if (!target || target.dead || target.isMapObject || !source) {
                 return false;
             }
+            if (isDebuffImmune(target, now)) {
+                floatText("면역", target.x, target.y - battle.ballSize / 2, target.definition.color);
+                return false;
+            }
             const passive = source.definition?.id === "yang-taehoon"
                 ? (source.definition.passive?.effects || {})
                 : (window.HannamBalls.getCharacter?.("yang-taehoon")?.passive?.effects || {});
@@ -2535,7 +2698,7 @@
             }
 
             const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party"
-                ? ratio * window.HannamBalls.RAID_BOSS_RATIO_DAMAGE_MULTIPLIER
+                ? ratio * window.HannamBalls.getRaidBossRatioDamageMultiplier(selectedBossId)
                 : ratio;
             return applyDamage(target, Math.max(0, target.hp * adjustedRatio), source, kind);
         }
@@ -2546,7 +2709,7 @@
             }
 
             const adjustedRatio = isBossBattle && target.isBoss && source?.team === "party"
-                ? ratio * window.HannamBalls.RAID_BOSS_RATIO_DAMAGE_MULTIPLIER
+                ? ratio * window.HannamBalls.getRaidBossRatioDamageMultiplier(selectedBossId)
                 : ratio;
             return applyDamage(target, Math.max(0, target.maxHp * adjustedRatio), source, kind);
         }
@@ -3132,7 +3295,8 @@
             const mic = summonFighter(boss, definition, now, {
                 idPrefix: "mic",
                 label: "마이크 소환",
-                team: boss.team || "boss",
+                // 파티·보스 모두 파괴 가능 (보스가 직접 깨면 디버프 해제)
+                team: null,
                 isMapObject: true,
                 mapObjectKind: "mic",
                 mapExpireAt: now + (config.lifetime || 5) * 1000,
@@ -3173,8 +3337,26 @@
             }
             const mapEffects = boss.definition.mapEffects || {};
 
+            const killedByBossSide = Boolean(
+                source
+                && (
+                    source === boss
+                    || source.isBoss
+                    || source.ownerId === boss.id
+                    || (source.team && boss.team && source.team === boss.team)
+                )
+            );
+
             if (target.mapObjectKind === "mic") {
                 const config = mapEffects.mic || {};
+                if (killedByBossSide) {
+                    // 노무현이 마이크를 직접 파괴 → 모든 디버프 삭제
+                    clearDebuffs(boss, now);
+                    floatText("디버프 해제!", boss.x, boss.y - battle.ballSize / 2, boss.definition.color);
+                    megaBurst(target.x, target.y, boss.definition.color, 8);
+                    effectRing(boss.x, boss.y, battle.ballSize * 1.5, "#f5d82c");
+                    return;
+                }
                 // 파티가 파괴 성공 → 전원 공격력 버프
                 battle.fighters.forEach((fighter) => {
                     if (fighter.dead || fighter.isSummon || fighter.isBoss || fighter.team !== "party") {
@@ -3182,17 +3364,18 @@
                     }
                     fighter.damageMultiplier = (fighter.damageMultiplier || 1) * (1 + (config.successAttackBuffRatio || 0.0523));
                 });
-                floatText("마이크 파괴! ATK+5.23%", target.x, target.y - battle.ballSize, "#4ade80");
+                floatText("마이크 파괴! ATK+", target.x, target.y - battle.ballSize, "#4ade80");
                 megaBurst(target.x, target.y, "#38bdf8", 8);
                 return;
             }
 
             if (target.mapObjectKind === "piaget") {
                 const config = mapEffects.piaget || {};
-                const killedByBossSide = source && (source === boss || source.ownerId === boss.id || source.team === boss.team);
                 if (killedByBossSide) {
-                    // 노무현 파괴 성공 → 논두렁 + 회복
+                    // 노무현 파괴 성공 → 논두렁 + 회복 + 다음 피아제까지 디버프 면역
                     triggerNondurung(boss, now, config);
+                    const immuneUntil = Number.isFinite(battle.nextPiagetAt) ? battle.nextPiagetAt : (now + (config.interval || 15) * 1000);
+                    grantDebuffImmunity(boss, immuneUntil, now);
                 } else {
                     // 파티 파괴 또는 기타 → 국정원 실패 처리
                     triggerPiagetFail(boss, now, config);
@@ -3249,6 +3432,13 @@
                 return;
             }
 
+            // 피아제 파괴 후 다음 소환 전까지 디버프 유지 차단
+            if (isDebuffImmune(boss, now)) {
+                clearDebuffs(boss, now);
+            } else if (boss.debuffImmuneUntil && boss.debuffImmuneUntil <= now) {
+                boss.debuffImmuneUntil = 0;
+            }
+
             const mapEffects = boss.definition.mapEffects || {};
             const piagetConfig = mapEffects.piaget;
             if (piagetConfig && now >= (battle.nextPiagetAt || Infinity)) {
@@ -3259,6 +3449,8 @@
                     triggerPiagetFail(boss, now, piagetConfig);
                     despawnMapObject(existing);
                 }
+                // 새 피아제 소환 시 면역 종료
+                boss.debuffImmuneUntil = 0;
                 spawnRohPiaget(boss, now, piagetConfig);
                 battle.nextPiagetAt = now + (piagetConfig.interval || 30) * 1000;
             }
@@ -3736,6 +3928,91 @@
             updateWorldsTrophies(now);
         }
 
+        function creditDamageMeter(source, target, amount) {
+            if (!source || !target || !(amount > 0)) {
+                return;
+            }
+            if (areAllies(source, target)) {
+                return;
+            }
+            let credit = source;
+            if (source.isSummon && source.ownerId) {
+                credit = getFighterById(source.ownerId) || source;
+            }
+            credit.damageDealt = (credit.damageDealt || 0) + amount;
+            if (target.isBoss) {
+                credit.bossDamageDealt = (credit.bossDamageDealt || 0) + amount;
+            }
+        }
+
+        function buildDamageMeterHtml() {
+            if (!isBossBattle) {
+                return "";
+            }
+            const party = battle.fighters.filter((fighter) => (
+                fighter.team === "party"
+                && !fighter.isSummon
+                && !fighter.isMapObject
+                && !fighter.isBoss
+            ));
+            if (party.length === 0) {
+                return "";
+            }
+
+            const nameCounts = new Map();
+            party.forEach((fighter) => {
+                const base = fighter.definition.shortName || fighter.definition.name;
+                nameCounts.set(base, (nameCounts.get(base) || 0) + 1);
+            });
+            const nameIndex = new Map();
+
+            const rows = party.map((fighter) => {
+                const base = fighter.definition.shortName || fighter.definition.name;
+                let label = base;
+                if ((nameCounts.get(base) || 0) > 1) {
+                    const idx = (nameIndex.get(base) || 0) + 1;
+                    nameIndex.set(base, idx);
+                    label = `${base} #${idx}`;
+                }
+                return {
+                    label,
+                    color: fighter.definition.color || "#1c1b1b",
+                    total: fighter.damageDealt || 0,
+                    boss: fighter.bossDamageDealt || 0
+                };
+            }).sort((a, b) => b.boss - a.boss || b.total - a.total);
+
+            const totalBoss = rows.reduce((sum, row) => sum + row.boss, 0);
+            const totalAll = rows.reduce((sum, row) => sum + row.total, 0);
+            const denom = totalBoss > 0 ? totalBoss : (totalAll || 1);
+
+            const rowHtml = rows.map((row, index) => {
+                const value = totalBoss > 0 ? row.boss : row.total;
+                const pct = Math.round((value / denom) * 1000) / 10;
+                const barWidth = Math.max(0, Math.min(100, (value / denom) * 100));
+                return `
+                    <div class="damage-meter-row">
+                        <div class="damage-meter-rank">${index + 1}</div>
+                        <div class="damage-meter-swatch" style="background:${row.color}"></div>
+                        <div class="damage-meter-name">${escapeHtml(row.label)}</div>
+                        <div class="damage-meter-bar-track">
+                            <div class="damage-meter-bar-fill" style="width:${barWidth}%; background:${row.color}"></div>
+                        </div>
+                        <div class="damage-meter-value">${Math.round(value).toLocaleString()}</div>
+                        <div class="damage-meter-pct">${pct}%</div>
+                    </div>
+                `;
+            }).join("");
+
+            return `
+                <div class="damage-meter">
+                    <div class="damage-meter-title">캐릭터별 딜량${totalBoss > 0 ? " (보스)" : ""}</div>
+                    <div class="damage-meter-list">${rowHtml}</div>
+                    <div class="damage-meter-total">합계 ${Math.round(totalBoss > 0 ? totalBoss : totalAll).toLocaleString()}</div>
+                </div>
+            `;
+        }
+
         function checkWinner(now) {
             const alive = battle.fighters.filter((fighter) => !fighter.dead && !fighter.isSummon);
             const boss = alive.find((fighter) => fighter.isBoss);
@@ -3764,11 +4041,13 @@
                 }
 
                 countdown.classList.remove("hidden");
+                countdown.classList.add("result-overlay");
                 countdown.innerHTML = `
-                    <div>
+                    <div class="result-panel">
                         <div>${resultTitle}</div>
                         ${unlockNote}
                         <div class="font-label-numeric text-label-numeric mt-3">TIME ${formatElapsed(currentFightElapsed(now))}</div>
+                        ${buildDamageMeterHtml()}
                     </div>
                 `;
                 matchTitle.textContent = isBossBattle ? "보스전 종료" : "전투 종료";
@@ -3849,11 +4128,11 @@
             const trophy = definition.mapEffects.trophy;
             const lines = [];
             if (mic) {
-                lines.push(`<p class="text-on-surface-variant">마이크: 최대 체력의 ${(mic.damageThresholdRatio * 100).toFixed(2)}% 피해마다 HP ${mic.maxHp} 마이크 소환. ${mic.lifetime}초 내 파괴 시 아군 공격력 +${(mic.successAttackBuffRatio * 100).toFixed(2)}%, 실패 시 보스 최대 체력 ${(mic.failHealRatio * 100).toFixed(2)}% 회복.</p>`);
+                lines.push(`<p class="text-on-surface-variant">마이크: 최대 체력의 ${(mic.damageThresholdRatio * 100).toFixed(2)}% 피해마다 HP ${mic.maxHp} 마이크 소환. 파티가 ${mic.lifetime}초 내 파괴 시 아군 공격력 +${(mic.successAttackBuffRatio * 100).toFixed(2)}%, 보스가 파괴 시 모든 디버프 해제. 실패 시 보스 최대 체력 ${(mic.failHealRatio * 100).toFixed(2)}% 회복.</p>`);
             }
             if (piaget) {
                 const shieldRatio = piaget.successShieldRatio ?? 0.523;
-                lines.push(`<p class="text-on-surface-variant">피아제: ${piaget.interval}초마다 HP ${piaget.maxHp} 피아제 소환. 보스가 파괴 시 논두렁 ${piaget.successStunSeconds}초·보스 최대 체력 ${(piaget.successHealRatio * 100).toFixed(1)}% 회복·보호막 ${(shieldRatio * 100).toFixed(1)}%. 실패 시 보스 ${piaget.failStunSeconds}초 행동 불가·아군 최대 체력 ${(piaget.failPartyHealRatio * 100).toFixed(0)}% 회복·피해 +${(piaget.failPartyDamageBoost * 100).toFixed(1)}%.</p>`);
+                lines.push(`<p class="text-on-surface-variant">피아제: ${piaget.interval}초마다 HP ${piaget.maxHp} 피아제 소환. 보스가 파괴 시 논두렁 ${piaget.successStunSeconds}초·보스 최대 체력 ${(piaget.successHealRatio * 100).toFixed(1)}% 회복·보호막 ${(shieldRatio * 100).toFixed(1)}%·다음 피아제까지 디버프 면역. 실패 시 보스 ${piaget.failStunSeconds}초 행동 불가·아군 최대 체력 ${(piaget.failPartyHealRatio * 100).toFixed(0)}% 회복·피해 +${(piaget.failPartyDamageBoost * 100).toFixed(1)}%.</p>`);
             }
             if (trophy) {
                 lines.push(`<p class="text-on-surface-variant">${escapeHtml(trophy.name || "월즈 트로피")}: ${escapeHtml(trophy.description)}</p>`);
@@ -4006,7 +4285,7 @@
             battle.lastTime = 0;
             battle.isRunning = false;
             battle.isFinished = false;
-            countdown.classList.remove("hidden");
+            countdown.classList.remove("hidden", "result-overlay");
             countdown.textContent = "3";
             matchTitle.textContent = isBossBattle ? "보스전 준비" : "전투 준비";
 

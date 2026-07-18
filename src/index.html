@@ -316,10 +316,10 @@
             const trophy = character.mapEffects.trophy;
             const lines = [];
             if (mic) {
-                lines.push(`<p class="text-on-surface-variant">마이크: 최대 체력 ${(mic.damageThresholdRatio * 100).toFixed(2)}% 피해를 입을 때마다 HP ${mic.maxHp}의 마이크 소환. ${mic.lifetime}초 내에 파괴하면 아군 공격력 +${(mic.successAttackBuffRatio * 100).toFixed(2)}%, 실패 시 보스 체력 ${(mic.failHealRatio * 100).toFixed(2)}% 회복.</p>`);
+                lines.push(`<p class="text-on-surface-variant">마이크: 최대 체력 ${(mic.damageThresholdRatio * 100).toFixed(2)}% 피해를 입을 때마다 HP ${mic.maxHp}의 마이크 소환. 파티가 ${mic.lifetime}초 내 파괴 시 아군 공격력 +${(mic.successAttackBuffRatio * 100).toFixed(2)}%, 보스가 파괴 시 모든 디버프 해제. 실패 시 보스 체력 ${(mic.failHealRatio * 100).toFixed(2)}% 회복.</p>`);
             }
             if (piaget) {
-                lines.push(`<p class="text-on-surface-variant">피아제: ${piaget.interval}초마다 HP ${piaget.maxHp}의 피아제 생성. 보스가 파괴 시 모든 아군을 논두렁에 빠트려 스턴 ${piaget.successStunSeconds}초 및 보스 체력 ${(piaget.successHealRatio * 100).toFixed(1)}% 회복·보호막 ${((piaget.successShieldRatio ?? 0.523) * 100).toFixed(1)}%. 아군이 파괴 시 보스 ${piaget.failStunSeconds}초 행동 불가 및 아군 회복 ${(piaget.failPartyHealRatio * 100).toFixed(0)}%·피해량 +${(piaget.failPartyDamageBoost * 100).toFixed(1)}%.</p>`);
+                lines.push(`<p class="text-on-surface-variant">피아제: ${piaget.interval}초마다 HP ${piaget.maxHp}의 피아제 생성. 보스가 파괴 시 모든 아군을 논두렁에 빠트려 스턴 ${piaget.successStunSeconds}초 및 보스 체력 ${(piaget.successHealRatio * 100).toFixed(1)}% 회복·보호막 ${((piaget.successShieldRatio ?? 0.523) * 100).toFixed(1)}%·다음 피아제까지 디버프 면역. 아군이 파괴 시 보스 ${piaget.failStunSeconds}초 행동 불가 및 아군 회복 ${(piaget.failPartyHealRatio * 100).toFixed(0)}%·피해량 +${(piaget.failPartyDamageBoost * 100).toFixed(1)}%.</p>`);
             }
             if (trophy) {
                 lines.push(`<p class="text-on-surface-variant">${escapeHtml(trophy.name || "월즈 트로피")}: ${escapeHtml(trophy.description)}</p>`);

@@ -565,7 +565,11 @@
                     const effects = fighter.definition.passive?.effects || {};
                     if (other.rohMarks.has(fighter.id)) {
                         other.rohMarks.delete(fighter.id);
-                        ctx.applyDamage(other, effects.markBonusDamage || 52.3, fighter, "passive");
+                        const dealt = ctx.applyDamage(other, effects.markBonusDamage || 52.3, fighter, "passive");
+                        const healRatio = Number(effects.markHealRatio);
+                        if (dealt > 0 && Number.isFinite(healRatio) && healRatio > 0) {
+                            ctx.healFighter(fighter, dealt * healRatio);
+                        }
                         ctx.stun(other, effects.markStunSeconds || 2.09, now);
                         ctx.floatText("부끄러운 줄!", other.x, other.y - ctx.battle.ballSize / 2, fighter.definition.color);
                         ctx.impactStar(other.x, other.y, fighter.definition.color);

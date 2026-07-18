@@ -615,10 +615,11 @@
             startingDamageReduction: 0.0523,
             passive: {
                 name: "부끄러운 줄 알아야지!",
-                description: "노무현과 충돌하면 노무현이 표식을 남깁니다. 이후에 다시 충돌할 경우, 표식을 소모하며 52.3의 추가 피해를 입히고 2.09초간 기절시킵니다.",
+                description: "노무현과 충돌하면 노무현이 표식을 남깁니다. 이후에 다시 충돌할 경우, 표식을 소모하며 52.3의 추가 피해를 입히고 2.09초간 기절시킵니다. 표식 소모로 입힌 피해량의 20.9%만큼 체력을 회복합니다.",
                 effects: {
                     markBonusDamage: 52.3,
-                    markStunSeconds: 2.09
+                    markStunSeconds: 2.09,
+                    markHealRatio: 0.209
                 }
             },
             skill: {
@@ -641,7 +642,7 @@
                         traits: ["소환수", "바위 떨구기"],
                         skill: {
                             name: "바위 떨구기",
-                            cooldown: 8,
+                            cooldown: 5.23,
                             description: "자신 앞 직선 경로로 바위를 떨굽니다. 바위에 맞은 적은 52.3 피해를 입고 2.09초간 중력이 강하게 작용해 기절합니다.",
                             effects: {
                                 rockDamage: 52.3,
@@ -664,7 +665,7 @@
             skill2: {
                 name: "운지",
                 cooldown: 15.23,
-                description: "가장 가까운 캐릭터를 강제로 자신 앞으로 데려와 맵 밖으로 추락시켜 해당 캐릭터의 최대 체력의 20.09%에 해당하는 피해를 입힙니다. 이 피해로 사망하면 노무현은 최대 체력의 20.09%만큼 회복하고 5.23%만큼의 보호막을 얻습니다.",
+                description: "가장 가까운 캐릭터를 강제로 자신 앞으로 데려와 맵 밖으로 추락시켜 해당 캐릭터의 최대 체력의 20.09%에 해당하는 피해를 입힙니다. 이 피해로 캐릭터가 사망하면 노무현은 최대 체력의 20.09%만큼 회복하고 5.23%만큼의 보호막을 얻습니다.",
                 effects: {
                     maxHpDamageRatio: 0.2009,
                     killHealRatio: 0.2009,
@@ -678,14 +679,14 @@
                     damageThresholdRatio: 0.0523,
                     lifetime: 5.23,
                     failHealRatio: 0.0523,
-                    successAttackBuffRatio: 0.0523
+                    successAttackBuffRatio: 0.02009
                 },
                 piaget: {
                     maxHp: 523,
                     interval: 15,
                     failStunSeconds: 2.09,
-                    failPartyHealRatio: 0.2009,
-                    failPartyDamageBoost: 0.523,
+                    failPartyHealRatio: 0.523,
+                    failPartyDamageBoost: 0.2009,
                     successStunSeconds: 5.23,
                     successHealRatio: 0.523,
                     successShieldRatio: 0.523
@@ -866,13 +867,51 @@
     const RAID_PARTY_DAMAGE_MULTIPLIER = 0.85;
     const RAID_BOSS_RATIO_DAMAGE_MULTIPLIER = 0.35;
     const RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER = 0.35;
-    const RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER = 0.55;
-    const RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER = 0.5;
+    const RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER = 0.9;
+    const RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER = 0.75;
+    // 노무현 보스전 전용 파티 딜 배율 (캐릭터 특성 수치 자체는 유지)
+    const RAID_ROH_PARTY_DAMAGE_MULTIPLIER = 0.78;
+    const RAID_ROH_BOSS_RATIO_DAMAGE_MULTIPLIER = 0.28;
+    const RAID_ROH_JEONG_YUSEUNG_PASSIVE_MULTIPLIER = 0.28;
+    const RAID_ROH_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER = 0.75;
+    const RAID_ROH_KANG_HYUNWOO_GROWTH_MULTIPLIER = 0.6;
     const RAID_HP_LOW_THRESHOLD = 300;
     const RAID_HP_MID_THRESHOLD = 400;
     const RAID_HP_LOW_MULTIPLIER = 1.65;
     const RAID_HP_MID_MULTIPLIER = 1.35;
     const RAID_PARTY_PIVOT = 10;
+
+    function isRohBoss(bossId) {
+        return bossId === "roh-moohyun";
+    }
+
+    function getRaidPartyDamageMultiplier(bossId) {
+        return isRohBoss(bossId) ? RAID_ROH_PARTY_DAMAGE_MULTIPLIER : RAID_PARTY_DAMAGE_MULTIPLIER;
+    }
+
+    function getRaidBossRatioDamageMultiplier(bossId) {
+        return isRohBoss(bossId)
+            ? RAID_ROH_BOSS_RATIO_DAMAGE_MULTIPLIER
+            : RAID_BOSS_RATIO_DAMAGE_MULTIPLIER;
+    }
+
+    function getRaidJeongYuseungPassiveMultiplier(bossId) {
+        return isRohBoss(bossId)
+            ? RAID_ROH_JEONG_YUSEUNG_PASSIVE_MULTIPLIER
+            : RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER;
+    }
+
+    function getRaidSongGeonukAttackGainMultiplier(bossId) {
+        return isRohBoss(bossId)
+            ? RAID_ROH_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER
+            : RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER;
+    }
+
+    function getRaidKangHyunwooGrowthMultiplier(bossId) {
+        return isRohBoss(bossId)
+            ? RAID_ROH_KANG_HYUNWOO_GROWTH_MULTIPLIER
+            : RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER;
+    }
 
     function resolveCharacter(characterOrId) {
         if (!characterOrId) {
@@ -901,11 +940,11 @@
 
     /**
      * 레이드 인원 수에 따른 보스가 받는 피해 배율.
-     * 기준 10인 = 1.0 / 미만 증가 / 초과 소폭 감소
+     * 기준 10인 = 1.0 / 미만 증가 / 초과 시 감소 (10인 이상 소폭 강화)
      */
     function computeRaidIncomingDamageMultiplier(partyCount, bossId) {
         const n = Math.max(1, Math.floor(Number(partyCount) || 1));
-        const isRoh = bossId === "roh-moohyun";
+        const isRoh = isRohBoss(bossId);
 
         if (n < RAID_PARTY_PIVOT) {
             const lowScale = isRoh ? 0.11 : 0.12;
@@ -914,9 +953,15 @@
         if (n === RAID_PARTY_PIVOT) {
             return 1;
         }
-        const highScale = isRoh ? 0.02 : 0.016;
-        const floor = isRoh ? 0.72 : 0.78;
-        return Math.max(floor, 1 / (1 + (n - RAID_PARTY_PIVOT) * highScale));
+        // 10인 초과: 11~14인(+2~5%p), 15인 이상(+6~10%p) 구간별 피해 감소 강화.
+        const over = n - RAID_PARTY_PIVOT;
+        if (over <= 4) {
+            const lowHighScale = isRoh ? 0.075 : 0.06;
+            return 1 / (1 + over * lowHighScale);
+        }
+        const highScale = isRoh ? 0.078 : 0.065;
+        const floor = isRoh ? 0.56 : 0.62;
+        return Math.max(floor, 1 / (1 + over * highScale));
     }
 
     function formatMultiplier(value) {
@@ -977,7 +1022,7 @@
                 baseMaxHp: 0,
                 raidMaxHp: 0,
                 isBoss: false,
-                partyDamageMultiplier: RAID_PARTY_DAMAGE_MULTIPLIER,
+                partyDamageMultiplier: getRaidPartyDamageMultiplier("faker"),
                 incomingDamageMultiplier: null
             };
         }
@@ -1005,7 +1050,7 @@
                 baseMaxHp,
                 raidMaxHp,
                 isBoss: true,
-                partyDamageMultiplier: RAID_PARTY_DAMAGE_MULTIPLIER,
+                partyDamageMultiplier: getRaidPartyDamageMultiplier(isBoss ? character.id : bossId),
                 incomingDamageMultiplier
             };
         }
@@ -1019,26 +1064,32 @@
             lines.push(`최대 체력 ${baseMaxHp} (보스전 보정 없음)`);
         }
 
-        lines.push(`파티 전체 피해 ×${formatMultiplier(RAID_PARTY_DAMAGE_MULTIPLIER)}`);
+        const partyDamageMultiplier = getRaidPartyDamageMultiplier(bossId);
+        const bossRatioDamageMultiplier = getRaidBossRatioDamageMultiplier(bossId);
+        const jeongPassiveMultiplier = getRaidJeongYuseungPassiveMultiplier(bossId);
+        const songAttackGainMultiplier = getRaidSongGeonukAttackGainMultiplier(bossId);
+        const kangGrowthMultiplier = getRaidKangHyunwooGrowthMultiplier(bossId);
+
+        lines.push(`파티 전체 피해 ×${formatMultiplier(partyDamageMultiplier)}`);
 
         if (characterHasBossRatioDamage(character)) {
-            lines.push(`보스 대상 체력 비례 피해 ×${formatMultiplier(RAID_BOSS_RATIO_DAMAGE_MULTIPLIER)}`);
+            lines.push(`보스 대상 체력 비례 피해 ×${formatMultiplier(bossRatioDamageMultiplier)}`);
         }
 
         if (character.id === "jeong-yuseung") {
-            lines.push(`패시브(돼지 도축) 보스 추가 피해 ×${formatMultiplier(RAID_JEONG_YUSEUNG_PASSIVE_MULTIPLIER)}`);
+            lines.push(`패시브(돼지 도축) 보스 추가 피해 ×${formatMultiplier(jeongPassiveMultiplier)}`);
         }
 
         if (character.id === "song-geonuk") {
             const baseGain = Number(character.skill?.effects?.attackGain) || 0;
-            const raidGain = Math.round(baseGain * RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER * 1000) / 1000;
-            lines.push(`다이어트 공격력 상승 ${baseGain} → ${raidGain} (×${formatMultiplier(RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER)})`);
+            const raidGain = Math.round(baseGain * songAttackGainMultiplier * 1000) / 1000;
+            lines.push(`다이어트 공격력 상승 ${baseGain} → ${raidGain} (×${formatMultiplier(songAttackGainMultiplier)})`);
         }
 
         if (character.id === "kang-hyunwoo") {
             const baseGrowth = Number(character.passive?.effects?.growthDamage) || 0;
-            const raidGrowth = Math.round(baseGrowth * RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER * 1000) / 1000;
-            lines.push(`시간 성장 피해 ${baseGrowth} → ${raidGrowth} (×${formatMultiplier(RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER)})`);
+            const raidGrowth = Math.round(baseGrowth * kangGrowthMultiplier * 1000) / 1000;
+            lines.push(`시간 성장 피해 ${baseGrowth} → ${raidGrowth} (×${formatMultiplier(kangGrowthMultiplier)})`);
         }
 
         lines.push(`인원 보정(${partyCount}인): 보스 받는 피해 ${formatSignedPercent(incomingDamageMultiplier)} (×${formatMultiplier(incomingDamageMultiplier)})`);
@@ -1048,7 +1099,7 @@
             baseMaxHp,
             raidMaxHp,
             isBoss: false,
-            partyDamageMultiplier: RAID_PARTY_DAMAGE_MULTIPLIER,
+            partyDamageMultiplier: getRaidPartyDamageMultiplier(isBoss ? character.id : bossId),
             incomingDamageMultiplier
         };
     }
@@ -1061,6 +1112,11 @@
         RAID_SONG_GEONUK_ATTACK_GAIN_MULTIPLIER,
         RAID_KANG_HYUNWOO_GROWTH_MULTIPLIER,
         RAID_PARTY_PIVOT,
+        getRaidPartyDamageMultiplier,
+        getRaidBossRatioDamageMultiplier,
+        getRaidJeongYuseungPassiveMultiplier,
+        getRaidSongGeonukAttackGainMultiplier,
+        getRaidKangHyunwooGrowthMultiplier,
         getCharacters() {
             return window.HANNAM_BALLS_CHARACTERS.map((character) => JSON.parse(JSON.stringify(character)));
         },
